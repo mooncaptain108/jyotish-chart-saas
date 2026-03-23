@@ -33,3 +33,8 @@ Thumbs.db
 
 # Swiss Ephemeris data files (optional, Moshier built-in is used)
 ephe/
+DATA_LICENSE
+lib/
+lib64/
+=0.104.0
+lib64
