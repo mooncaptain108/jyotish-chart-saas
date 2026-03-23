@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jyotish</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Toolbar ── */
+    .toolbar { display:flex; align-items:center; gap:0.4rem; background:#0d1220; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
+    .toolbar .app-title { color:#c9a84c; font-weight:bold; font-size:1rem; margin-right:0.75rem; }
+    .toolbar .sep { width:1px; height:1.4rem; background:#0f3460; margin:0 0.25rem; }
+    .tb-btn { padding:0.35rem 0.75rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; white-space:nowrap; }
+    .tb-btn:hover { background:#16213e; color:#e0e0e0; border-color:#1a4a80; }
+    .tb-btn.active { background:#16213e; color:#c9a84c; border-color:#c9a84c; }
+    .tb-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+    /* ── Chart area ── */
+    #chartArea { padding:1rem 1.5rem; flex:1; }
+    #chartTitle { color:#a0a0b0; font-size:0.85rem; margin-bottom:0.75rem; min-height:1.2em; }
+    #chart { display:block; width:min(88vw,88vh); height:auto; }
+    #errorMsg { color:#e08080; margin-top:0.75rem; font-size:0.9rem; }
+
+    /* ── Raw panel ── */
+    #rawSection { padding:0 1.5rem 1.5rem; display:none; }
+    #rawSection pre { background:#0a0a1a; border:1px solid #0f3460; border-radius:4px; padding:1rem; overflow:auto; max-height:500px; font-size:0.8rem; color:#a0e0a0; font-family:monospace; }
+
+    /* ── Dialogs (shared) ── */
+    dialog { background:#16213e; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
+    dialog::backdrop { background:rgba(0,0,0,0.65); }
+    .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; }
+    .dlg-header h2 { color:#c9a84c; font-size:1rem; }
+    .dlg-body { padding:1.25rem; }
+    .dlg-footer { display:flex; gap:0.5rem; justify-content:flex-end; padding:0.75rem 1.25rem; border-top:1px solid #0f3460; }
+    .dlg-close-x { background:none; border:none; color:#606080; font-size:1.2rem; cursor:pointer; line-height:1; padding:0 0.25rem; }
+    .dlg-close-x:hover { color:#e0e0e0; }
+
+    /* ── Form elements ── */
+    .f-label { display:block; margin-bottom:0.2rem; font-size:0.8rem; color:#a0a0b0; }
+    .f-group { margin-bottom:0.9rem; }
+    input[type="text"], input[type="date"], input[type="time"], input[type="number"], select { width:100%; padding:0.45rem 0.7rem; background:#0f1e3a; border:1px solid #1a4a80; border-radius:4px; color:#e0e0e0; font-size:0.95rem; }
+    input:focus, select:focus { outline:none; border-color:#c9a84c; }
+    .f-row2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+    .f-hint { font-size:0.72rem; color:#505070; margin-top:0.2rem; }
+    .f-divider { border-top:1px solid #0f3460; margin:0.75rem 0; }
+    .f-save-status { font-size:0.8rem; color:#70c070; margin-left:auto; align-self:center; }
+
+    /* ── Buttons ── */
+    .btn-primary { padding:0.45rem 1.1rem; background:#c9a84c; color:#1a1a2e; border:none; border-radius:4px; font-size:0.9rem; font-weight:bold; cursor:pointer; }
+    .btn-primary:hover { background:#e0bf6a; }
+    .btn-primary:disabled { background:#6a5a2a; cursor:not-allowed; }
+    .btn-sec { padding:0.45rem 1.1rem; background:#0f1e3a; color:#c0c0d0; border:1px solid #1a4a80; border-radius:4px; font-size:0.9rem; cursor:pointer; }
+    .btn-sec:hover { background:#16213e; color:#e0e0e0; }
+    .btn-danger { padding:0.45rem 0.8rem; background:transparent; color:#c06060; border:1px solid #6a3030; border-radius:4px; font-size:0.85rem; cursor:pointer; }
+    .btn-danger:hover { background:#2a1010; }
+
+    /* ── Chart library / atlas tables ── */
+    .chart-list, .atlas-list { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .chart-list th, .atlas-list th { text-align:left; color:#a0a0b0; font-weight:normal; padding:0.3rem 0.5rem; border-bottom:1px solid #0f3460; }
+    .chart-list td, .atlas-list td { padding:0.4rem 0.5rem; border-bottom:1px solid #0a1428; vertical-align:middle; }
+    .chart-list tr.data-row:hover td { background:#0f1e3a; cursor:pointer; }
+    .chart-list tr.data-row td:last-child, .atlas-list td:last-child { cursor:default; white-space:nowrap; }
+    .no-records { color:#505070; font-size:0.85rem; padding:1rem 0; text-align:center; }
+
+    /* ── Analysis dialog ── */
+    #dlgAnalysis { min-width:500px; }
+    .an-lagna { font-size:0.8rem; color:#a0a0b0; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid #0f3460; }
+    .an-planet { margin-bottom:0.9rem; border-left:3px solid #1a4a80; padding-left:0.75rem; }
+    .an-phead { display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.3rem; }
+    .an-abbr { font-family:monospace; font-size:1rem; font-weight:bold; min-width:2rem; }
+    .an-name { font-size:0.9rem; }
+    .an-loc { font-size:0.78rem; color:#808098; margin-left:auto; }
+    .an-item { font-size:0.8rem; padding:0.1rem 0; }
+    .an-item.overall { font-weight:bold; margin-top:0.25rem; font-size:0.82rem; }
+    .c-red   { color:#e06060; }
+    .c-blue  { color:#6090ff; }
+    .c-brown { color:#c8a060; }
+    .c-green { color:#70c070; }
+    .c-gray  { color:#808098; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Toolbar ── -->
+  <header class="toolbar">
+    <span class="app-title">Jyotish</span>
+    <div class="sep"></div>
+    <button class="tb-btn" onclick="openNewDialog()">New</button>
+    <button class="tb-btn" onclick="openOpenDialog()">Open</button>
+    <button class="tb-btn" onclick="openAtlasDialog()">Atlas</button>
+    <div class="sep"></div>
+    <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
+    <button class="tb-btn" id="rawToggleBtn" onclick="toggleRaw()">Raw</button>
+  </header>
+
+  <!-- ── Chart area ── -->
+  <div id="chartArea">
+    <p id="chartTitle">Use <strong style="color:#c9a84c">New</strong> to enter a chart or <strong style="color:#c9a84c">Open</strong> to load a saved one.</p>
+    <svg id="chart" viewBox="0 0 500 500" style="display:none"></svg>
+    <p id="errorMsg"></p>
+  </div>
+
+  <!-- ── Raw JSON ── -->
+  <div id="rawSection"><pre id="rawJson"></pre></div>
+
+  <!-- ════ New Chart dialog ════ -->
+  <dialog id="dlgNew">
+    <div class="dlg-header">
+      <h2>New Chart</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgNew').close()">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-group">
+        <label class="f-label" for="nAtlas">Location (atlas)</label>
+        <select id="nAtlas" onchange="newAtlasLoad()"><option value="">— pick a saved location —</option></select>
+      </div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="nLat">Latitude</label>
+          <input type="text" id="nLat" placeholder="47.4833 or 47 N 29">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="nLon">Longitude</label>
+          <input type="text" id="nLon" placeholder="-122.2166 or 122 W 20">
+        </div>
+      </div>
+      <p class="f-hint" style="margin-top:-0.6rem;margin-bottom:0.8rem;">Decimal or deg-dir-min, e.g. 47 N 29 / 122 W 20</p>
+      <div class="f-group">
+        <label class="f-label" for="nTz">UTC offset (hours, e.g. -8 for PST)</label>
+        <input type="number" id="nTz" step="0.5" placeholder="-8">
+      </div>
+      <div class="f-divider"></div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="nDate">Date</label>
+          <input type="date" id="nDate">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="nTime">Time</label>
+          <input type="time" id="nTime" step="60">
+        </div>
+      </div>
+      <div class="f-divider"></div>
+      <div class="f-group">
+        <label class="f-label" for="nName">Chart name (required to save)</label>
+        <input type="text" id="nName" placeholder="e.g. Paul natal, Seattle election">
+      </div>
+      <p id="newErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
+    </div>
+    <div class="dlg-footer">
+      <span class="f-save-status" id="saveStatus"></span>
+      <button class="btn-primary" id="newSubmitBtn" onclick="newSubmit()">Submit</button>
+      <button class="btn-sec" onclick="newSave()">Save</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgNew').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Open Chart dialog ════ -->
+  <dialog id="dlgOpen">
+    <div class="dlg-header">
+      <h2>Chart Library</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgOpen').close()">✕</button>
+    </div>
+    <div class="dlg-body" style="max-height:60vh;overflow-y:auto;padding-bottom:0;">
+      <div id="chartListWrap"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgOpen').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Atlas dialog ════ -->
+  <dialog id="dlgAtlas">
+    <div class="dlg-header">
+      <h2>Location Atlas</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgAtlas').close()">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div id="atlasListWrap" style="max-height:40vh;overflow-y:auto;margin-bottom:1rem;"></div>
+      <div class="f-divider"></div>
+      <p class="f-label" style="margin-bottom:0.6rem;">Add / update location</p>
+      <div class="f-group">
+        <label class="f-label" for="aName">Name</label>
+        <input type="text" id="aName" placeholder="City, State">
+      </div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="aLat">Latitude</label>
+          <input type="text" id="aLat" placeholder="47.4833 or 47 N 29">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="aLon">Longitude</label>
+          <input type="text" id="aLon" placeholder="-122.2166 or 122 W 20">
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="aTz">UTC offset (hours, e.g. -8 for PST)</label>
+        <input type="number" id="aTz" step="0.5" placeholder="-8">
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-primary" onclick="atlasSave()">Save Location</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgAtlas').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Analysis dialog ════ -->
+  <dialog id="dlgAnalysis">
+    <div class="dlg-header">
+      <h2>Chart Analysis</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgAnalysis').close()">✕</button>
+    </div>
+    <div class="dlg-body" style="max-height:75vh;overflow-y:auto;">
+      <div id="analysisContent"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgAnalysis').close()">Close</button>
+    </div>
+  </dialog>
+
+  <script>
+    // ═══════════════════════════════════════════════════
+    // Storage helpers
+    // ═══════════════════════════════════════════════════
+    const ATLAS_KEY  = 'jyotish_atlas';
+    const CHARTS_KEY = 'jyotish_charts';
+    const RAW_KEY    = 'jyotish_raw';
+
+    function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
+    function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
+    function getCharts()  { try { return JSON.parse(localStorage.getItem(CHARTS_KEY) || '[]'); } catch { return []; } }
+    function setCharts(v) { localStorage.setItem(CHARTS_KEY, JSON.stringify(v)); }
+
+    // ═══════════════════════════════════════════════════
+    // Raw toggle
+    // ═══════════════════════════════════════════════════
+    let rawVisible = localStorage.getItem(RAW_KEY) === '1';
+
+    function applyRawState() {
+      const hasContent = !!document.getElementById('rawJson').textContent.trim();
+      document.getElementById('rawSection').style.display = (rawVisible && hasContent) ? 'block' : 'none';
+      document.getElementById('rawToggleBtn').classList.toggle('active', rawVisible);
+    }
+    function toggleRaw() {
+      rawVisible = !rawVisible;
+      localStorage.setItem(RAW_KEY, rawVisible ? '1' : '0');
+      applyRawState();
+    }
+    applyRawState();
+
+    // ═══════════════════════════════════════════════════
+    // DMS parser
+    // ═══════════════════════════════════════════════════
+    function parseDMS(raw) {
+      raw = (raw || '').trim();
+      if (/^-?\d+(\.\d+)?$/.test(raw)) return parseFloat(raw);
+      const m = raw.toUpperCase().match(/(\d+(?:\.\d+)?)\s*([NSEW])\s*(\d+(?:\.\d+)?)?/);
+      if (m) {
+        const dec = parseFloat(m[1]) + (m[3] ? parseFloat(m[3]) : 0) / 60;
+        return (m[2] === 'S' || m[2] === 'W') ? -dec : dec;
+      }
+      return NaN;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Atlas dialog
+    // ═══════════════════════════════════════════════════
+    function openAtlasDialog() { rebuildAtlasList(); document.getElementById('dlgAtlas').showModal(); }
+
+    function rebuildAtlasList() {
+      const atlas = getAtlas();
+      const names = Object.keys(atlas).sort();
+      const wrap = document.getElementById('atlasListWrap');
+      if (!names.length) { wrap.innerHTML = '<p class="no-records">No locations saved yet.</p>'; return; }
+      let html = '<table class="atlas-list"><thead><tr><th>Name</th><th>Lat</th><th>Lon</th><th>TZ</th><th></th></tr></thead><tbody>';
+      for (const n of names) {
+        const loc = atlas[n];
+        html += `<tr><td>${esc(n)}</td><td>${loc.lat}</td><td>${loc.lon}</td><td>${loc.tz}</td>
+          <td><button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.55rem;margin-right:0.25rem" onclick="atlasEdit('${esc(n)}')">Edit</button>
+              <button class="btn-danger" onclick="atlasDelete('${esc(n)}')">Del</button></td></tr>`;
+      }
+      wrap.innerHTML = html + '</tbody></table>';
+    }
+
+    function atlasSave() {
+      const name = document.getElementById('aName').value.trim();
+      if (!name) { alert('Enter a location name.'); return; }
+      const lat = parseDMS(document.getElementById('aLat').value);
+      const lon = parseDMS(document.getElementById('aLon').value);
+      const tz  = parseFloat(document.getElementById('aTz').value);
+      if (isNaN(lat) || isNaN(lon) || isNaN(tz)) { alert('Check lat/lon/timezone values.'); return; }
+      const atlas = getAtlas();
+      atlas[name] = { lat: lat.toFixed(4), lon: lon.toFixed(4), tz };
+      setAtlas(atlas);
+      rebuildAtlasList();
+      rebuildNewAtlasSelect();
+      document.getElementById('aName').value = '';
+    }
+
+    function atlasDelete(name) {
+      if (!confirm('Delete "' + name + '"?')) return;
+      const atlas = getAtlas(); delete atlas[name]; setAtlas(atlas);
+      rebuildAtlasList(); rebuildNewAtlasSelect();
+    }
+
+    function atlasEdit(name) {
+      const loc = getAtlas()[name]; if (!loc) return;
+      document.getElementById('aName').value = name;
+      document.getElementById('aLat').value  = loc.lat;
+      document.getElementById('aLon').value  = loc.lon;
+      document.getElementById('aTz').value   = loc.tz;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // New Chart dialog
+    // ═══════════════════════════════════════════════════
+    function openNewDialog() {
+      const now = new Date();
+      document.getElementById('nDate').value = now.toISOString().split('T')[0];
+      document.getElementById('nTime').value = now.toTimeString().slice(0,5);
+      document.getElementById('newErrMsg').textContent = '';
+      document.getElementById('saveStatus').textContent = '';
+      rebuildNewAtlasSelect();
+      document.getElementById('dlgNew').showModal();
+    }
+
+    function rebuildNewAtlasSelect() {
+      const sel = document.getElementById('nAtlas');
+      const names = Object.keys(getAtlas()).sort();
+      sel.innerHTML = '<option value="">— pick a saved location —</option>';
+      for (const n of names) { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); }
+    }
+
+    function newAtlasLoad() {
+      const loc = getAtlas()[document.getElementById('nAtlas').value]; if (!loc) return;
+      document.getElementById('nLat').value = loc.lat;
+      document.getElementById('nLon').value = loc.lon;
+      document.getElementById('nTz').value  = loc.tz;
+    }
+
+    async function newSubmit() {
+      const errEl = document.getElementById('newErrMsg');
+      const btn   = document.getElementById('newSubmitBtn');
+      errEl.textContent = '';
+      document.getElementById('saveStatus').textContent = '';
+
+      const lat  = parseDMS(document.getElementById('nLat').value);
+      const lon  = parseDMS(document.getElementById('nLon').value);
+      const tz   = parseFloat(document.getElementById('nTz').value);
+      const date = document.getElementById('nDate').value;
+      const time = document.getElementById('nTime').value;
+
+      if (isNaN(lat) || isNaN(lon)) { errEl.textContent = 'Cannot parse latitude or longitude.'; return; }
+      if (!date || !time)            { errEl.textContent = 'Date and time are required.'; return; }
+
+      btn.disabled = true; btn.textContent = 'Loading…';
+      try {
+        const res = await fetch('/api/v1/chart', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ date, time: time+':00', latitude:lat, longitude:lon, timezone_offset:tz })
+        });
+        if (!res.ok) throw new Error('Server error ' + res.status);
+        const data = await res.json();
+        renderChart(data);
+        document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+        applyRawState();
+        document.getElementById('errorMsg').textContent = '';
+      } catch (err) {
+        errEl.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Submit';
+      }
+    }
+
+    function newSave() {
+      const name = document.getElementById('nName').value.trim();
+      if (!name) { document.getElementById('newErrMsg').textContent = 'Enter a chart name to save.'; return; }
+      const lat  = parseDMS(document.getElementById('nLat').value);
+      const lon  = parseDMS(document.getElementById('nLon').value);
+      const tz   = parseFloat(document.getElementById('nTz').value);
+      const date = document.getElementById('nDate').value;
+      const time = document.getElementById('nTime').value;
+      if (isNaN(lat) || isNaN(lon) || !date || !time) { document.getElementById('newErrMsg').textContent = 'Fill in all fields before saving.'; return; }
+      const charts = getCharts();
+      const rec = { name, date, time, lat: lat.toFixed(4), lon: lon.toFixed(4), tz,
+                    locationName: document.getElementById('nAtlas').value || '' };
+      const idx = charts.findIndex(c => c.name === name);
+      if (idx >= 0) charts[idx] = rec; else charts.push(rec);
+      charts.sort((a,b) => a.name.localeCompare(b.name));
+      setCharts(charts);
+      document.getElementById('saveStatus').textContent = 'Saved ✓';
+      document.getElementById('newErrMsg').textContent = '';
+      setTimeout(() => { document.getElementById('saveStatus').textContent = ''; }, 2500);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Open Chart dialog
+    // ═══════════════════════════════════════════════════
+    function openOpenDialog() { rebuildChartList(); document.getElementById('dlgOpen').showModal(); }
+
+    function rebuildChartList() {
+      const charts = getCharts();
+      const wrap = document.getElementById('chartListWrap');
+      if (!charts.length) { wrap.innerHTML = '<p class="no-records">No saved charts yet.</p>'; return; }
+      let html = '<table class="chart-list"><thead><tr><th>Name</th><th>Date</th><th>Time</th><th>Location</th><th></th></tr></thead><tbody>';
+      for (const c of charts) {
+        const loc = c.locationName || (c.lat + ', ' + c.lon);
+        html += `<tr class="data-row" onclick="loadChart('${esc(c.name)}')">
+          <td>${esc(c.name)}</td><td>${esc(c.date)}</td><td>${esc(c.time)}</td><td>${esc(loc)}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.55rem;margin-right:0.25rem" onclick="editChart('${esc(c.name)}')">Edit</button>
+            <button class="btn-danger" onclick="deleteChart('${esc(c.name)}')">Del</button>
+          </td></tr>`;
+      }
+      wrap.innerHTML = html + '</tbody></table>';
+    }
+
+    async function loadChart(name) {
+      const c = getCharts().find(ch => ch.name === name); if (!c) return;
+      document.getElementById('dlgOpen').close();
+      document.getElementById('errorMsg').textContent = '';
+      try {
+        const res = await fetch('/api/v1/chart', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ date:c.date, time:c.time+':00', latitude:parseFloat(c.lat), longitude:parseFloat(c.lon), timezone_offset:parseFloat(c.tz) })
+        });
+        if (!res.ok) throw new Error('Server error ' + res.status);
+        const data = await res.json();
+        renderChart(data);
+        document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+        applyRawState();
+      } catch (err) {
+        document.getElementById('errorMsg').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    function deleteChart(name) {
+      if (!confirm('Delete "' + name + '"?')) return;
+      setCharts(getCharts().filter(c => c.name !== name));
+      rebuildChartList();
+    }
+
+    function editChart(name) {
+      const c = getCharts().find(ch => ch.name === name); if (!c) return;
+      document.getElementById('dlgOpen').close();
+      rebuildNewAtlasSelect();
+      document.getElementById('nName').value  = c.name;
+      document.getElementById('nLat').value   = c.lat;
+      document.getElementById('nLon').value   = c.lon;
+      document.getElementById('nTz').value    = c.tz;
+      document.getElementById('nDate').value  = c.date;
+      document.getElementById('nTime').value  = c.time;
+      document.getElementById('nAtlas').value = c.locationName || '';
+      document.getElementById('newErrMsg').textContent = '';
+      document.getElementById('saveStatus').textContent = '';
+      document.getElementById('dlgNew').showModal();
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Utility
+    // ═══════════════════════════════════════════════════
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // ═══════════════════════════════════════════════════
+    // Jyotish constants
+    // ═══════════════════════════════════════════════════
+    const DEBI_RASHI    = { Sun:7,Moon:8,Mars:4,Mercury:12,Jupiter:10,Venus:6,Saturn:1,Rahu:9,Ketu:3 };
+    const MOOLA_RASHI   = { Sun:5,Moon:4,Mars:1,Mercury:6,Jupiter:9,Venus:7,Saturn:11 };
+    const SIGN_LORD     = { 1:'Mars',2:'Venus',3:'Mercury',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',8:'Mars',9:'Jupiter',10:'Saturn',11:'Saturn',12:'Jupiter' };
+    const RASHI_NAME    = ['','Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    const FUNC_MALEFICS = {
+       1:new Set(['Mercury']),        2:new Set(['Mars','Venus','Jupiter']),
+       3:new Set([]),                 4:new Set(['Jupiter','Saturn']),
+       5:new Set(['Moon']),           6:new Set(['Sun','Saturn','Mars']),
+       7:new Set(['Mercury']),        8:new Set(['Venus','Mars']),
+       9:new Set(['Moon']),          10:new Set(['Sun','Jupiter']),
+      11:new Set(['Moon','Mercury']), 12:new Set(['Sun','Venus','Saturn']),
+    };
+    const MMP = { 1:'Ketu',2:'Jupiter',3:'Ketu',4:'Saturn',5:'Moon',6:'Mars',7:'Mercury',8:'Venus',9:'Moon',10:'Sun',11:'Mercury',12:'Venus' };
+    const COMBUST_ORB   = { Moon:12,Mars:17,Mercury:14,Jupiter:11,Venus:10,Saturn:16 };
+    const ASPECT_OFFSETS = { default:[6],Mars:[6,3,7],Jupiter:[6,4,8],Saturn:[6,2,9],Rahu:[6,4,8],Ketu:[6,4,8] };
+    const DUSHTANA       = new Set([6,8,12]);
+
+    function fmAspectedHouses(grahaName, fromHouse) {
+      const houses = new Set([fromHouse]);
+      for (const off of (ASPECT_OFFSETS[grahaName] || ASPECT_OFFSETS.default))
+        houses.add(((fromHouse - 1 + off) % 12) + 1);
+      return houses;
+    }
+
+    function aspectLabel(grahaName, fromHouse, toHouse) {
+      if (fromHouse === toHouse) return 'conjunct';
+      for (const off of (ASPECT_OFFSETS[grahaName] || ASPECT_OFFSETS.default))
+        if (((fromHouse - 1 + off) % 12) + 1 === toHouse) return (off + 1) + 'th aspect';
+      return 'aspect';
+    }
+
+    function isStrong(deg) { return deg >= 5 && deg <= 25; }
+
+    // ═══════════════════════════════════════════════════
+    // Core analysis — single source of truth for colors + popover
+    // ═══════════════════════════════════════════════════
+    let lastData     = null;
+    let lastAnalysis = null;
+
+    function analyzeAllGrahas(data) {
+      const lr  = data.lagna.rashi;
+      const fms = FUNC_MALEFICS[lr] || new Set();
+      const mmp = MMP[lr];
+
+      // Combustion (absolute longitude)
+      const sunG   = data.grahas.find(g => g.graha === 'Sun');
+      const sunLon = sunG ? (sunG.rashi - 1) * 30 + sunG.degree_in_rashi : null;
+      const combustSet = new Set();
+      if (sunLon !== null) {
+        for (const g of data.grahas) {
+          const orb = COMBUST_ORB[g.graha]; if (!orb) continue;
+          const lon = (g.rashi - 1) * 30 + g.degree_in_rashi;
+          let d = Math.abs(lon - sunLon); if (d > 180) d = 360 - d;
+          if (d <= orb) combustSet.add(g.graha);
+        }
+      }
+
+      // FM list with computed houses
+      const fmData = data.grahas
+        .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
+        .map(g => ({ graha:g.graha, house:((g.rashi-lr+12)%12)+1, deg:g.degree_in_rashi }));
+
+      // ── First pass: per-planet base analysis ──
+      const analysis = {};
+      for (const g of data.grahas) {
+        const house       = ((g.rashi - lr + 12) % 12) + 1;
+        const isFM        = g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha);
+        const isMMP       = g.graha === mmp;
+        const combust     = combustSet.has(g.graha);
+        const weakByDeg   = !isStrong(g.degree_in_rashi);
+        const debilitated = DEBI_RASHI[g.graha] === g.rashi;
+        const inDushtana  = DUSHTANA.has(house);
+
+        // Direct degree afflictions (non-FMs only; skip MEP for now)
+        const afflictions = [];
+        if (!isFM) {
+          for (const fm of fmData) {
+            const special = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
+            const orb     = isStrong(g.degree_in_rashi) ? (special ? 2 : 1) : 5;
+            const asp     = fmAspectedHouses(fm.graha, fm.house);
+            if (asp.has(house)) {
+              const diff = Math.abs(fm.deg - g.degree_in_rashi);
+              if (diff <= orb) afflictions.push({ fm:fm.graha, orb:diff, special, via:aspectLabel(fm.graha, fm.house, house) });
+            }
+          }
+        }
+
+        const baseWeak = weakByDeg || combust || debilitated || inDushtana || afflictions.length > 0;
+
+        analysis[g.graha] = {
+          graha:g.graha, abbr:GRAHA_ABBR[g.graha]||g.graha.slice(0,2),
+          rashi:g.rashi, rashiName:RASHI_NAME[g.rashi],
+          house, deg:g.degree_in_rashi, retro:g.retrograde,
+          isFM, isMMP, combust, weakByDeg, debilitated, inDushtana, afflictions,
+          dispositor: SIGN_LORD[g.rashi],
+          baseWeak, dispositorWeak:false, isWeak:baseWeak, color:null
+        };
+      }
+
+      // ── Second pass: dispositor cap ──
+      for (const a of Object.values(analysis)) {
+        if (a.isFM || a.combust) continue;
+        const disp = analysis[a.dispositor];
+        if (disp && disp.baseWeak) { a.dispositorWeak = true; a.isWeak = true; }
+      }
+
+      // ── Assign colors ──
+      for (const a of Object.values(analysis)) {
+        if      (a.combust) a.color = '#6090ff';
+        else if (a.isFM)    a.color = '#e06060';
+        else if (a.isWeak)  a.color = '#c8a060';
+        else                a.color = '#70c070';
+      }
+
+      return analysis;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Analysis dialog
+    // ═══════════════════════════════════════════════════
+    function openAnalysisDialog() {
+      if (!lastData || !lastAnalysis) return;
+      const data = lastData;
+      const an   = lastAnalysis;
+      const lr   = data.lagna.rashi;
+      const bd   = data.birth_data;
+
+      let html = `<div class="an-lagna">
+        <strong style="color:#c9a84c">${RASHI_NAME[lr]}</strong> lagna (${lr}) &nbsp;·&nbsp;
+        MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
+        ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${bd.latitude} Lon ${bd.longitude}
+      </div>`;
+
+      // Sort by house, then degree
+      const grahas = Object.values(an).sort((a,b) => a.house - b.house || a.deg - b.deg);
+
+      for (const a of grahas) {
+        const retroStr = (a.retro && !NO_RETRO_LABEL.has(a.abbr)) ? 'R' : '';
+        html += `<div class="an-planet">
+          <div class="an-phead">
+            <span class="an-abbr" style="color:${a.color}">${a.abbr}${retroStr}</span>
+            <span class="an-name">${a.graha}</span>
+            <span class="an-loc">${a.rashiName} &bull; House ${a.house} &bull; ${fmtDeg(a.deg)}°</span>
+          </div><div>`;
+
+        if (a.isFM) {
+          html += `<div class="an-item c-red">Functional malefic${a.isMMP ? ' — Most Malefic Planet (MMP)' : ''} for ${RASHI_NAME[lr]} lagna</div>`;
+        }
+        if (a.combust) {
+          const sunA = an['Sun'];
+          const sunLon = sunA ? (sunA.rashi - 1) * 30 + sunA.deg : 0;
+          const pLon   = (a.rashi - 1) * 30 + a.deg;
+          let d = Math.abs(pLon - sunLon); if (d > 180) d = 360 - d;
+          html += `<div class="an-item c-blue">Combust — ${d.toFixed(2)}° from Sun</div>`;
+        }
+        if (a.weakByDeg) {
+          html += `<div class="an-item c-brown">Weak by degree — ${fmtDeg(a.deg)}° (outside 5°–25°)</div>`;
+        } else if (!a.isFM && !a.combust) {
+          html += `<div class="an-item c-green">Strong by degree — ${fmtDeg(a.deg)}° (in 5°–25° zone)</div>`;
+        }
+        if (a.debilitated) {
+          html += `<div class="an-item c-brown">Debilitated (neecha) in ${a.rashiName}</div>`;
+        }
+        if (a.inDushtana) {
+          html += `<div class="an-item c-brown">In dushtana — house ${a.house}</div>`;
+        }
+        for (const aff of a.afflictions) {
+          const spec = aff.special ? ' (special)' : '';
+          html += `<div class="an-item c-brown">Afflicted by ${aff.fm}${spec} — ${aff.orb.toFixed(2)}° via ${aff.via}</div>`;
+        }
+
+        if (!a.isFM) {
+          const disp  = an[a.dispositor];
+          const dWeak = disp ? disp.isWeak : false;
+          const dIsFM = disp ? disp.isFM   : false;
+          const dClass = dIsFM ? 'c-red' : (dWeak ? 'c-brown' : 'c-green');
+          const dStatus = !disp ? 'unknown' : (dIsFM ? 'functional malefic' : (dWeak ? 'weak' : 'strong'));
+          html += `<div class="an-item ${dClass}">Dispositor: ${a.dispositor} — ${dStatus}${a.dispositorWeak ? ' → capped weak' : ''}</div>`;
+        }
+
+        // Overall
+        const oLabel = a.isFM ? 'Malefic' : (a.combust ? 'Combust/weak' : (a.isWeak ? 'Weak' : 'Strong'));
+        const oClass = a.combust ? 'c-blue' : (a.isFM ? 'c-red' : (a.isWeak ? 'c-brown' : 'c-green'));
+        html += `<div class="an-item overall ${oClass}">→ ${oLabel}</div>`;
+        html += '</div></div>';
+      }
+
+      document.getElementById('analysisContent').innerHTML = html;
+      document.getElementById('dlgAnalysis').showModal();
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Chart SVG constants
+    // ═══════════════════════════════════════════════════
+    const NO_RETRO_LABEL = new Set(['Ra','Ke']);
+    const GRAHA_ABBR = { Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke' };
+    const PT = { TL:[50,50],TR:[450,50],BR:[450,450],BL:[50,450],E:[250,50],F:[450,250],G:[250,450],H:[50,250],I:[150,150],J:[350,150],K:[350,350],L:[150,350],M:[250,250] };
+    const HOUSE_POLYS = {
+      1:[PT.E,PT.J,PT.M,PT.I], 2:[PT.TL,PT.E,PT.I],    3:[PT.TL,PT.I,PT.H],
+      4:[PT.H,PT.I,PT.M,PT.L], 5:[PT.H,PT.L,PT.BL],    6:[PT.BL,PT.L,PT.G],
+      7:[PT.G,PT.L,PT.M,PT.K], 8:[PT.G,PT.K,PT.BR],    9:[PT.BR,PT.K,PT.F],
+     10:[PT.F,PT.K,PT.M,PT.J],11:[PT.F,PT.J,PT.TR],   12:[PT.TR,PT.J,PT.E],
+    };
+    const CENTROIDS = { 1:[250,150],2:[150,83],3:[83,150],4:[150,250],5:[83,350],6:[150,417],7:[250,350],8:[350,417],9:[417,350],10:[350,250],11:[417,150],12:[350,83] };
+    const NUM_POS   = { 1:[161,155],2:[78,62],3:[62,78],4:[78,248],5:[62,278],6:[65,432],7:[158,348],8:[252,432],9:[355,352],10:[253,250],11:[355,158],12:[268,65] };
+
+    function svgEl(tag, attrs, text) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+      if (text !== undefined) el.textContent = text;
+      return el;
+    }
+    function fmtDeg(d) { return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0'); }
+    function houseSign(h,lr) { return ((lr-1+h-1)%12)+1; }
+
+    // ═══════════════════════════════════════════════════
+    // Chart renderer
+    // ═══════════════════════════════════════════════════
+    function renderChart(data) {
+      lastData     = data;
+      lastAnalysis = analyzeAllGrahas(data);
+      const an = lastAnalysis;
+      const lr = data.lagna.rashi;
+      const mepDeg = data.lagna.degree_in_rashi;
+
+      const svg = document.getElementById('chart');
+      svg.innerHTML = '';
+      svg.style.display = 'block';
+      svg.appendChild(svgEl('rect',{width:500,height:500,fill:'#0a0a1a'}));
+
+      // House polygons
+      for (let h=1;h<=12;h++) {
+        svg.appendChild(svgEl('polygon',{
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:'#16213e',stroke:'#c9a84c','stroke-width':'1.5'
+        }));
+      }
+      // Sign numbers
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#c9a84c','font-family':'monospace','text-anchor':'middle','font-weight':'bold'},String(houseSign(h,lr))));
+      }
+
+      // Build house planet lists from analysis
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      hp[1].push({label:'As',deg:mepDeg,color:'#e0e0e0',retro:false,isAs:true});
+      for (const a of Object.values(an)) {
+        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,retro:a.retro,isAs:false});
+      }
+      for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
+
+      // Planet labels
+      const LH=13;
+      for (let h=1;h<=12;h++) {
+        const planets=hp[h]; if(!planets.length) continue;
+        const [cx,cy]=CENTROIDS[h];
+        let y0=cy+2-(planets.length*LH)/2+LH/2;
+        for (const p of planets) {
+          const line = p.isAs ? ('As '+fmtDeg(p.deg))
+            : (p.label+((p.retro&&!NO_RETRO_LABEL.has(p.label))?'R ':' ')+fmtDeg(p.deg));
+          svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'11',fill:p.color,'font-family':'monospace','text-anchor':'middle'},line));
+          y0+=LH;
+        }
+      }
+
+      // Title
+      const bd=data.birth_data;
+      document.getElementById('chartTitle').textContent =
+        `${data.name||'Chart'} — ${bd.date} ${bd.time} | Lat ${bd.latitude}, Lon ${bd.longitude} | TZ ${bd.timezone_offset} | Lagna: ${data.lagna.rashi_name}`;
+
+      // Enable Analysis button
+      document.getElementById('analysisBtn').disabled = false;
+    }
+  </script>
+</body>
+</html>

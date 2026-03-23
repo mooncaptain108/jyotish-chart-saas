@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jyotish Chart</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
+    h1 { color: #c9a84c; margin-bottom: 0.4rem; }
+    .subtitle { color: #a0a0b0; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    svg { display: block; width: min(90vw, 90vh); height: auto; }
+  </style>
+</head>
+<body>
+  <h1>North Indian Birth Chart</h1>
+  <p class="subtitle" id="chartTitle"></p>
+  <svg id="chart" viewBox="0 0 500 500"></svg>
+
+  <script>
+  // ── Test request parameters ──────────────────────────────────────────────────
+  const TEST_REQUEST = {
+    name: "Paul",
+    date: "1948-07-02",
+    time: "08:28:00",
+    latitude: 47.4833,
+    longitude: -122.2166,
+    timezone_offset: -8
+  };
+
+  // ── Constants ───────────────────────────────────────────────────────────────
+  const NO_RETRO_LABEL = new Set(['Ra','Ke']);
+  const GRAHA_ABBR = {
+    Sun:'Su', Moon:'Mo', Mars:'Ma', Mercury:'Me',
+    Jupiter:'Ju', Venus:'Ve', Saturn:'Sa', Rahu:'Ra', Ketu:'Ke'
+  };
+
+  // ── Geometry (400×400 chart area offset by 50,50 on 500×500 canvas) ─────────
+  // Key points
+  const P = {
+    TL:[50,50],  TR:[450,50],  BR:[450,450],  BL:[50,450],
+    E:[250,50],  F:[450,250],  G:[250,450],   H:[50,250],
+    I:[150,150], J:[350,150],  K:[350,350],   L:[150,350],
+    M:[250,250]
+  };
+
+  // House polygon vertices (CCW order: 1=top, 2=upper-left, ..., 12=upper-right)
+  const HOUSES = {
+     1: [P.E,  P.J,  P.M,  P.I ],
+     2: [P.TL, P.E,  P.I       ],
+     3: [P.TL, P.I,  P.H       ],
+     4: [P.H,  P.I,  P.M,  P.L ],
+     5: [P.H,  P.L,  P.BL      ],
+     6: [P.BL, P.L,  P.G       ],
+     7: [P.G,  P.L,  P.M,  P.K ],
+     8: [P.G,  P.K,  P.BR      ],
+     9: [P.BR, P.K,  P.F       ],
+    10: [P.F,  P.K,  P.M,  P.J ],
+    11: [P.F,  P.J,  P.TR      ],
+    12: [P.TR, P.J,  P.E       ],
+  };
+
+  // Centroid of each house (text anchor)
+  const CENTROIDS = {
+     1: [250,150],  2: [150, 83],  3: [ 83,150],
+     4: [150,250],  5: [ 83,350],  6: [150,417],
+     7: [250,350],  8: [350,417],  9: [417,350],
+    10: [350,250], 11: [417,150], 12: [350, 83],
+  };
+
+  // Sign number label positions (each near the defining corner of the house)
+  const NUM_POS = {
+     1: [161,155],   // left corner I(150,150) of top diamond
+     2: [ 78, 62],   // inside house 2 — above TL-BR diagonal (x > y)
+     3: [ 62, 78],   // inside house 3 — below TL-BR diagonal (y > x)
+     4: [ 78,248],   // inside house 4 — above H-L diagonal (y < x+200)
+     5: [ 62,278],   // inside house 5 — below H-L diagonal (y > x+200)
+     6: [ 65,432],   // bottom-left, padded from edge
+     7: [158,348],   // left corner L(150,350) of bottom diamond
+     8: [252,432],   // bottom, padded from edge
+     9: [355,352],   // leftmost corner K(350,350)
+    10: [253,250],   // left corner M(250,250) of right diamond
+    11: [355,158],   // leftmost corner J(350,150)
+    12: [268, 65],   // inside house 12, padded from top edge
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function fmtDeg(d) {
+    const deg = Math.floor(d);
+    const min = Math.floor((d - deg) * 60);
+    return deg + ':' + String(min).padStart(2,'0');
+  }
+
+  function houseSign(h, lagnaRashi) {
+    return ((lagnaRashi - 1 + h - 1) % 12) + 1;
+  }
+
+  function svgEl(tag, attrs, text) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function renderChart(data) {
+    const svg = document.getElementById('chart');
+    svg.innerHTML = '';
+
+    // Background
+    svg.appendChild(svgEl('rect', {width:500, height:500, fill:'#0a0a1a'}));
+
+    const lagnaRashi = data.lagna.rashi;
+
+    // Build per-house planet lists (sorted by degree, ascending)
+    const housePlanets = {};
+    for (let h = 1; h <= 12; h++) housePlanets[h] = [];
+
+    // Ascendant first in house 1
+    housePlanets[1].push({ label:'As', deg: data.lagna.degree_in_rashi, retro:false, isAs:true });
+
+    for (const g of data.grahas) {
+      const house = ((g.rashi - lagnaRashi + 12) % 12) + 1;
+        housePlanets[house].push({
+        label: GRAHA_ABBR[g.graha] || g.graha.slice(0,2),
+        deg:   g.degree_in_rashi,
+        retro: g.retrograde,
+        isAs:  false
+      });
+    }
+
+    // Sort each house by degree ascending
+    for (let h = 1; h <= 12; h++) {
+      housePlanets[h].sort((a,b) => a.deg - b.deg);
+    }
+
+    // Draw polygons
+    for (let h = 1; h <= 12; h++) {
+      const pts = HOUSES[h].map(p => p.join(',')).join(' ');
+      svg.appendChild(svgEl('polygon', {
+        points: pts,
+        fill:   '#16213e',
+        stroke: '#c9a84c',
+        'stroke-width': '1.5'
+      }));
+    }
+
+    // Draw sign numbers in each house
+    for (let h = 1; h <= 12; h++) {
+      const [nx, ny] = NUM_POS[h];
+      const sign = houseSign(h, lagnaRashi);
+
+      // Sign number (bold, larger gold)
+      svg.appendChild(svgEl('text', {
+        x: nx, y: ny,
+        'font-size':'12', fill:'#c9a84c',
+        'font-family':'monospace', 'text-anchor':'middle',
+        'font-weight':'bold'
+      }, String(sign)));
+    }
+
+    // Draw planet labels
+    const LINE_H = 13;
+    for (let h = 1; h <= 12; h++) {
+      const planets = housePlanets[h];
+      if (!planets.length) continue;
+
+      const [cx, cy] = CENTROIDS[h];
+      const totalH = planets.length * LINE_H;
+      let y0 = cy + 2 - totalH / 2 + LINE_H / 2;  // center the block
+
+      for (const p of planets) {
+        let line = p.label;
+        if (p.isAs) {
+          line = 'As ' + fmtDeg(p.deg);
+        } else {
+          const showRetro = p.retro && !NO_RETRO_LABEL.has(p.label);
+          line = p.label + (showRetro ? 'R ' : ' ') + fmtDeg(p.deg);
+        }
+        svg.appendChild(svgEl('text', {
+          x: cx, y: y0,
+          'font-size':'11', fill:'#e0e0e0',
+          'font-family':'monospace', 'text-anchor':'middle'
+        }, line));
+        y0 += LINE_H;
+      }
+    }
+
+    // Title
+    const bd = data.birth_data;
+    document.getElementById('chartTitle').textContent =
+      `${data.name || 'Chart'} — ${bd.date} ${bd.time} | Lat ${bd.latitude}, Lon ${bd.longitude} | TZ ${bd.timezone_offset} | Lagna: ${data.lagna.rashi_name}`;
+  }
+
+  // ── Load from API ─────────────────────────────────────────────────────────
+  fetch('/api/v1/chart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(TEST_REQUEST)
+  })
+  .then(r => r.json())
+  .then(data => renderChart(data))
+  .catch(err => {
+    document.getElementById('chartTitle').textContent = 'Error loading chart: ' + err.message;
+  });
+  </script>
+</body>
+</html>
