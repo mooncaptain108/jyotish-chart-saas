@@ -28,8 +28,8 @@
 
     /* ── Dialogs (shared) ── */
     dialog { background:#16213e; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
-    dialog::backdrop { background:rgba(0,0,0,0.65); }
-    .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; }
+    dialog::backdrop { background:rgba(0,0,0,0.15); }
+    .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
     .dlg-body { padding:1.25rem; }
     .dlg-footer { display:flex; gap:0.5rem; justify-content:flex-end; padding:0.75rem 1.25rem; border-top:1px solid #0f3460; }
@@ -223,14 +223,64 @@
     // ═══════════════════════════════════════════════════
     // Storage helpers
     // ═══════════════════════════════════════════════════
-    const ATLAS_KEY  = 'jyotish_atlas';
-    const CHARTS_KEY = 'jyotish_charts';
-    const RAW_KEY    = 'jyotish_raw';
+    const ATLAS_KEY    = 'jyotish_atlas';
+    const CHARTS_KEY   = 'jyotish_charts';
+    const RAW_KEY      = 'jyotish_raw';
+    const NEW_FORM_KEY = 'jyotish_new_form';
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
     function getCharts()  { try { return JSON.parse(localStorage.getItem(CHARTS_KEY) || '[]'); } catch { return []; } }
     function setCharts(v) { localStorage.setItem(CHARTS_KEY, JSON.stringify(v)); }
+
+    // ═══════════════════════════════════════════════════
+    // Draggable dialogs
+    // ═══════════════════════════════════════════════════
+    function makeDraggable(dlg) {
+      const header = dlg.querySelector('.dlg-header');
+      if (!header) return;
+      let startX, startY, startLeft, startTop, pinned = false;
+
+      header.addEventListener('mousedown', e => {
+        if (e.target.closest('button')) return; // don't drag when clicking ✕
+        // On first drag, convert from centered to explicit position
+        if (!pinned) {
+          const r = dlg.getBoundingClientRect();
+          dlg.style.margin = '0';
+          dlg.style.position = 'fixed';
+          dlg.style.left = r.left + 'px';
+          dlg.style.top  = r.top  + 'px';
+          pinned = true;
+        }
+        startX    = e.clientX;
+        startY    = e.clientY;
+        startLeft = parseFloat(dlg.style.left);
+        startTop  = parseFloat(dlg.style.top);
+
+        function onMove(e) {
+          const nx = startLeft + e.clientX - startX;
+          const ny = startTop  + e.clientY - startY;
+          dlg.style.left = Math.max(0, Math.min(window.innerWidth  - dlg.offsetWidth,  nx)) + 'px';
+          dlg.style.top  = Math.max(0, Math.min(window.innerHeight - dlg.offsetHeight, ny)) + 'px';
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup',   onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+        e.preventDefault();
+      });
+
+      // Reset position when dialog is reopened so it re-centers
+      dlg.addEventListener('close', () => {
+        dlg.style.margin = '';
+        dlg.style.position = '';
+        dlg.style.left = '';
+        dlg.style.top  = '';
+        pinned = false;
+      });
+    }
 
     // ═══════════════════════════════════════════════════
     // Raw toggle
@@ -316,13 +366,38 @@
     // New Chart dialog
     // ═══════════════════════════════════════════════════
     function openNewDialog() {
-      const now = new Date();
-      document.getElementById('nDate').value = now.toISOString().split('T')[0];
-      document.getElementById('nTime').value = now.toTimeString().slice(0,5);
+      rebuildNewAtlasSelect();
+      // Restore last entered values, or default date/time to now
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(NEW_FORM_KEY)); } catch {}
+      if (saved) {
+        document.getElementById('nLat').value   = saved.lat  || '';
+        document.getElementById('nLon').value   = saved.lon  || '';
+        document.getElementById('nTz').value    = saved.tz   !== undefined ? saved.tz : '';
+        document.getElementById('nDate').value  = saved.date || new Date().toISOString().split('T')[0];
+        document.getElementById('nTime').value  = saved.time || new Date().toTimeString().slice(0,5);
+        document.getElementById('nName').value  = saved.name || '';
+        document.getElementById('nAtlas').value = saved.atlasName || '';
+      } else {
+        const now = new Date();
+        document.getElementById('nDate').value = now.toISOString().split('T')[0];
+        document.getElementById('nTime').value = now.toTimeString().slice(0,5);
+      }
       document.getElementById('newErrMsg').textContent = '';
       document.getElementById('saveStatus').textContent = '';
-      rebuildNewAtlasSelect();
       document.getElementById('dlgNew').showModal();
+    }
+
+    function saveNewFormState() {
+      localStorage.setItem(NEW_FORM_KEY, JSON.stringify({
+        lat:       document.getElementById('nLat').value,
+        lon:       document.getElementById('nLon').value,
+        tz:        document.getElementById('nTz').value,
+        date:      document.getElementById('nDate').value,
+        time:      document.getElementById('nTime').value,
+        name:      document.getElementById('nName').value,
+        atlasName: document.getElementById('nAtlas').value,
+      }));
     }
 
     function rebuildNewAtlasSelect() {
@@ -354,6 +429,7 @@
       if (isNaN(lat) || isNaN(lon)) { errEl.textContent = 'Cannot parse latitude or longitude.'; return; }
       if (!date || !time)            { errEl.textContent = 'Date and time are required.'; return; }
 
+      saveNewFormState();
       btn.disabled = true; btn.textContent = 'Loading…';
       try {
         const res = await fetch('/api/v1/chart', {
@@ -382,6 +458,7 @@
       const date = document.getElementById('nDate').value;
       const time = document.getElementById('nTime').value;
       if (isNaN(lat) || isNaN(lon) || !date || !time) { document.getElementById('newErrMsg').textContent = 'Fill in all fields before saving.'; return; }
+      saveNewFormState();
       const charts = getCharts();
       const rec = { name, date, time, lat: lat.toFixed(4), lon: lon.toFixed(4), tz,
                     locationName: document.getElementById('nAtlas').value || '' };
@@ -465,8 +542,11 @@
     // ═══════════════════════════════════════════════════
     // Jyotish constants
     // ═══════════════════════════════════════════════════
-    const DEBI_RASHI    = { Sun:7,Moon:8,Mars:4,Mercury:12,Jupiter:10,Venus:6,Saturn:1,Rahu:9,Ketu:3 };
+    const DEBI_RASHI    = { Sun:7,Moon:8,Mars:4,Mercury:12,Jupiter:10,Venus:6,Saturn:1,Rahu:8,Ketu:2 };
+    const EXALT_RASHI   = { Sun:1,Moon:2,Mars:10,Mercury:6,Jupiter:4,Venus:12,Saturn:7,Rahu:2,Ketu:8 };
     const MOOLA_RASHI   = { Sun:5,Moon:4,Mars:1,Mercury:6,Jupiter:9,Venus:7,Saturn:11 };
+    // Dispositor only exists when a planet is in a mooltrikona sign; non-MT signs have no dispositor
+    const MOOLA_LORD    = { 1:'Mars',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',9:'Jupiter',11:'Saturn' };
     const SIGN_LORD     = { 1:'Mars',2:'Venus',3:'Mercury',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',8:'Mars',9:'Jupiter',10:'Saturn',11:'Saturn',12:'Jupiter' };
     const RASHI_NAME    = ['','Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
     const FUNC_MALEFICS = {
@@ -498,6 +578,15 @@
 
     function isStrong(deg) { return deg >= 5 && deg <= 25; }
 
+    // Returns 0.0–1.0 degree-based strength
+    // 100% at 5°–25°; linear 0% at 0°/30° to 100% at 5°/25°
+    function degStrength(deg) {
+      if (deg >= 5 && deg <= 25) return 1.0;
+      if (deg < 5)  return deg / 5;
+      return (30 - deg) / 5;
+    }
+    function pct(v) { return Math.round(v * 100) + '%'; }
+
     // ═══════════════════════════════════════════════════
     // Core analysis — single source of truth for colors + popover
     // ═══════════════════════════════════════════════════
@@ -509,7 +598,7 @@
       const fms = FUNC_MALEFICS[lr] || new Set();
       const mmp = MMP[lr];
 
-      // Combustion (absolute longitude)
+      // Combustion (absolute longitude) — nodes cannot be combust
       const sunG   = data.grahas.find(g => g.graha === 'Sun');
       const sunLon = sunG ? (sunG.rashi - 1) * 30 + sunG.degree_in_rashi : null;
       const combustSet = new Set();
@@ -527,29 +616,64 @@
         .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
         .map(g => ({ graha:g.graha, house:((g.rashi-lr+12)%12)+1, deg:g.degree_in_rashi }));
 
+      // Chain-special FMs: any FM that is itself aspected within 5° by another FM
+      // When a chain-special FM aspects a planet, the effective orb extends to 5°
+      // chainSpecialFMs maps fm.graha -> name of the FM that afflicts it
+      const chainSpecialFMs = new Map();
+      for (const fm of fmData) {
+        for (const source of fmData) {
+          if (source.graha === fm.graha) continue;
+          const sourceIsNode = source.graha === 'Rahu' || source.graha === 'Ketu';
+          const sourceAsp = fmAspectedHouses(source.graha, source.house);
+          if (!sourceAsp.has(fm.house)) continue;
+          // Rahu/Ketu can only start a chain via conjunction (same house), not via aspects
+          if (sourceIsNode && source.house !== fm.house) continue;
+          const diff = Math.abs(source.deg - fm.deg);
+          if (diff <= 5) { chainSpecialFMs.set(fm.graha, source.graha); break; }
+        }
+      }
+
       // ── First pass: per-planet base analysis ──
       const analysis = {};
       for (const g of data.grahas) {
+        const isNode      = g.graha === 'Rahu' || g.graha === 'Ketu';
         const house       = ((g.rashi - lr + 12) % 12) + 1;
-        const isFM        = g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha);
+        const isFM        = isNode || fms.has(g.graha);
         const isMMP       = g.graha === mmp;
         const combust     = combustSet.has(g.graha);
-        const weakByDeg   = !isStrong(g.degree_in_rashi);
+        // Nodes have no degree strength; they can be debilitated/exalted
+        const degPct      = isNode ? 1.0 : degStrength(g.degree_in_rashi);
+        const weakByDeg   = !isNode && !isStrong(g.degree_in_rashi);
         const debilitated = DEBI_RASHI[g.graha] === g.rashi;
+        const exalted     = EXALT_RASHI[g.graha] === g.rashi;
         const inDushtana  = DUSHTANA.has(house);
+        // Dispositor: any planet (including nodes) in a mooltrikona sign has one
+        const dispositor  = MOOLA_LORD[g.rashi] || null;
 
-        // Direct degree afflictions (non-FMs only; skip MEP for now)
-        const afflictions = [];
-        if (!isFM) {
-          for (const fm of fmData) {
-            const special = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
-            const orb     = isStrong(g.degree_in_rashi) ? (special ? 2 : 1) : 5;
-            const asp     = fmAspectedHouses(fm.graha, fm.house);
-            if (asp.has(house)) {
-              const diff = Math.abs(fm.deg - g.degree_in_rashi);
-              if (diff <= orb) afflictions.push({ fm:fm.graha, orb:diff, special, via:aspectLabel(fm.graha, fm.house, house) });
-            }
-          }
+        // FM aspects to this planet — compute for ALL planets (incl. FMs)
+        // Only include aspects within 5° (hard cutoff for display)
+        // afflictions = within damaging orb (affects color/weakness)
+        // allFmAspects = every FM aspect within 5° (for display)
+        const afflictions  = [];
+        const allFmAspects = [];
+        for (const fm of fmData) {
+          if (fm.graha === g.graha) continue; // skip self
+          // Rahu/Ketu always oppose each other — mutual aspect is normal, not informative
+          if (isNode && (fm.graha === 'Rahu' || fm.graha === 'Ketu')) continue;
+          const asp  = fmAspectedHouses(fm.graha, fm.house);
+          if (!asp.has(house)) continue;
+          const diff = Math.abs(fm.deg - g.degree_in_rashi);
+          if (diff > 5) continue; // hard cutoff — don't show beyond 5°
+          const via          = aspectLabel(fm.graha, fm.house, house);
+          const special      = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
+          const chainSpecial = chainSpecialFMs.has(fm.graha);
+          const chainSource  = chainSpecial ? chainSpecialFMs.get(fm.graha) : null;
+          // Chain-special elevates FM to special status (2° for strong, 5° for weak)
+          const effectiveSpecial = special || chainSpecial;
+          const dmgOrb = isStrong(g.degree_in_rashi) ? (effectiveSpecial ? 2 : 1) : 5;
+          const isDamaging = diff <= dmgOrb;
+          allFmAspects.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, isDamaging, dmgOrb });
+          if (isDamaging) afflictions.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via });
         }
 
         const baseWeak = weakByDeg || combust || debilitated || inDushtana || afflictions.length > 0;
@@ -558,17 +682,34 @@
           graha:g.graha, abbr:GRAHA_ABBR[g.graha]||g.graha.slice(0,2),
           rashi:g.rashi, rashiName:RASHI_NAME[g.rashi],
           house, deg:g.degree_in_rashi, retro:g.retrograde,
-          isFM, isMMP, combust, weakByDeg, debilitated, inDushtana, afflictions,
-          dispositor: SIGN_LORD[g.rashi],
-          baseWeak, dispositorWeak:false, isWeak:baseWeak, color:null
+          isFM, isMMP, isNode, combust, weakByDeg, debilitated, exalted, inDushtana,
+          afflictions, allFmAspects, dispositor,
+          degPct, strengthPct: combust ? degPct * 0.5 : degPct,  // combustion halves strength; cap pass may reduce further
+          baseWeak, dispositorWeak:false, isWeak:baseWeak, dispCapChain:[], color:null
         };
       }
 
-      // ── Second pass: dispositor cap ──
-      for (const a of Object.values(analysis)) {
-        if (a.isFM || a.combust) continue;
-        const disp = analysis[a.dispositor];
-        if (disp && disp.baseWeak) { a.dispositorWeak = true; a.isWeak = true; }
+      // ── Dispositor cap — cascade until stable (max 7 passes) ──
+      // Each pass propagates weakness one level further down the chain
+      for (let pass = 0; pass < 7; pass++) {
+        let changed = false;
+        for (const a of Object.values(analysis)) {
+          if (a.combust || !a.dispositor || a.dispositor === a.graha) continue;
+          const disp = analysis[a.dispositor];
+          if (!disp) continue;
+          if (disp.isWeak && !a.dispositorWeak) {
+            a.dispositorWeak = true;
+            a.isWeak = true;
+            // Cap strengthPct at dispositor's strengthPct; track chain for display
+            const cap = disp.strengthPct;
+            if (cap < a.strengthPct) {
+              a.strengthPct = cap;
+              a.dispCapChain = [a.dispositor, ...disp.dispCapChain];
+            }
+            changed = true;
+          }
+        }
+        if (!changed) break;
       }
 
       // ── Assign colors ──
@@ -585,6 +726,8 @@
     // ═══════════════════════════════════════════════════
     // Analysis dialog
     // ═══════════════════════════════════════════════════
+    const PLANET_ORDER = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
+
     function openAnalysisDialog() {
       if (!lastData || !lastAnalysis) return;
       const data = lastData;
@@ -598,8 +741,8 @@
         ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${bd.latitude} Lon ${bd.longitude}
       </div>`;
 
-      // Sort by house, then degree
-      const grahas = Object.values(an).sort((a,b) => a.house - b.house || a.deg - b.deg);
+      // Fixed canonical order
+      const grahas = PLANET_ORDER.map(n => an[n]).filter(Boolean);
 
       for (const a of grahas) {
         const retroStr = (a.retro && !NO_RETRO_LABEL.has(a.abbr)) ? 'R' : '';
@@ -610,20 +753,33 @@
             <span class="an-loc">${a.rashiName} &bull; House ${a.house} &bull; ${fmtDeg(a.deg)}°</span>
           </div><div>`;
 
+        // FM / MMP label — nodes need no lagna qualifier
         if (a.isFM) {
-          html += `<div class="an-item c-red">Functional malefic${a.isMMP ? ' — Most Malefic Planet (MMP)' : ''} for ${RASHI_NAME[lr]} lagna</div>`;
+          const lagnaQual = a.isNode ? '' : ` for ${RASHI_NAME[lr]} lagna`;
+          html += `<div class="an-item c-red">Functional malefic${a.isMMP ? ' — Most Malefic Planet (MMP)' : ''}${lagnaQual}</div>`;
         }
+
+        // Combust (nodes cannot be combust)
         if (a.combust) {
           const sunA = an['Sun'];
           const sunLon = sunA ? (sunA.rashi - 1) * 30 + sunA.deg : 0;
           const pLon   = (a.rashi - 1) * 30 + a.deg;
           let d = Math.abs(pLon - sunLon); if (d > 180) d = 360 - d;
-          html += `<div class="an-item c-blue">Combust — ${d.toFixed(2)}° from Sun</div>`;
+          html += `<div class="an-item c-blue">Combust — ${d.toFixed(2)}° from Sun → ${pct(a.strengthPct)} strength</div>`;
         }
-        if (a.weakByDeg) {
-          html += `<div class="an-item c-brown">Weak by degree — ${fmtDeg(a.deg)}° (outside 5°–25°)</div>`;
-        } else if (!a.isFM && !a.combust) {
-          html += `<div class="an-item c-green">Strong by degree — ${fmtDeg(a.deg)}° (in 5°–25° zone)</div>`;
+
+        // Degree strength — nodes are exempt
+        if (!a.isNode) {
+          if (a.weakByDeg) {
+            html += `<div class="an-item c-brown">Weak by degree — ${fmtDeg(a.deg)}° → ${pct(a.degPct)} strength</div>`;
+          } else if (!a.combust) {
+            html += `<div class="an-item c-green">Strong by degree — ${fmtDeg(a.deg)}° (5°–25° zone)</div>`;
+          }
+        }
+
+        // Exaltation / debilitation (all planets including nodes)
+        if (a.exalted) {
+          html += `<div class="an-item c-green">Exalted in ${a.rashiName}</div>`;
         }
         if (a.debilitated) {
           html += `<div class="an-item c-brown">Debilitated (neecha) in ${a.rashiName}</div>`;
@@ -631,23 +787,34 @@
         if (a.inDushtana) {
           html += `<div class="an-item c-brown">In dushtana — house ${a.house}</div>`;
         }
-        for (const aff of a.afflictions) {
-          const spec = aff.special ? ' (special)' : '';
-          html += `<div class="an-item c-brown">Afflicted by ${aff.fm}${spec} — ${aff.orb.toFixed(2)}° via ${aff.via}</div>`;
+
+        // All FM aspects within 5° — note whether damaging
+        for (const asp of a.allFmAspects) {
+          const specTag   = asp.special ? ' (special)' : '';
+          const chainTag  = asp.chainSpecial ? ` [chain: ${asp.chainSource}→${asp.fm}]` : '';
+          if (asp.isDamaging) {
+            html += `<div class="an-item c-brown">Afflicted by ${asp.fm}${specTag}${chainTag} — ${asp.orb.toFixed(2)}° via ${asp.via} → weakening</div>`;
+          } else {
+            html += `<div class="an-item c-gray">${asp.fm}${specTag}${chainTag} ${asp.via} — ${asp.orb.toFixed(2)}° (threshold ${asp.dmgOrb}° — not damaging)</div>`;
+          }
         }
 
-        if (!a.isFM) {
+        // Dispositor — show when planet is in a mooltrikona sign (including nodes)
+        if (a.dispositor) {
           const disp  = an[a.dispositor];
           const dWeak = disp ? disp.isWeak : false;
           const dIsFM = disp ? disp.isFM   : false;
           const dClass = dIsFM ? 'c-red' : (dWeak ? 'c-brown' : 'c-green');
           const dStatus = !disp ? 'unknown' : (dIsFM ? 'functional malefic' : (dWeak ? 'weak' : 'strong'));
-          html += `<div class="an-item ${dClass}">Dispositor: ${a.dispositor} — ${dStatus}${a.dispositorWeak ? ' → capped weak' : ''}</div>`;
+          const capNote = a.dispositorWeak
+            ? ` → capped at ${pct(a.strengthPct)}` + (a.dispCapChain.length > 1 ? ` via ${a.dispCapChain.join('→')}` : '')
+            : '';
+          html += `<div class="an-item ${dClass}">Dispositor: ${a.dispositor} — ${dStatus}${capNote}</div>`;
         }
 
         // Overall
-        const oLabel = a.isFM ? 'Malefic' : (a.combust ? 'Combust/weak' : (a.isWeak ? 'Weak' : 'Strong'));
-        const oClass = a.combust ? 'c-blue' : (a.isFM ? 'c-red' : (a.isWeak ? 'c-brown' : 'c-green'));
+        const oLabel = a.combust ? 'Combust/weak' : (a.isWeak ? 'Weak' : 'Strong');
+        const oClass = a.combust ? 'c-blue' : (a.isWeak ? 'c-brown' : 'c-green');
         html += `<div class="an-item overall ${oClass}">→ ${oLabel}</div>`;
         html += '</div></div>';
       }
@@ -739,6 +906,10 @@
       // Enable Analysis button
       document.getElementById('analysisBtn').disabled = false;
     }
+
+    // Init draggable on all dialogs
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis'].forEach(id =>
+      makeDraggable(document.getElementById(id)));
   </script>
 </body>
 </html>
