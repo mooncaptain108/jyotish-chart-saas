@@ -15,6 +15,8 @@
     .tb-btn:hover { background:#16213e; color:#e0e0e0; border-color:#1a4a80; }
     .tb-btn.active { background:#16213e; color:#c9a84c; border-color:#c9a84c; }
     .tb-btn:disabled { opacity:0.35; cursor:not-allowed; }
+    .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
+    .tb-select:hover { background:#16213e; border-color:#1a4a80; }
 
     /* ── Chart area ── */
     #chartArea { padding:1rem 1.5rem; flex:1; }
@@ -78,7 +80,17 @@
     .c-blue  { color:#6090ff; }
     .c-brown { color:#c8a060; }
     .c-green { color:#70c070; }
+    .c-gold  { color:#c9a84c; }
+    .tcbs-table { width:100%; border-collapse:collapse; font-family:monospace; font-size:12px; }
+    .tcbs-table td { padding:2px 6px; }
+    .tcbs-lbl  { color:#a0a0b0; width:75px; }
+    .tcbs-icon { width:18px; text-align:center; }
+    .tcbs-ok   { color:#70c070; }
+    .tcbs-miss { color:#505068; }
+    #tcb-log   { font-size:11px; min-height:1.4em; padding:2px 0; }
+    #tcb-status { background:#0d1a30; border-radius:4px; padding:8px; margin-bottom:8px; }
     .c-gray  { color:#808098; }
+    .an-run  { color:#808098; font-size:0.75rem; margin-left:0.4rem; }
   </style>
 </head>
 <body>
@@ -93,6 +105,17 @@
     <div class="sep"></div>
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
     <button class="tb-btn" id="rawToggleBtn" onclick="toggleRaw()">Raw</button>
+    <div class="sep"></div>
+    <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
+      <option value="">Tests…</option>
+      <option value="0">TC1 · Degree, Dushtana, Sun-like</option>
+      <option value="1">TC2 · FM Direct Affliction</option>
+      <option value="2">TC3 · Dispositor Chain + MT MEP</option>
+      <option value="3">TC4 · Chain Affliction</option>
+      <option value="4">TC5 · Rahu/Ketu Rules</option>
+      <option value="build">⊕ Build Test…</option>
+    </select>
+    <button class="tb-btn" id="editTestBtn" onclick="openEditTest()" style="display:none">Edit Test</button>
   </header>
 
   <!-- ── Chart area ── -->
@@ -217,6 +240,34 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="document.getElementById('dlgAnalysis').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Test Chart Builder dialog ════ -->
+  <dialog id="dlgBuild" style="min-width:480px;max-width:560px;">
+    <div class="dlg-header">
+      <h2>Test Chart Builder</h2>
+      <button class="dlg-close-x" onclick="closeTestBuilder()">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-group" style="margin-bottom:0.6rem;">
+        <label class="f-label" for="tcb-name">Chart name</label>
+        <input type="text" id="tcb-name" placeholder="e.g. TC6 · FB Boost Test" style="width:100%;box-sizing:border-box;" oninput="tcbNameChanged()">
+      </div>
+      <div id="tcb-status"></div>
+      <div id="tcb-log"></div>
+      <div style="display:flex;gap:6px;margin-bottom:0.5rem;">
+        <input type="text" id="tcb-input" placeholder="e.g. lagna capricorn  /  moon scorpio 12  /  rahu aries 15"
+               style="flex:1;" onkeydown="if(event.key==='Enter')tcbSubmit()">
+        <button class="btn-sec" onclick="tcbSubmit()">Enter</button>
+      </div>
+      <p class="f-hint" style="margin:0 0 0.5rem;">Commands: <code>lagna virgo</code> &nbsp;·&nbsp; <code>moon scorpio 12</code> &nbsp;·&nbsp; <code>rahu aries 15</code> (auto-fills ketu) &nbsp;·&nbsp; <code>clear moon</code> &nbsp;·&nbsp; <code>reset</code><br>Signs by name or number 1–12. Degree defaults to 15. Add <code>r</code> for retrograde.</p>
+    </div>
+    <div class="dlg-footer">
+      <button id="tcb-delete" class="btn-sec" onclick="tcbDelete()" style="display:none;margin-right:auto;">Delete</button>
+      <button id="tcb-save" class="btn-primary" onclick="tcbSave()" disabled>Save &amp; Load</button>
+      <button class="btn-sec" onclick="tcbSaveDraft()">Save Draft</button>
+      <button class="btn-sec" onclick="closeTestBuilder()">Close</button>
     </div>
   </dialog>
 
@@ -541,6 +592,179 @@
     function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     // ═══════════════════════════════════════════════════
+    // Test charts — hardwired data to exercise logic paths
+    // Fields used by analysis: graha, rashi, degree_in_rashi, retrograde
+    // Lagna fields used: rashi, degree_in_rashi, rashi_name
+    // ═══════════════════════════════════════════════════
+    function tp(graha, rashi, deg, retro=false) {
+      return { graha, rashi, degree_in_rashi:deg, retrograde:retro };
+    }
+    const TEST_BD = { date:'TEST', time:'--', latitude:0, longitude:0, timezone_offset:0 };
+
+    const TEST_CHARTS = [
+
+      // ── TC1: Degree weakness, dushtana, MT-in-dushtana exempt, sun-like boost ──
+      // Leo lagna (5), MEP 15°. FMs: Moon (MMP). Sun-like: Mercury (h2/Virgo), Venus (h3/Libra), Mars (h9/Aries)
+      // Expected:
+      //   Sun   h1  3°  → Weak 60% (degree)
+      //   Moon  h9  15° → FM/MMP, Strong
+      //   Mars  h6  15° → Dushtana −50% → Weak 50%
+      //   Merc  h2   2° → Weak deg 40% + sun-like +25% → Weak 65%
+      //   Jupi  h6  15° → Debilitated −50% + Dushtana −50% → Weak 25%
+      //   Venus h3  27° → Weak deg 60% + sun-like +25% → Weak 85%
+      //   Sat   h7  15° → Strong 100% (MT self)
+      //   Rahu  h11 15° → Strong
+      //   Ketu  h5  15° → Dispositor Jupiter(25%) → Weak 25%
+      { name:'TC1 · Degree, Dushtana, Sun-like', birth_data:TEST_BD,
+        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
+        grahas:[
+          tp('Sun',5,3),      // h1, weak by degree
+          tp('Moon',1,15),    // h9, FM/MMP
+          tp('Mars',10,15),   // h6, dushtana
+          tp('Mercury',6,2),  // h2, weak deg + sun-like boost
+          tp('Jupiter',10,15),// h6, debilitated + dushtana
+          tp('Venus',7,27),   // h3, weak deg + sun-like boost
+          tp('Saturn',11,15), // h7, strong MT
+          tp('Rahu',3,15),    // h11
+          tp('Ketu',9,15),    // h5, dispositor Jupiter
+        ]},
+
+      // ── TC2: FM direct affliction — regular, special, non-damaging boundary ──
+      // Leo lagna (5), MEP 15°. Moon is MMP.
+      // Expected:
+      //   Sun   h1 14.5° → Moon conj 0.5° special → −75% → Weak 25%
+      //   Moon  h1 15°   → FM/MMP
+      //   Merc  h1 16.8° → Moon 1.8° special → −75% → Weak 25%
+      //   Mars  h7 15°   → Moon 7th aspect 0° special → −75% → Weak 25%
+      //   Sat   h1 17.5° → Moon 2.5° special >2° → NOT damaging (gray) → Strong 100%
+      //   Jupi  h9 15°   → unafflicted → Strong 100%
+      //   Venus h11 15°  → unafflicted → Strong 100%
+      //   Rahu  h12 15°  → FM, no key aspect
+      //   Ketu  h6 15°   → FM, aspects h2/h6/h10/h12 only
+      { name:'TC2 · FM Direct Affliction', birth_data:TEST_BD,
+        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
+        grahas:[
+          tp('Sun',5,14.5),   // h1, Moon 0.5° → −75%
+          tp('Moon',5,15),    // h1, FM/MMP
+          tp('Mercury',5,16.8),// h1, Moon 1.8° → −75%
+          tp('Mars',11,15),   // h7, Moon 7th 0° → −75%
+          tp('Jupiter',1,15), // h9, unafflicted
+          tp('Venus',3,15),   // h11, unafflicted
+          tp('Saturn',5,17.5),// h1, Moon 2.5° → not damaging
+          tp('Rahu',4,15),    // h12
+          tp('Ketu',10,15),   // h6
+        ]},
+
+      // ── TC3: Dispositor cascade + MT house MEP affliction ──
+      // Leo lagna (5), MEP 15°. FMs: Moon (MMP).
+      // Chain: Mercury/Moon → Sun → Mars(weak)
+      // MT house affliction: Moon in h9 (Aries = Mars's MT) at MEP degree
+      // Expected:
+      //   Mars  h4  2°  → Weak deg 40% × MT-house-affliction(Moon 0°, loss 75%) → 10%
+      //   Sun   h9  9°  → Strong deg, dispositor Mars(10%) → capped Weak 10%
+      //   Moon  h1  15° → FM/MMP, dispositor Sun(10%) → capped Weak 10%
+      //   Merc  h1  12° → Strong deg, dispositor Sun(10%) → capped Weak 10%
+      //   Venus h3  15° → sun-like MT self, Strong 100%
+      //   Jupi  h10 15° → Strong 100%
+      //   Sat   h7  15° → Strong 100%
+      //   Rahu  h11 15° → Strong
+      //   Ketu  h5  15° → dispositor Jupiter(100%) → no cap
+      { name:'TC3 · Dispositor Chain + MT MEP', birth_data:TEST_BD,
+        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
+        grahas:[
+          tp('Sun',1,9),      // h9, strong deg, dispositor Mars
+          tp('Moon',1,15),    // h9, FM/MMP — afflicts MEP of h9 (Mars's MT) at 0°
+          tp('Mars',8,2),     // h4, weak deg 40%, MT-house aff 75% loss → 10%
+          tp('Mercury',5,12), // h1, strong deg, dispositor Sun
+          tp('Jupiter',2,15), // h10, strong
+          tp('Venus',7,15),   // h3, sun-like self-MT
+          tp('Saturn',11,15), // h7, strong self-MT
+          tp('Rahu',3,15),    // h11
+          tp('Ketu',9,15),    // h5, dispositor Jupiter(100%)
+        ]},
+
+      // ── TC4: Chain affliction (FM afflicted by another FM → chain-special) ──
+      // Scorpio lagna (8), MEP 15°. FMs: Venus (MMP), Mars. Sun-like: Jupiter (h2/Sagitt), Moon (h9/Cancer)
+      // Expected:
+      //   Venus h1 15° → FM/MMP
+      //   Mars  h1 16° → FM, chain-special (Venus MMP conjunct 1°)
+      //   Sun   h4 15° → Mars chain-special 4th aspect 0° → −75% → Weak 25%
+      //   Moon  h7 15° → Venus MMP 7th aspect 0° → −75% → Weak 25%
+      //   Merc  h8 15° → dushtana −50% → Weak 50%
+      //   Jupi  h2 15° → sun-like MT, Strong 100%
+      //   Sat   h4 15° → unafflicted (Mars aspects h1/7/4/8 — Sat h4 15°, Mars h1 16°, orb 1° → Mars chain-special dmgOrb=2 → damaging → −75% → Weak 25%)
+      //   Rahu  h9 15° → dispositor Moon(25%) → Weak 25%
+      //   Ketu  h3 15° → FM, unafflicted
+      { name:'TC4 · Chain Affliction', birth_data:TEST_BD,
+        lagna:{ rashi:8, degree_in_rashi:15, rashi_name:'Vrishchika' },
+        grahas:[
+          tp('Sun',11,15),    // h4 for Sc lagna
+          tp('Moon',2,15),    // h7 for Sc lagna
+          tp('Mars',8,16),    // h1, FM chain-special (aff by Venus 1°)
+          tp('Mercury',3,15), // h8, dushtana
+          tp('Jupiter',9,15), // h2, sun-like MT
+          tp('Venus',8,15),   // h1, FM/MMP
+          tp('Saturn',11,15), // h4, chain-special aff by Mars 1°
+          tp('Rahu',4,15),    // h9 for Sc lagna, dispositor Moon
+          tp('Ketu',10,15),   // h3 for Sc lagna
+        ]},
+
+      // ── TC5: Rahu/Ketu special rules ──
+      // Aries lagna (1), MEP 15°. FMs: Mercury (MMP=Ketu). Sun-like: Sun(h5/Leo), Jupiter(h9/Sagitt)...
+      // Actually for Aries: h2=Ta(no MT), h3=Ge(no MT), h9=Sa(9,Jupiter MT) → Jupiter sun-like
+      // Tests: Rahu/Ketu exempt degree weakness; Ketu near Sun not combust;
+      //        Rahu in MT sign → has dispositor; Mercury (FM) in own MT (h6 Virgo) → exempt dushtana;
+      //        Rahu/Ketu mutual aspect suppressed
+      // Expected:
+      //   Sun   h5 15°  → Strong 100% (self-MT Leo)
+      //   Moon  h4 15°  → Strong 100% (self-MT Cancer)
+      //   Mars  h1 15°  → Strong 100% (self-MT Aries)
+      //   Merc  h6 15°  → FM, in own MT Virgo in dushtana h6 → EXEMPT → Strong 100%
+      //   Jupi  h2 15°  → sun-like planet in Sagitt (sun-like sign for Aries h9) — but Jupiter is in h2 Taurus, not Sagitt → no boost. Strong 100%
+      //   Venus h7 15°  → Strong 100% (self-MT Libra)
+      //   Sat   h11 15° → Strong 100% (self-MT Aquarius)
+      //   Rahu  h9 3°   → no degree weakness shown (node exempt), dispositor Jupiter(100%)
+      //   Ketu  h3 3°   → no degree weakness shown (node exempt), near Sun? No. Mutual aspect with Rahu suppressed
+      { name:'TC5 · Rahu/Ketu Rules', birth_data:TEST_BD,
+        lagna:{ rashi:1, degree_in_rashi:15, rashi_name:'Mesha' },
+        grahas:[
+          tp('Sun',5,15),     // h5, self-MT
+          tp('Moon',4,15),    // h4, self-MT
+          tp('Mars',1,15),    // h1, self-MT
+          tp('Mercury',6,15), // h6, FM, own MT in dushtana → exempt
+          tp('Jupiter',2,15), // h2
+          tp('Venus',7,15),   // h7, self-MT
+          tp('Saturn',11,15), // h11, self-MT
+          tp('Rahu',9,3),     // h9, at 3° (would be weak for regular planet — exempt)
+          tp('Ketu',3,3),     // h3, at 3° — exempt; Rahu/Ketu mutual aspect suppressed
+        ]},
+    ];
+
+    let currentUserTestKey = null;
+    function loadTestChart(idx) {
+      if (idx === '') return;
+      if (idx === 'build') { openTestBuilder(); return; }
+      if (idx.startsWith('utc:')) {
+        const key = idx.slice(4);
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          renderChart(JSON.parse(raw));
+          // Set after renderChart — renderChart clears it
+          currentUserTestKey = key;
+          document.getElementById('editTestBtn').style.display = '';
+        }
+        return;
+      }
+      if (idx.startsWith('utd:')) {
+        openTestBuilder(idx.slice(4));
+        return;
+      }
+      currentUserTestKey = null;
+      document.getElementById('editTestBtn').style.display = 'none';
+      renderChart(TEST_CHARTS[parseInt(idx)]);
+    }
+
+    // ═══════════════════════════════════════════════════
     // Jyotish constants
     // ═══════════════════════════════════════════════════
     const DEBI_RASHI    = { Sun:7,Moon:8,Mars:4,Mercury:12,Jupiter:10,Venus:6,Saturn:1,Rahu:8,Ketu:2 };
@@ -597,8 +821,18 @@
     function analyzeAllGrahas(data) {
       const lr     = data.lagna.rashi;
       const fms    = FUNC_MALEFICS[lr] || new Set();
+      const sunIsFM = fms.has("Sun");
       const mmp    = MMP[lr];
       const mepDeg = data.lagna.degree_in_rashi;
+
+      // Build D9 rashi lookup: planet name -> rashi number in D9 chart
+      const d9RashiMap = {};
+      if (data.divisional_charts) {
+        const d9 = data.divisional_charts.find(c => c.chart_type === 'D9');
+        if (d9 && d9.grahas) {
+          for (const g of d9.grahas) d9RashiMap[g.graha] = g.rashi;
+        }
+      }
 
       // Sun-like planets: lords of 2nd, 3rd, 9th houses that contain a mooltrikona sign
       const sunLikeSigns   = new Set([5]); // Leo always (Sun's own MT)
@@ -625,7 +859,7 @@
       // FM list with computed houses
       const fmData = data.grahas
         .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
-        .map(g => ({ graha:g.graha, house:((g.rashi-lr+12)%12)+1, deg:g.degree_in_rashi }));
+        .map(g => ({ graha:g.graha, house:((g.rashi-lr+12)%12)+1, deg:g.degree_in_rashi, rashi:g.rashi }));
 
       // Chain-special FMs: any FM that is itself aspected within 5° by another FM
       // When a chain-special FM aspects a planet, the effective orb extends to 5°
@@ -655,7 +889,8 @@
         // Nodes have no degree strength; they can be debilitated/exalted
         const degPct      = isNode ? 1.0 : degStrength(g.degree_in_rashi);
         const weakByDeg   = !isNode && !isStrong(g.degree_in_rashi);
-        const debilitated = DEBI_RASHI[g.graha] === g.rashi;
+        const debilitated   = DEBI_RASHI[g.graha] === g.rashi;
+        const d9Debilitated = d9RashiMap[g.graha] !== undefined && DEBI_RASHI[g.graha] === d9RashiMap[g.graha];
         const exalted     = EXALT_RASHI[g.graha] === g.rashi;
         // Planet in its own MT sign is exempt from dushtana weakness
         const inDushtana  = DUSHTANA.has(house) && MOOLA_LORD[g.rashi] !== g.graha;
@@ -675,17 +910,56 @@
           const asp  = fmAspectedHouses(fm.graha, fm.house);
           if (!asp.has(house)) continue;
           const diff = Math.abs(fm.deg - g.degree_in_rashi);
-          if (diff > 5) continue; // hard cutoff — don't show beyond 5°
+          if (diff >= 5) continue; // hard cutoff — don't show beyond 5°
           const via          = aspectLabel(fm.graha, fm.house, house);
-          const special      = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
+          const isNodeFM    = fm.graha === 'Rahu' || fm.graha === 'Ketu';
+          const isConjunct  = fm.house === house;
+          const fmInDushtana = DUSHTANA.has(fm.house) && MOOLA_LORD[fm.rashi] !== fm.graha;
+          const special     = fm.graha === mmp || (isNodeFM && isConjunct) || fmInDushtana;
           const chainSpecial = chainSpecialFMs.has(fm.graha);
           const chainSource  = chainSpecial ? chainSpecialFMs.get(fm.graha) : null;
           // Chain-special elevates FM to special status (2° for strong, 5° for weak)
           const effectiveSpecial = special || chainSpecial;
-          const dmgOrb = isStrong(g.degree_in_rashi) ? (effectiveSpecial ? 2 : 1) : 5;
+          // Weak planet = any weakness source (degree, combust, debi, dushtana)
+          const planetIsWeak = weakByDeg || combust || debilitated || inDushtana;
+          const dmgOrb = planetIsWeak ? 5 : (effectiveSpecial ? 2 : 1);
           const isDamaging = diff <= dmgOrb;
           allFmAspects.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, isDamaging, dmgOrb });
-          if (isDamaging) afflictions.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via });
+          if (isDamaging) afflictions.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, dmgOrb });
+        }
+        // FB aspects to this planet — collect for boost pass after all base strengths known
+        const fbAspects = [];
+        for (const fb of data.grahas) {
+          if (fb.graha === g.graha) continue;
+          if (fb.graha === 'Rahu' || fb.graha === 'Ketu') continue; // nodes never boost
+          if (fms.has(fb.graha)) continue;                          // FMs don't boost
+          const fbHouse = ((fb.rashi - lr + 12) % 12) + 1;
+          if (!fmAspectedHouses(fb.graha, fbHouse).has(house)) continue;
+          const orb = Math.abs(fb.degree_in_rashi - g.degree_in_rashi);
+          if (orb >= 5) continue; // outside max boost range
+          const via = aspectLabel(fb.graha, fbHouse, house);
+          fbAspects.push({ fb:fb.graha, orb, via });
+        }
+
+        // Condition 5: 2+ FM aspects in range, one within 2° → all become special
+        // Use allFmAspects (all within 5°) — condition applies even if currently non-damaging
+        const cond5 = allFmAspects.length >= 2 && allFmAspects.some(asp => asp.orb < 2.005);
+        if (cond5) {
+          const planetIsWeak = weakByDeg || combust || debilitated || inDushtana;
+          // Upgrade all to special, recalculate dmgOrb and isDamaging
+          for (const asp of allFmAspects) {
+            asp.special    = true;
+            asp.cond5      = true;
+            asp.dmgOrb     = planetIsWeak ? 5 : 2;
+            asp.isDamaging = asp.orb < asp.dmgOrb;
+          }
+          afflictions.length = 0;
+          for (const asp of allFmAspects) {
+            if (asp.isDamaging) {
+              afflictions.push({ fm:asp.fm, orb:asp.orb, special:true, chainSpecial:asp.chainSpecial,
+                                 chainSource:asp.chainSource, via:asp.via, dmgOrb:asp.dmgOrb, cond5:true });
+            }
+          }
         }
 
         // MT house MEP afflictions — FM within 5° of MEP in this planet's own MT sign house
@@ -698,9 +972,9 @@
             if (fm.graha === g.graha) continue;
             if (!fmAspectedHouses(fm.graha, fm.house).has(mtHouse)) continue;
             const orb = Math.abs(fm.deg - mepDeg);
-            if (orb > 5) continue;
+            if (orb >= 5) continue;
             const loss = 0.75 * (1 - orb / 5);
-            mtAfflictions.push({ fm: fm.graha, orb, loss, mtHouse });
+            mtAfflictions.push({ fm: fm.graha, orb, loss, mtHouse, inMtHouse: fm.house === mtHouse });
           }
         }
 
@@ -708,17 +982,37 @@
 
         // Strength % — multiply down for each applicable weakness factor
         let strengthPct = isNode ? 1.0 : degPct;
-        if (combust)     strengthPct *= 0.5;
-        if (debilitated) strengthPct *= 0.5;
-        if (inDushtana)  strengthPct *= 0.5;
-        // Damaging afflictions: special (Rahu/Ketu/MMP/chain) within 2° → −75%; regular within 1° → −50%
+        if (combust) strengthPct *= sunIsFM ? 0.25 : 0.5;
+        // Debilitation — rule h: debi in both rasi+D9 = -75%; else rasi only = -50%
+        if (debilitated) strengthPct *= d9Debilitated ? 0.25 : 0.5;
+        // Dushtana — rule i: dushtana in rasi + D9 debi = -60% combined; else rasi only = -50%
+        // rule k: D9 debi only (no rasi debi, no dushtana) = -25%
+        if (inDushtana)       strengthPct *= d9Debilitated ? 0.4 : 0.5;
+        else if (d9Debilitated && !debilitated) strengthPct *= 0.75;
+        // Damaging afflictions: graduated over dmgOrb
+        // Strong planet (1°/2° orb): nearly full loss at exact; tapers to 0 at dmgOrb
+        // Weak planet (5° orb): fully graduated — ~9% loss at 4° vs ~50% at exact
         for (const aff of afflictions) {
           const effSpec = aff.special || aff.chainSpecial;
-          strengthPct *= effSpec ? 0.25 : 0.5;
+          const baseLoss = effSpec ? 0.75 : 0.5;
+          const loss = baseLoss * (1 - aff.orb / aff.dmgOrb);
+          strengthPct *= (1 - loss);
         }
         // MT house MEP afflictions: graduated loss up to 5°
-        for (const mta of mtAfflictions) {
-          strengthPct *= (1 - mta.loss);
+        // Special (−75% once) triggered by any of:
+        //   1. Multiple FMs (2+) with at least one within 2.5°
+        //   2. Node (Rahu/Ketu) in the MT house (Ra-Ke axis) within 2° of MEP
+        const mtOnlyNodes   = mtAfflictions.every(mta => mta.fm === 'Rahu' || mta.fm === 'Ketu');
+        const mtMultiple    = !mtOnlyNodes && mtAfflictions.length >= 2 && mtAfflictions.some(mta => mta.orb <= 2.5);
+        const mtNodeSpecial = mtAfflictions.some(mta =>
+          (mta.fm === 'Rahu' || mta.fm === 'Ketu') && mta.inMtHouse && mta.orb <= 2);
+        const mtSpecial = mtMultiple || mtNodeSpecial;
+        if (mtSpecial) {
+          strengthPct *= 0.25;
+        } else {
+          for (const mta of mtAfflictions) {
+            strengthPct *= (1 - mta.loss);
+          }
         }
 
         // Sun-like boost: +25%, capped at 100%
@@ -731,21 +1025,48 @@
         } else if (sunLikePlanets.has(g.graha) && sunLikeSigns.has(g.rashi)) {
           sunLikeBoost = true;
         }
-        if (sunLikeBoost) strengthPct = Math.min(strengthPct + 0.25, 1.0);
+        if (sunLikeBoost) strengthPct = Math.min(strengthPct * 1.25, 1.0);
 
         analysis[g.graha] = {
           graha:g.graha, abbr:GRAHA_ABBR[g.graha]||g.graha.slice(0,2),
           rashi:g.rashi, rashiName:RASHI_NAME[g.rashi],
           house, deg:g.degree_in_rashi, retro:g.retrograde,
-          isFM, isMMP, isNode, combust, weakByDeg, debilitated, exalted, inDushtana,
-          afflictions, allFmAspects, mtAfflictions, dispositor,
-          degPct, strengthPct, sunLikeBoost,
+          isFM, isMMP, isNode, combust, weakByDeg, debilitated, d9Debilitated, exalted, inDushtana,
+          afflictions, allFmAspects, mtAfflictions, mtMultiple, mtNodeSpecial, mtSpecial, dispositor,
+          degPct, strengthPct, sunLikeBoost, fbAspects, fbBoostItems:[],
           baseWeak, dispositorWeak:false, isWeak:baseWeak, dispCapChain:[], color:null
         };
       }
 
+      // ── FB boost pass — runs before dispositor cap so boosted strengths feed into cap ──
+      // Snapshot pre-boost strengths so strong/weak FB classification is order-independent.
+      // Without this, canonical order determines whether a planet is seen as strong or weak
+      // when acting as a FB — e.g. Mercury boosted before Venus would appear strong when
+      // Venus looks it up, giving Mercury a 50% boost instead of 12.5%.
+      // Strong FB (>=70%): +50% × (1 − orb/5), up to 5°
+      // Weak FB (<70%):    +12.5% × (1 − orb),  only within 1°
+      const preBoostStrength = {};
+      for (const [name, a] of Object.entries(analysis)) preBoostStrength[name] = a.strengthPct;
+      for (const a of Object.values(analysis)) {
+        if (a.isNode) continue;
+        for (const fba of a.fbAspects) {
+          const fbStrength = preBoostStrength[fba.fb];
+          if (fbStrength === undefined) continue;
+          const fbStrong = fbStrength >= 0.70;
+          let boost = 0;
+          if (fbStrong) {
+            if (fba.orb <= 5) boost = 0.5 * (1 - fba.orb / 5);
+          } else {
+            if (fba.orb < 1)  boost = 0.125 * (1 - fba.orb);
+          }
+          if (boost <= 0) continue;
+          a.strengthPct *= (1 + boost);
+          a.fbBoostItems.push({ fb:fba.fb, orb:fba.orb, via:fba.via, boost, fbStrong });
+        }
+      }
+
       // ── Dispositor cap — cascade until stable (max 7 passes) ──
-      // Each pass propagates weakness one level further down the chain
+      // Runs after FB boost so a dispositor boosted by a FB passes that strength to disposed planets.
       for (let pass = 0; pass < 7; pass++) {
         let changed = false;
         for (const a of Object.values(analysis)) {
@@ -766,17 +1087,28 @@
         if (!changed) break;
       }
 
-      // ── Assign colors ──
+      // ── Update isWeak from final strengthPct (FB boost may have lifted a planet above threshold) ──
       for (const a of Object.values(analysis)) {
-        if      (a.combust) a.color = '#6090ff';
-        else if (a.isFM)    a.color = '#e06060';
-        else if (a.isWeak)  a.color = '#c8a060';
-        else                a.color = '#70c070';
+        if (a.strengthPct >= 0.60) a.isWeak = false;
+      }
+
+      // ── Assign colors ──
+      // <60% weak (brown), 60–69% middling (gold), >=70% strong (green)
+      for (const a of Object.values(analysis)) {
+        if      (a.combust)                          a.color = '#6090ff';
+        else if (a.isFM)                             a.color = '#e06060';
+        else if (a.isWeak)                           a.color = '#c8a060';
+        else if (a.strengthPct < 0.70)               a.color = '#c9a84c';
+        else                                         a.color = '#70c070';
       }
 
       // ── House strengths ──
       // MT houses: strength = lord's strengthPct (resolved after colors pass)
-      // Non-MT houses: start 100%; FB aspects within 5° of MEP add 50%*(1-orb/5)
+      // Non-MT houses: start 100%; FB aspects boost, FM aspects reduce (both graduated over 5°):
+      //   Strong FB (>= 70%): boost = 50% * (1 - orb/5), applies up to 5°
+      //   Weak FB  (< 70%):   boost = 12.5% * (1 - orb), only applies if orb < 1°
+      //   Regular FM:         loss  = 50% * (1 - orb/5), applies up to 5°
+      //   Special FM (Rahu/Ketu/MMP): loss = 75% * (1 - orb/5), applies up to 5°
       const houses = {};
       for (let h = 1; h <= 12; h++) {
         const hRashi = ((lr - 1 + h - 1) % 12) + 1;
@@ -786,21 +1118,53 @@
         } else {
           let sp = 1.0;
           const boosts = [];
+          const afflictions = [];
+          // FB boosts
           for (const g of data.grahas) {
             if (g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha)) continue;
             const gHouse = ((g.rashi - lr + 12) % 12) + 1;
             if (!fmAspectedHouses(g.graha, gHouse).has(h)) continue;
             const orb = Math.abs(g.degree_in_rashi - mepDeg);
-            if (orb > 5) continue;
-            const boost = 0.5 * (1 - orb / 5);
+            const an = analysis[g.graha];
+            const planetStrong = an && an.strengthPct >= 0.70;
+            let boost = 0;
+            if (planetStrong) {
+              if (orb <= 5) boost = 0.5 * (1 - orb / 5);
+            } else {
+              if (orb < 1)  boost = 0.125 * (1 - orb);
+            }
+            if (boost <= 0) continue;
             sp += boost;
             boosts.push({ planet:g.graha, orb, boost });
           }
-          houses[h] = { mt:false, rashi:hRashi, sp, boosts };
+          // FM afflictions (including Rahu/Ketu 5th and 9th aspects)
+          // Use fmData (not fms) — fms excludes Rahu/Ketu which are always FM
+          for (const fm of fmData) {
+            if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
+            const orb = Math.abs(fm.deg - mepDeg);
+            if (orb >= 5) continue;
+            const isSpecial = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
+            const loss = (isSpecial ? 0.75 : 0.5) * (1 - orb / 5);
+            if (loss <= 0) continue;
+            sp -= loss;
+            afflictions.push({ planet:fm.graha, orb, loss, isSpecial });
+          }
+          // If all afflictions are nodes (Rahu+Ketu), it is the Ra-Ke axis — one -75% loss, not two
+          const onlyNodes = afflictions.length > 0 && afflictions.every(a => a.planet === 'Rahu' || a.planet === 'Ketu');
+          if (onlyNodes) {
+            // Undo the two separate node losses, apply a single -75%
+            for (const a of afflictions) sp += a.loss;
+            const rkOrb = Math.min(...afflictions.map(a => a.orb));
+            const rkLoss = 0.75 * (1 - rkOrb / 5);
+            sp -= rkLoss;
+          }
+          sp = Math.max(sp, 0);
+          houses[h] = { mt:false, rashi:hRashi, sp, boosts, afflictions, onlyNodes };
         }
       }
       analysis._houses = houses;
       analysis._mepDeg = mepDeg;
+      analysis._sunIsFM = sunIsFM;
 
       return analysis;
     }
@@ -815,6 +1179,7 @@
       const data = lastData;
       const an   = lastAnalysis;
       const lr   = data.lagna.rashi;
+      const sunIsFM = an._sunIsFM;
       const bd   = data.birth_data;
 
       let html = `<div class="an-lagna">
@@ -835,71 +1200,146 @@
             <span class="an-loc">${a.rashiName} &bull; House ${a.house} &bull; ${fmtDeg(a.deg)}°</span>
           </div><div>`;
 
+        // Running cumulative strength tracker (mirrors pipeline order)
+        let cur = a.weakByDeg ? a.degPct : 1.0;
+        const run = () => `<span class="an-run">= ${pct(cur)}</span>`;
+
         // FM / MMP label — nodes need no lagna qualifier
         if (a.isFM) {
           const lagnaQual = a.isNode ? '' : ` for ${RASHI_NAME[lr]} lagna`;
           html += `<div class="an-item c-red">Functional malefic${a.isMMP ? ' — Most Malefic Planet (MMP)' : ''}${lagnaQual}</div>`;
         }
 
-        // Degree weakness — nodes exempt; only show if actually reducing strength
-        if (!a.isNode && a.weakByDeg) {
-          html += `<div class="an-item c-brown">Degrees: ${pct(a.degPct)} (${fmtDeg(a.deg)}°)</div>`;
+        // MT lord label — planet is in its own mooltrikona sign
+        if (!a.isNode && MOOLA_LORD[a.rashi] === a.graha) {
+          html += `<div class="an-item c-green">MT lord of ${a.rashiName}</div>`;
         }
 
-        // Combust
+        // Step 1: Degree weakness — nodes exempt; only show if actually reducing strength
+        if (!a.isNode && a.weakByDeg) {
+          html += `<div class="an-item c-brown">Degrees: ${pct(a.degPct)} (${fmtDeg(a.deg)}°) ${run()}</div>`;
+        }
+
+        // Step 2: Combust
         if (a.combust) {
           const sunA = an['Sun'];
           const sunLon = sunA ? (sunA.rashi - 1) * 30 + sunA.deg : 0;
           const pLon   = (a.rashi - 1) * 30 + a.deg;
           let d = Math.abs(pLon - sunLon); if (d > 180) d = 360 - d;
-          html += `<div class="an-item c-blue">Combust: −50% (${d.toFixed(2)}° from Sun)</div>`;
+          const combustLoss = sunIsFM ? 75 : 50;
+          cur *= sunIsFM ? 0.25 : 0.5;
+          html += `<div class="an-item c-blue">Combust: −${combustLoss}% (${d.toFixed(2)}° from Sun) ${run()}</div>`;
         }
 
-        // Exaltation / debilitation / sun-like boost
+        // Step 3: Exalted (informational — no strength change)
         if (a.exalted) {
           html += `<div class="an-item c-green">Exalted in ${a.rashiName}</div>`;
         }
-        if (a.sunLikeBoost) {
-          html += `<div class="an-item c-green">Sun-like placement: +25%</div>`;
-        }
+
+        // Step 4: Debilitated
         if (a.debilitated) {
-          html += `<div class="an-item c-brown">Debilitated: −50%</div>`;
+          if (a.d9Debilitated) {
+            cur *= 0.25;
+            html += `<div class="an-item c-brown">Debilitated rasi + D9: −75% ${run()}</div>`;
+          } else {
+            cur *= 0.5;
+            html += `<div class="an-item c-brown">Debilitated: −50% ${run()}</div>`;
+          }
         }
+
+        // Step 5: Dushtana
         if (a.inDushtana) {
-          html += `<div class="an-item c-brown">Dushtana (house ${a.house}): −50%</div>`;
+          if (a.d9Debilitated && !a.debilitated) {
+            cur *= 0.40;
+            html += `<div class="an-item c-brown">Dushtana (h${a.house}) + D9 debilitated: −60% ${run()}</div>`;
+          } else {
+            cur *= 0.5;
+            html += `<div class="an-item c-brown">Dushtana (house ${a.house}): −50% ${run()}</div>`;
+          }
         }
 
-        // MT house MEP afflictions
-        for (const mta of a.mtAfflictions) {
-          const lossPct = Math.round(mta.loss * 100);
-          html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mta.fm} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}%</div>`;
+        // Step 6: D9 debilitated alone
+        if (a.d9Debilitated && !a.debilitated && !a.inDushtana) {
+          cur *= 0.75;
+          html += `<div class="an-item c-brown">D9 debilitated: −25% ${run()}</div>`;
         }
 
-        // All FM aspects within 5° — note whether damaging
+        // Step 7: FM direct afflictions
         for (const asp of a.allFmAspects) {
-          const specTag   = asp.special ? ' (special)' : '';
+          const specTag   = asp.cond5 ? ' (special: multiple FMs)' : (asp.special ? ' (special)' : '');
           const chainTag  = asp.chainSpecial ? ` [chain: ${asp.chainSource}→${asp.fm}]` : '';
           if (asp.isDamaging) {
             const effSpec = asp.special || asp.chainSpecial;
-            const lossLabel = effSpec ? '−75%' : '−50%';
-            html += `<div class="an-item c-brown">Afflicted by ${asp.fm}${specTag}${chainTag} — ${asp.orb.toFixed(2)}° via ${asp.via} → ${lossLabel}</div>`;
+            const baseLoss = effSpec ? 0.75 : 0.5;
+            const loss = baseLoss * (1 - asp.orb / asp.dmgOrb);
+            const actualLoss = Math.round(loss * 100);
+            cur *= (1 - loss);
+            html += `<div class="an-item c-brown">Afflicted by ${asp.fm}${specTag}${chainTag} — ${asp.orb.toFixed(2)}° via ${asp.via} → −${actualLoss}% ${run()}</div>`;
           } else {
             html += `<div class="an-item c-gray">${asp.fm}${specTag}${chainTag} ${asp.via} — ${asp.orb.toFixed(2)}° (not damaging)</div>`;
           }
         }
 
-        // Dispositor — only show when weak and actually capping strength
+        // Step 8: MT house MEP afflictions
+        if (a.mtMultiple) {
+          html += `<div class="an-item c-brown">Afflicted by multiple FMs</div>`;
+          for (const mta of a.mtAfflictions) {
+            html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mta.fm} — ${mta.orb.toFixed(2)}° from MEP</div>`;
+          }
+          cur *= 0.25;
+          html += `<div class="an-item c-brown">Loss → −75% ${run()}</div>`;
+        } else if (a.mtNodeSpecial) {
+          for (const mta of a.mtAfflictions) {
+            const isNodeMta = mta.fm === 'Rahu' || mta.fm === 'Ketu';
+            if (isNodeMta && mta.inMtHouse && mta.orb <= 2) {
+              cur *= 0.25;
+              html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) on Ra-Ke axis — ${mta.fm} ${mta.orb.toFixed(2)}° from MEP → −75% ${run()}</div>`;
+            } else if (isNodeMta) {
+              // other end of the Ra-Ke axis — already covered, skip
+            } else {
+              cur *= (1 - mta.loss);
+              const lossPct = Math.round(mta.loss * 100);
+              html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mta.fm} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+            }
+          }
+        } else {
+          for (const mta of a.mtAfflictions) {
+            cur *= (1 - mta.loss);
+            const lossPct = Math.round(mta.loss * 100);
+            html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mta.fm} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+          }
+        }
+
+        // Step 9: Sun-like boost
+        if (a.sunLikeBoost) {
+          cur *= 1.25;
+          html += `<div class="an-item c-green">Sun-like placement: +25% ${run()}</div>`;
+        }
+
+        // Step 10: FB boosts
+        for (const fbi of a.fbBoostItems) {
+          const boostPct = Math.round(fbi.boost * 100);
+          const qual = fbi.fbStrong ? 'strong' : 'weak';
+          cur *= (1 + fbi.boost);
+          html += `<div class="an-item c-green">Boosted by ${fbi.fb} (${qual} FB) — ${fbi.orb.toFixed(2)}° ${fbi.via} → +${boostPct}% ${run()}</div>`;
+        }
+
+        // Step 11: Dispositor cap
         if (a.dispositorWeak) {
           const disp   = an[a.dispositor];
           const dClass = (disp && disp.isFM) ? 'c-red' : 'c-brown';
           const capNote = a.dispCapChain.length > 1 ? ` via ${a.dispCapChain.join('→')}` : '';
-          html += `<div class="an-item ${dClass}">Dispositor ${a.dispositor}: weak → capped at ${pct(a.strengthPct)}${capNote}</div>`;
+          const wasCapped = disp && (disp.strengthPct - a.strengthPct) < 0.001;
+          if (wasCapped) {
+            cur = disp.strengthPct;
+            html += `<div class="an-item ${dClass}">Capped by dispositor ${a.dispositor} (${pct(disp.strengthPct)})${capNote} ${run()}</div>`;
+          }
         }
 
-        // Overall summary
-        const oLabel = a.isWeak ? 'Weak' : 'Strong';
-        const oClass = a.combust ? 'c-blue' : (a.isWeak ? 'c-brown' : 'c-green');
-        html += `<div class="an-item overall ${oClass}">→ ${oLabel} ${pct(a.strengthPct)}</div>`;
+        // Overall summary — <60% Weak, 60–69% no label, >=70% Strong
+        const oLabel = a.isWeak ? 'Weak' : (a.strengthPct >= 0.70 ? 'Strong' : '');
+        const oClass = a.combust ? 'c-blue' : (a.isWeak ? 'c-brown' : (a.strengthPct < 0.70 ? 'c-gold' : 'c-green'));
+        html += `<div class="an-item overall ${oClass}">→ ${oLabel ? oLabel + ' ' : ''}${pct(a.strengthPct)}</div>`;
         html += '</div></div>';
       }
 
@@ -917,11 +1357,20 @@
             const cls  = (!sp || sp < 0.6) ? 'c-brown' : 'c-green';
             html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}) — MT lord ${hs.lord}: ${sp !== null ? pct(sp) : '?'}</div>`;
           } else {
-            const cls = hs.sp > 1.0 ? 'c-green' : 'c-gray';
-            const boostNote = hs.boosts.length
-              ? ' — ' + hs.boosts.map(b => `${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}°)`).join(', ')
-              : '';
-            html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}): ${pct(hs.sp)}${boostNote}</div>`;
+            const hasAff = hs.afflictions && hs.afflictions.length > 0;
+            const cls = hasAff ? 'c-brown' : (hs.sp > 1.0 ? 'c-green' : 'c-gray');
+            let houseNote = '';
+            if (hs.boosts && hs.boosts.length)
+              houseNote += ' — ' + hs.boosts.map(b => `${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}°)`).join(', ');
+            if (hs.afflictions && hs.afflictions.length) {
+              if (hs.onlyNodes) {
+                const orbStr = hs.afflictions.map(a => `${a.planet} ${a.orb.toFixed(2)}°`).join(', ');
+                houseNote += ` — Ra-Ke axis (${orbStr}) → −75%`;
+              } else {
+                houseNote += ' — ' + hs.afflictions.map(a => `${a.planet}${a.isSpecial ? '* ' : ' '}−${pct(a.loss)} (${a.orb.toFixed(2)}°)`).join(', ');
+              }
+            }
+            html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}): ${pct(hs.sp)}${houseNote}</div>`;
           }
         }
       }
@@ -1011,13 +1460,360 @@
       document.getElementById('chartTitle').textContent =
         `${data.name||'Chart'} — ${bd.date} ${bd.time} | Lat ${bd.latitude}, Lon ${bd.longitude} | TZ ${bd.timezone_offset} | Lagna: ${data.lagna.rashi_name}`;
 
-      // Enable Analysis button
+      // Enable Analysis button; hide Edit Test (only shown for user test charts)
       document.getElementById('analysisBtn').disabled = false;
+      document.getElementById('editTestBtn').style.display = 'none';
+      currentUserTestKey = null;
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild'].forEach(id =>
       makeDraggable(document.getElementById(id)));
+
+    // ═══════════════════════════════════════════════════
+    // Test Chart Builder
+    // ═══════════════════════════════════════════════════
+    const TCB_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
+    const TCB_SIGN_MAP = {
+      aries:1,taurus:2,gemini:3,cancer:4,leo:5,virgo:6,
+      libra:7,scorpio:8,sagittarius:9,capricorn:10,aquarius:11,pisces:12,
+      mesha:1,vrishabha:2,mithuna:3,karka:4,simha:5,kanya:6,
+      tula:7,vrishchika:8,dhanu:9,makara:10,kumbha:11,meena:12,
+      '1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'11':11,'12':12
+    };
+    const TCB_PLANET_MAP = {
+      sun:'Sun',su:'Sun',sol:'Sun',
+      moon:'Moon',mo:'Moon',luna:'Moon',
+      mars:'Mars',ma:'Mars',
+      mercury:'Mercury',me:'Mercury',merc:'Mercury',
+      jupiter:'Jupiter',ju:'Jupiter',jup:'Jupiter',
+      venus:'Venus',ve:'Venus',
+      saturn:'Saturn',sa:'Saturn',sat:'Saturn',
+      rahu:'Rahu',ra:'Rahu',
+      ketu:'Ketu',ke:'Ketu'
+    };
+
+    let tcbState = null;  // { name, lagna:{rashi,degree}, grahas:{PlanetName:{rashi,degree,retro}} }
+    let tcbEditKey = null; // localStorage key of draft being edited
+
+    function openEditTest() {
+      if (!currentUserTestKey) return;
+      const raw = localStorage.getItem(currentUserTestKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      tcbState = {
+        name: data.name,
+        lagna: { rashi: data.lagna.rashi, degree: data.lagna.degree_in_rashi },
+        grahas: {}
+      };
+      for (const g of data.grahas) {
+        tcbState.grahas[g.graha] = { rashi:g.rashi, degree:g.degree_in_rashi, retro:g.retrograde||false };
+      }
+      tcbEditKey = currentUserTestKey;
+      document.getElementById('tcb-name').value = tcbState.name;
+      document.getElementById('tcb-delete').style.display = '';
+      document.getElementById('tcb-input').value = '';
+      tcbLog('');
+      tcbUpdateStatus();
+      document.getElementById('dlgBuild').showModal();
+      setTimeout(() => document.getElementById('tcb-input').focus(), 50);
+    }
+
+    function openTestBuilder(draftKey) {
+      tcbState = { name:'', lagna:null, grahas:{} };
+      tcbEditKey = null;
+      if (draftKey) {
+        const raw = localStorage.getItem(draftKey);
+        if (raw) { tcbState = JSON.parse(raw); tcbEditKey = draftKey; }
+      }
+      document.getElementById('tcb-name').value = tcbState.name || '';
+      document.getElementById('tcb-delete').style.display = tcbEditKey ? '' : 'none';
+      document.getElementById('tcb-input').value = '';
+      tcbLog('');
+      tcbUpdateStatus();
+      document.getElementById('dlgBuild').showModal();
+      setTimeout(() => document.getElementById('tcb-input').focus(), 50);
+    }
+
+    function closeTestBuilder() { document.getElementById('dlgBuild').close(); }
+
+    function tcbLog(msg, cls) {
+      const el = document.getElementById('tcb-log');
+      if (!msg) { el.innerHTML = ''; return; }
+      const color = cls === 'err' ? '#e08080' : cls === 'ok' ? '#70c070' : '#888888';
+      el.innerHTML = `<span style="color:${color}">${msg}</span>`;
+    }
+
+    function tcbNameChanged() {
+      if (tcbState) tcbState.name = document.getElementById('tcb-name').value.trim();
+      tcbUpdateSaveBtn();
+    }
+
+    function tcbIsComplete() {
+      return tcbState && tcbState.lagna !== null && TCB_PLANETS.every(p => tcbState.grahas[p]);
+    }
+
+    function tcbUpdateSaveBtn() {
+      const name = document.getElementById('tcb-name').value.trim();
+      document.getElementById('tcb-save').disabled = !(tcbIsComplete() && name);
+    }
+
+
+    function renderChartPreview(state) {
+      if (!state || !state.lagna) return;
+      const lr     = state.lagna.rashi;
+      const mepDeg = state.lagna.degree;
+      const svg    = document.getElementById('chart');
+      svg.innerHTML = '';
+      svg.style.display = 'block';
+      svg.appendChild(svgEl('rect',{width:500,height:500,fill:'#0a0a1a'}));
+      for (let h=1;h<=12;h++) {
+        svg.appendChild(svgEl('polygon',{
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:'#16213e',stroke:'#c9a84c','stroke-width':'1.5'
+        }));
+      }
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#c9a84c','font-family':'monospace','text-anchor':'middle','font-weight':'bold'},String(houseSign(h,lr))));
+      }
+      // Build planet lists per house
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      hp[1].push({label:'As',deg:mepDeg,color:'#e0e0e0',retro:false});
+      for (const [name, g] of Object.entries(state.grahas)) {
+        const house = ((g.rashi - lr + 12) % 12) + 1;
+        const abbr  = GRAHA_ABBR[name] || name.slice(0,2);
+        hp[house].push({label:abbr, deg:g.degree, color:'#a0b0c0', retro:g.retro||false});
+      }
+      for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
+      const LH=13;
+      for (let h=1;h<=12;h++) {
+        const planets=hp[h]; if(!planets.length) continue;
+        const [cx,cy]=CENTROIDS[h];
+        let y0=cy+2-(planets.length*LH)/2+LH/2;
+        for (const p of planets) {
+          const line = p.label==='As' ? ('As '+fmtDeg(p.deg))
+            : (p.label+((p.retro&&!NO_RETRO_LABEL.has(p.label))?' R ':' ')+fmtDeg(p.deg));
+          svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'11',fill:p.color,'font-family':'monospace','text-anchor':'middle'},line));
+          y0+=LH;
+        }
+      }
+      const placed = Object.keys(state.grahas).length;
+      document.getElementById('chartTitle').textContent =
+        `${state.name||'Building…'} — ${placed}/9 planets placed`;
+      document.getElementById('analysisBtn').disabled = true;
+    }
+
+    function tcbUpdateStatus() {
+      const rows = [];
+      const lr = tcbState ? tcbState.lagna : null;
+      const lagnaStr = lr ? `${RASHI_NAME[lr.rashi]} (${lr.rashi}) @ ${lr.degree.toFixed(2)}&deg;` : '&mdash;';
+      rows.push(`<tr><td class="tcbs-lbl">Lagna</td><td class="tcbs-icon ${lr?'tcbs-ok':'tcbs-miss'}">${lr?'&#10003;':'&middot;'}</td><td>${lagnaStr}</td></tr>`);
+      for (const p of TCB_PLANETS) {
+        const g = tcbState ? tcbState.grahas[p] : null;
+        const str = g ? `${RASHI_NAME[g.rashi]} (${g.rashi}) @ ${g.degree.toFixed(2)}&deg;${g.retro?' R':''}` : '&mdash;';
+        rows.push(`<tr><td class="tcbs-lbl">${p}</td><td class="tcbs-icon ${g?'tcbs-ok':'tcbs-miss'}">${g?'&#10003;':'&middot;'}</td><td>${str}</td></tr>`);
+      }
+      document.getElementById('tcb-status').innerHTML = `<table class="tcbs-table">${rows.join('')}</table>`;
+      tcbUpdateSaveBtn();
+      if (tcbState && tcbState.lagna) renderChartPreview(tcbState);
+    }
+
+    function tcbParseDeg(token) {
+      if (!token) return null;
+      const m = token.match(/^(\d+):(\d+)$/);
+      if (m) return parseInt(m[1]) + parseInt(m[2]) / 60;
+      const f = parseFloat(token);
+      return (!isNaN(f) && f >= 0 && f < 30) ? f : null;
+    }
+
+    function tcbParseSign(token) {
+      return TCB_SIGN_MAP[token.toLowerCase()] || null;
+    }
+
+    function tcbParseHouse(token) {
+      if (!tcbState || !tcbState.lagna) return null;
+      const m = token.match(/^h?(\d+)(?:st|nd|rd|th)?$/i);
+      if (!m) return null;
+      const h = parseInt(m[1]);
+      if (h < 1 || h > 12) return null;
+      return ((tcbState.lagna.rashi - 1 + h - 1) % 12) + 1;
+    }
+
+    function tcbSubmit() {
+      const raw = document.getElementById('tcb-input').value.trim();
+      if (!raw) return;
+      document.getElementById('tcb-input').value = '';
+
+      // Normalize
+      const input = raw.toLowerCase()
+        .replace(/\b(in|at|degrees?|sign|house)\b/g, ' ')
+        .replace(/(\d+)(st|nd|rd|th)\b/g, '$1')
+        .replace(/[,]+/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+      const tokens = input.split(' ').filter(Boolean);
+      if (!tokens.length) return;
+
+      // ── Lagna ──
+      if (['lagna','as','ascendant','rising'].includes(tokens[0])) {
+        let sign = null, deg = 15;
+        for (let i = 1; i < tokens.length; i++) {
+          const s = tcbParseSign(tokens[i]); if (s && !sign) { sign = s; continue; }
+          const d = tcbParseDeg(tokens[i]); if (d !== null) { deg = d; }
+        }
+        if (!sign) { tcbLog(`Cannot identify sign in: "${raw}"`, 'err'); return; }
+        tcbState.lagna = { rashi:sign, degree:deg };
+        tcbLog(`Lagna: ${RASHI_NAME[sign]} @ ${deg.toFixed(2)}°`, 'ok');
+        tcbUpdateStatus(); return;
+      }
+
+      // ── Clear ──
+      if (tokens[0] === 'clear') {
+        const pn = tokens[1] ? TCB_PLANET_MAP[tokens[1]] : null;
+        if (!pn) { tcbLog(`Unknown planet: "${tokens[1]||''}"`, 'err'); return; }
+        delete tcbState.grahas[pn];
+        if (pn === 'Rahu') delete tcbState.grahas['Ketu'];
+        if (pn === 'Ketu') delete tcbState.grahas['Rahu'];
+        tcbLog(`${pn} cleared`, 'ok'); tcbUpdateStatus(); return;
+      }
+
+      // ── Reset ──
+      if (tokens[0] === 'reset') {
+        tcbState.lagna = null; tcbState.grahas = {};
+        tcbLog('Chart reset', 'ok'); tcbUpdateStatus(); return;
+      }
+
+      // ── Planet placement ──
+      const pName = TCB_PLANET_MAP[tokens[0]];
+      if (!pName) { tcbLog(`Unknown command or planet: "${tokens[0]}"`, 'err'); return; }
+
+      let sign = null, deg = 15, retro = false;
+      for (let i = 1; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t === 'r' || t === 'retro' || t === 'retrograde') { retro = true; continue; }
+        if (!sign) {
+          const s = tcbParseSign(t); if (s) { sign = s; continue; }
+          const hs = tcbParseHouse(t); if (hs) { sign = hs; continue; }
+        }
+        const d = tcbParseDeg(t); if (d !== null) { deg = d; }
+      }
+
+      if (!sign) { tcbLog(`Cannot identify sign/house for ${pName} in: "${raw}"`, 'err'); return; }
+      tcbState.grahas[pName] = { rashi:sign, degree:deg, retro };
+      let msg = `${pName}: ${RASHI_NAME[sign]} @ ${deg.toFixed(2)}°${retro?' R':''}`;
+
+      // Auto-fill nodes
+      if (pName === 'Rahu') {
+        const ks = ((sign - 1 + 6) % 12) + 1;
+        tcbState.grahas['Ketu'] = { rashi:ks, degree:deg, retro:false };
+        msg += ` → Ketu auto: ${RASHI_NAME[ks]}`;
+      } else if (pName === 'Ketu') {
+        const rs = ((sign - 1 + 6) % 12) + 1;
+        tcbState.grahas['Rahu'] = { rashi:rs, degree:deg, retro:false };
+        msg += ` → Rahu auto: ${RASHI_NAME[rs]}`;
+      }
+      tcbLog(msg, 'ok'); tcbUpdateStatus();
+    }
+
+    function tcbBuildData() {
+      const name = document.getElementById('tcb-name').value.trim() || 'User Test';
+      return {
+        name,
+        birth_data:{ date:'2000-01-01', time:'12:00:00', latitude:0, longitude:0, timezone_offset:0 },
+        ayanamsa:0,
+        lagna:{ rashi:tcbState.lagna.rashi, degree_in_rashi:tcbState.lagna.degree, rashi_name:RASHI_NAME[tcbState.lagna.rashi] },
+        grahas: TCB_PLANETS.map(p => {
+          const g = tcbState.grahas[p];
+          return { graha:p, rashi:g.rashi, degree_in_rashi:g.degree, retrograde:g.retro||false };
+        })
+      };
+    }
+
+    function tcbSave() {
+      const name = document.getElementById('tcb-name').value.trim();
+      if (!name) { tcbLog('Enter a name first', 'err'); return; }
+      if (!tcbIsComplete()) { tcbLog('All planets must be placed', 'err'); return; }
+      const data = tcbBuildData();
+      const key = 'jyotish_utc_' + name;
+      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.removeItem('jyotish_utd_' + name);
+      // Remove old key if renamed
+      if (tcbEditKey && tcbEditKey !== key) localStorage.removeItem(tcbEditKey);
+      tcbRefreshDropdown();
+      closeTestBuilder();
+      renderChart(data);
+      // Re-show Edit Test button (renderChart hides it)
+      currentUserTestKey = key;
+      document.getElementById('editTestBtn').style.display = '';
+    }
+
+    function tcbSaveDraft() {
+      const name = document.getElementById('tcb-name').value.trim();
+      if (!name) { tcbLog('Enter a name first', 'err'); return; }
+      tcbState.name = name;
+      const key = 'jyotish_utd_' + name;
+      localStorage.setItem(key, JSON.stringify(tcbState));
+      if (tcbEditKey && tcbEditKey !== key) localStorage.removeItem(tcbEditKey);
+      tcbEditKey = key;
+      document.getElementById('tcb-delete').style.display = '';
+      tcbLog(`Draft saved: "${name}"`, 'ok');
+    }
+
+    function tcbDelete() {
+      if (!tcbEditKey) return;
+      if (!confirm('Delete this chart/draft?')) return;
+      localStorage.removeItem(tcbEditKey);
+      const name = document.getElementById('tcb-name').value.trim();
+      localStorage.removeItem('jyotish_utc_' + name);
+      tcbRefreshDropdown();
+      closeTestBuilder();
+    }
+
+    function tcbRefreshDropdown() {
+      const sel = document.getElementById('testSelect');
+      // Remove existing user entries
+      Array.from(sel.options).forEach(o => {
+        if (o.value.startsWith('utc:') || o.value.startsWith('utd:') || o.dataset.userSep) o.remove();
+      });
+      const buildOpt = Array.from(sel.options).find(o => o.value === 'build');
+      const completeKeys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_utc_')).sort();
+      const draftKeys    = Object.keys(localStorage).filter(k => k.startsWith('jyotish_utd_')).sort();
+      if (completeKeys.length) {
+        const sep = document.createElement('option');
+        sep.disabled = true; sep.value = ''; sep.text = '─── User Tests ───';
+        sep.dataset.userSep = '1';
+        sel.insertBefore(sep, buildOpt);
+        for (const k of completeKeys) {
+          try {
+            const data = JSON.parse(localStorage.getItem(k));
+            const opt = document.createElement('option');
+            opt.value = 'utc:' + k;
+            opt.text = data.name || k.replace('jyotish_utc_','');
+            sel.insertBefore(opt, buildOpt);
+          } catch(e) {}
+        }
+      }
+      if (draftKeys.length) {
+        const sep = document.createElement('option');
+        sep.disabled = true; sep.value = ''; sep.text = '─── Drafts ───';
+        sep.dataset.userSep = '1';
+        sel.insertBefore(sep, buildOpt);
+        for (const k of draftKeys) {
+          try {
+            const state = JSON.parse(localStorage.getItem(k));
+            const opt = document.createElement('option');
+            opt.value = 'utd:' + k;
+            opt.text = (state.name || k.replace('jyotish_utd_','')) + ' (draft)';
+            sel.insertBefore(opt, buildOpt);
+          } catch(e) {}
+        }
+      }
+    }
+
+    // Populate user tests on page load
+    document.addEventListener('DOMContentLoaded', tcbRefreshDropdown);
+
   </script>
 </body>
 </html>
