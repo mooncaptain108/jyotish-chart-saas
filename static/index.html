@@ -1974,13 +1974,15 @@
         return { pass: false, reason: `${lagnaRuler} (lagna ruler) afflicted` };
 
       // Rule 4: Any planet badly placed (inDushtana)
-      for (const a of Object.values(analysis)) {
+      // Filter to planet entries only — analysis also contains _houses/_mepDeg/_sunIsFM
+      const planetEntries = Object.values(analysis).filter(a => a && a.graha);
+      for (const a of planetEntries) {
         if (a.inDushtana)
           return { pass: false, reason: `${a.graha} badly placed (h${a.house})` };
       }
 
       // Rule 5a: Any special affliction anywhere
-      for (const a of Object.values(analysis)) {
+      for (const a of planetEntries) {
         for (const asp of a.allFmAspects) {
           if (asp.special || asp.chainSpecial)
             return { pass: false, reason: `Special affliction: ${asp.isRaKe ? 'Ra-Ke' : asp.fm} on ${a.graha}` };
