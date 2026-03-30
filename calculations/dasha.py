@@ -68,9 +68,18 @@ def compute_mahadasha(moon_longitude: float,
         }
 
         if levels >= 2:
-            period["antardasha"] = _compute_sub_periods(
-                lord, current_date, duration_years, levels - 1
-            )
+            if cycle_offset == 0:
+                # Birth mahadasha: antardashas run from the true mahadasha start
+                # (before birth) using the full duration, so dates are correct.
+                elapsed_years = full_duration_years - first_balance_years
+                true_maha_start = birth_dt - timedelta(days=_years_to_days(elapsed_years))
+                period["antardasha"] = _compute_sub_periods(
+                    lord, true_maha_start, full_duration_years, levels - 1
+                )
+            else:
+                period["antardasha"] = _compute_sub_periods(
+                    lord, current_date, duration_years, levels - 1
+                )
 
         periods.append(period)
         current_date = end_date
