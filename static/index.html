@@ -2113,6 +2113,7 @@
       muhurtaAbort   = false;
       document.getElementById('mStartBtn').disabled = true;
       document.getElementById('mStopBtn').disabled  = false;
+      const muhurtaStartTime = Date.now();
       document.getElementById('mProgress').textContent = 'Starting…';
 
       try {
@@ -2166,7 +2167,12 @@
         document.getElementById('mStartBtn').disabled = false;
         document.getElementById('mStopBtn').disabled  = true;
         const prog = document.getElementById('mProgress');
-        if (!prog.textContent.startsWith('Error')) prog.textContent = 'Done.';
+        if (!prog.textContent.startsWith('Error')) {
+          const secs = ((Date.now() - muhurtaStartTime) / 1000).toFixed(1);
+          const mins = Math.floor(secs / 60);
+          const elapsed = mins > 0 ? `${mins}m ${(secs % 60).toFixed(1)}s` : `${secs}s`;
+          prog.textContent = `Done. (${elapsed})`;
+        }
       }
     }
 
