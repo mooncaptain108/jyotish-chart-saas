@@ -1820,6 +1820,40 @@
       'Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'
     ];
 
+    const MUHURTA_CFG_KEY = 'jyotish_muhurta_cfg';
+    function getMuhurtaCfg() {
+      let cfg = {};
+      try { cfg = JSON.parse(localStorage.getItem(MUHURTA_CFG_KEY) || '{}'); } catch(e) {}
+      return {
+        minBeneficDays:   cfg.minBeneficDays  != null ? cfg.minBeneficDays  : 0,
+        minLagnaStr:      cfg.minLagnaStr      != null ? cfg.minLagnaStr     : 0.60,
+        minStrongHouses:  cfg.minStrongHouses  != null ? cfg.minStrongHouses : 5,
+        minStrongPlanets: cfg.minStrongPlanets != null ? cfg.minStrongPlanets : 2
+      };
+    }
+    function saveMuhurtaCfg() {
+      const cfg = {
+        minBeneficDays:   parseFloat(document.getElementById('mMinBenefic').value),
+        minLagnaStr:      parseFloat(document.getElementById('mMinLagna').value),
+        minStrongHouses:  parseInt(document.getElementById('mMinHouses').value),
+        minStrongPlanets: parseInt(document.getElementById('mMinPlanets').value)
+      };
+      localStorage.setItem(MUHURTA_CFG_KEY, JSON.stringify(cfg));
+    }
+    function loadMuhurtaCfgUI() {
+      const cfg = getMuhurtaCfg();
+      const sel = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = String(val);
+        if (!el.value) el.selectedIndex = 0;
+      };
+      sel('mMinBenefic', cfg.minBeneficDays);
+      sel('mMinLagna',   cfg.minLagnaStr);
+      sel('mMinHouses',  cfg.minStrongHouses);
+      sel('mMinPlanets', cfg.minStrongPlanets);
+    }
+
     function getMuhurtaResults() {
       try { return JSON.parse(localStorage.getItem(MUHURTA_KEY) || '[]'); } catch { return []; }
     }
@@ -1831,6 +1865,7 @@
 
     function openMuhurtaDialog() {
       rebuildMuhurtaAtlasSelect();
+      loadMuhurtaCfgUI();
       renderMuhurtaResults();
       document.getElementById('dlgMuhurta').showModal();
     }
@@ -2018,7 +2053,8 @@
     }
 
     // Screen a candidate muhurta chart. Returns {pass, reason} or {pass, strongPlanets, strongHouses, antarDasha}.
-    function screenMuhurta(data, analysis) {
+    function screenMuhurta(data, analysis, cfg) {
+      cfg = cfg || getMuhurtaCfg();
       const lr  = data.lagna.rashi;
       const fms = FUNC_MALEFICS[lr] || new Set();
       const mepDeg = data.lagna.degree_in_rashi;
@@ -2051,7 +2087,7 @@
 
       // Rule 3b: Lagna ruler strength < 60%
       const lagnaRulerA = analysis[lagnaRuler];
-      if (lagnaRulerA && lagnaRulerA.strengthPct < 0.60)
+      if (lagnaRulerA && lagnaRulerA.strengthPct < cfg.minLagnaStr)
         return { pass: false, reason: `${lagnaRuler} (lagna ruler) strength ${Math.round(lagnaRulerA.strengthPct * 100)}% < 60%` };
 
       // Rule 4: Any planet badly placed (inDushtana)
@@ -2153,8 +2189,8 @@
       // Q2: 2+ of the 7 main planets with strengthPct >= 0.70
       const MAIN_7 = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
       const strongPlanets = MAIN_7.filter(p => analysis[p] && analysis[p].strengthPct >= 0.70).length;
-      if (strongPlanets < 2)
-        return { pass: false, reason: `Only ${strongPlanets} strong planets (need 2+)` };
+      if (strongPlanets < cfg.minStrongPlanets)
+        return { pass: false, reason: `Only ${strongPlanets} strong planets (need ${cfg.minStrongPlanets}+)` };
 
       // Q3: 6+ houses with sp >= 0.70
       const houseMap = analysis._houses;
@@ -2164,8 +2200,11 @@
         const sp = hs.mt ? (analysis[hs.lord] ? analysis[hs.lord].strengthPct : 0) : hs.sp;
         if (sp >= 0.70) strongHouses++;
       }
-      if (strongHouses < 5)
-        return { pass: false, reason: `Only ${strongHouses} strong houses (need 5+)` };
+      if (strongHouses < cfg.minStrongHouses)
+        return { pass: false, reason: `Only ${strongHouses} strong houses (need ${cfg.minStrongHouses}+)` };
+
+      if (cfg.minBeneficDays > 0 && (beneficDays === null || beneficDays < cfg.minBeneficDays))
+        return { pass: false, reason: `Benefic window ${beneficDays ?? 0}d < ${cfg.minBeneficDays}d minimum` };
 
       return {
         pass: true,
@@ -2220,7 +2259,7 @@
             if (data.lagna.rashi !== targetSign) break;
 
             const analysis = analyzeAllGrahas(data);
-            const result   = screenMuhurta(data, analysis);
+            const result   = screenMuhurta(data, analysis, getMuhurtaCfg());
 
             if (result.pass) {
               const rec = {
