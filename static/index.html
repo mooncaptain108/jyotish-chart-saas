@@ -122,6 +122,10 @@
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
     <button class="tb-btn" id="dashaBtn" onclick="toggleDashaPanel()" disabled>Dasha</button>
     <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()">Muhurta</button>
+    <div class="sep" id="mNavSep" style="display:none"></div>
+    <button class="tb-btn" id="mPrevBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(-1)">&#9664;</button>
+    <span id="mNavLabel" style="display:none;font-size:0.78rem;color:#a0a0b0;min-width:2.2rem;text-align:center;"></span>
+    <button class="tb-btn" id="mNextBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(1)">&#9654;</button>
     <button class="tb-btn" id="rawToggleBtn" onclick="toggleRaw()">Raw</button>
     <div class="sep"></div>
     <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
@@ -1809,6 +1813,7 @@
 
     let muhurtaRunning = false;
     let muhurtaAbort   = false;
+    let currentMuhurtaIdx = -1;
 
     function openMuhurtaDialog() {
       rebuildMuhurtaAtlasSelect();
@@ -1844,6 +1849,8 @@
     function clearMuhurtaResults() {
       if (!confirm('Clear all saved muhurta results?')) return;
       setMuhurtaResults([]);
+      currentMuhurtaIdx = -1;
+      updateMuhurtaNav(0);
       renderMuhurtaResults();
     }
 
@@ -1854,22 +1861,32 @@
         el.innerHTML = '<span style="color:#404058">No results yet.</span>';
         return;
       }
-      el.innerHTML = results.map((r, i) =>
-        `<div style="padding:3px 0;border-bottom:1px solid #151525;display:flex;align-items:flex-start;gap:0.4rem;">` +
-        `<div style="flex:1;">` +
-        `<span style="color:#c9a84c">${r.dt}</span> ` +
-        `<span style="color:#70c070">${r.signName}</span> lagna &nbsp;` +
-        `<span style="color:#808098">${r.loc}</span><br>` +
-        `<span style="color:#606078">Antar: ${r.antarDasha} &bull; ` +
-        `Planets ${r.strongPlanets} &bull; Houses ${r.strongHouses}</span></div>` +
-        `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
-        `background:#0f1e3a;color:#c9a84c;border:1px solid #c9a84c;border-radius:3px;cursor:pointer;">Chart</button>` +
-        `</div>`
-      ).join('');
+      let html = '';
+      let lastDate = null;
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        const date = r.dt.split(' ')[0];
+        if (date !== lastDate) {
+          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${date}</div>`;
+          lastDate = date;
+        }
+        const active = i === currentMuhurtaIdx;
+        html +=
+          `<div style="padding:2px 0 2px 4px;border-left:2px solid ${active ? '#c9a84c' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
+          `<div style="flex:1;">` +
+          `<span style="color:#a0b8c8">${r.dt.split(' ')[1]}</span> ` +
+          `<span style="color:#70c070">${r.signName}</span> &nbsp;` +
+          `<span style="color:#606078">Antar: ${r.antarDasha} &bull; P${r.strongPlanets} H${r.strongHouses}</span></div>` +
+          `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
+          `background:#0f1e3a;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
+          `</div>`;
+      }
+      el.innerHTML = html;
     }
 
     async function loadMuhurtaChart(idx) {
-      const r = getMuhurtaResults()[idx];
+      const results = getMuhurtaResults();
+      const r = results[idx];
       if (!r) return;
       const loc = getAtlas()[r.loc];
       if (!loc) { alert('Location "' + r.loc + '" not found in atlas.'); return; }
@@ -1878,11 +1895,32 @@
       try {
         const data = await fetchChartAt(date, time,
           { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz) });
+        currentMuhurtaIdx = idx;
         document.getElementById('dlgMuhurta').close();
         renderChart(data);
+        updateMuhurtaNav(results.length);
       } catch (err) {
         alert('Error loading chart: ' + err.message);
       }
+    }
+
+    function updateMuhurtaNav(total) {
+      const active = currentMuhurtaIdx >= 0 && total > 0;
+      ['mNavSep','mPrevBtn','mNavLabel','mNextBtn'].forEach(id => {
+        document.getElementById(id).style.display = active ? '' : 'none';
+      });
+      if (active) {
+        document.getElementById('mNavLabel').textContent = (currentMuhurtaIdx + 1) + '/' + total;
+        document.getElementById('mPrevBtn').disabled = currentMuhurtaIdx === 0;
+        document.getElementById('mNextBtn').disabled = currentMuhurtaIdx === total - 1;
+      }
+    }
+
+    async function muhurtaNavStep(dir) {
+      const results = getMuhurtaResults();
+      const newIdx = currentMuhurtaIdx + dir;
+      if (newIdx < 0 || newIdx >= results.length) return;
+      await loadMuhurtaChart(newIdx);
     }
 
     // Returns {date:"YYYY-MM-DD", time:"HH:MM:SS"} offset by addMins minutes from baseDateStr 00:00
@@ -1993,6 +2031,11 @@
       // Rule 3: Lagna ruler directly afflicted
       if (pAff(lagnaRuler, analysis))
         return { pass: false, reason: `${lagnaRuler} (lagna ruler) afflicted` };
+
+      // Rule 3b: Lagna ruler strength < 60%
+      const lagnaRulerA = analysis[lagnaRuler];
+      if (lagnaRulerA && lagnaRulerA.strengthPct < 0.60)
+        return { pass: false, reason: `${lagnaRuler} (lagna ruler) strength ${Math.round(lagnaRulerA.strengthPct * 100)}% < 60%` };
 
       // Rule 4: Any planet badly placed (inDushtana)
       // Filter to planet entries only — analysis also contains _houses/_mepDeg/_sunIsFM
