@@ -1952,28 +1952,56 @@
         el.innerHTML = '<span style="color:#404058">No results yet.</span>';
         return;
       }
-      let html = '';
-      let lastDate = null;
-      for (let i = 0; i < results.length; i++) {
-        const r = results[i];
-        const date = r.dt.split(' ')[0];
-        if (date !== lastDate) {
-          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${date}</div>`;
-          lastDate = date;
+      // Group consecutive results with same date+sign (same rising-sign window)
+      const groups = [];
+      let gi = 0;
+      while (gi < results.length) {
+        const r0 = results[gi];
+        const d0 = r0.dt.split(' ')[0];
+        let gj = gi + 1;
+        while (gj < results.length) {
+          const rj = results[gj];
+          if (rj.dt.split(' ')[0] === d0 && rj.sign === r0.sign) gj++;
+          else break;
         }
+        groups.push({ date: d0, from: gi, to: gj - 1 });
+        gi = gj;
+      }
+
+      const rowHtml = (r, i) => {
         const active = i === currentMuhurtaIdx;
-        html +=
-          `<div style="padding:2px 0 2px 4px;border-left:2px solid ${active ? '#c9a84c' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
+        return `<div style="padding:2px 0 2px 4px;border-left:2px solid ${active ? '#c9a84c' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
           `<div style="flex:1;">` +
           `<span style="color:#a0b8c8">${r.dt.split(' ')[1]}</span> ` +
           `<span style="color:#70c070">${r.signName}</span> &nbsp;` +
           `<span style="color:#606078">Antar: ${r.antarDasha}</span>&nbsp;` +
-          `<span style="color:#5a7a9a;font-size:0.73rem;">${r.antarStart ? fmtDashaDate(r.antarStart) : ""}</span>` +
+          `<span style="color:#5a7a9a;font-size:0.73rem;">${r.antarStart ? fmtDashaDate(r.antarStart) : ''}</span>` +
           (r.beneficDays !== null && r.beneficDays !== undefined ? `<span style="color:#7ab87a;font-size:0.73rem;"> → ${fmtBeneficWindow(r.beneficDays)}</span>` : '') +
           `</div>` +
           `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
           `background:#0f1e3a;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
           `</div>`;
+      };
+
+      let html = '';
+      let lastDate = null;
+      for (const g of groups) {
+        if (g.date !== lastDate) {
+          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${g.date}</div>`;
+          lastDate = g.date;
+        }
+        html += rowHtml(results[g.from], g.from);
+        if (g.to > g.from) {
+          const t1 = results[g.from + 1].dt.split(' ')[1];
+          const t2 = results[g.to].dt.split(' ')[1];
+          const count = g.to - g.from;
+          const hasActive = currentMuhurtaIdx > g.from && currentMuhurtaIdx <= g.to;
+          html += `<details${hasActive ? ' open' : ''} style="margin:1px 0 2px 4px;">` +
+            `<summary style="cursor:pointer;font-size:0.73rem;color:#607090;padding:2px 0;">` +
+            `Charts ${t1} – ${t2} (${count} more)</summary>`;
+          for (let i = g.from + 1; i <= g.to; i++) html += rowHtml(results[i], i);
+          html += `</details>`;
+        }
       }
       el.innerHTML = html;
     }
