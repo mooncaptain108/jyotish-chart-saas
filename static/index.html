@@ -1854,14 +1854,35 @@
         el.innerHTML = '<span style="color:#404058">No results yet.</span>';
         return;
       }
-      el.innerHTML = results.map(r =>
-        `<div style="padding:3px 0;border-bottom:1px solid #151525;">` +
+      el.innerHTML = results.map((r, i) =>
+        `<div style="padding:3px 0;border-bottom:1px solid #151525;display:flex;align-items:flex-start;gap:0.4rem;">` +
+        `<div style="flex:1;">` +
         `<span style="color:#c9a84c">${r.dt}</span> ` +
         `<span style="color:#70c070">${r.signName}</span> lagna &nbsp;` +
         `<span style="color:#808098">${r.loc}</span><br>` +
         `<span style="color:#606078">Antar: ${r.antarDasha} &bull; ` +
-        `Planets ${r.strongPlanets} &bull; Houses ${r.strongHouses}</span></div>`
+        `Planets ${r.strongPlanets} &bull; Houses ${r.strongHouses}</span></div>` +
+        `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
+        `background:#0f1e3a;color:#c9a84c;border:1px solid #c9a84c;border-radius:3px;cursor:pointer;">Chart</button>` +
+        `</div>`
       ).join('');
+    }
+
+    async function loadMuhurtaChart(idx) {
+      const r = getMuhurtaResults()[idx];
+      if (!r) return;
+      const loc = getAtlas()[r.loc];
+      if (!loc) { alert('Location "' + r.loc + '" not found in atlas.'); return; }
+      const [date, hhmm] = r.dt.split(' ');
+      const time = hhmm + ':00';
+      try {
+        const data = await fetchChartAt(date, time,
+          { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz) });
+        document.getElementById('dlgMuhurta').close();
+        renderChart(data);
+      } catch (err) {
+        alert('Error loading chart: ' + err.message);
+      }
     }
 
     // Returns {date:"YYYY-MM-DD", time:"HH:MM:SS"} offset by addMins minutes from baseDateStr 00:00
