@@ -121,6 +121,7 @@
     <div class="sep"></div>
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
     <button class="tb-btn" id="dashaBtn" onclick="toggleDashaPanel()" disabled>Dasha</button>
+    <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()">Muhurta</button>
     <button class="tb-btn" id="rawToggleBtn" onclick="toggleRaw()">Raw</button>
     <div class="sep"></div>
     <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
@@ -301,6 +302,65 @@
     </div>
   </dialog>
 
+
+  <!-- ════ Muhurta Search dialog ════ -->
+  <dialog id="dlgMuhurta" style="min-width:480px;max-width:620px;">
+    <div class="dlg-header">
+      <h2>Muhurta Search</h2>
+      <button class="dlg-close-x" onclick="closeMuhurtaDialog()">&#10005;</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-group">
+        <label class="f-label" for="mAtlas">Location</label>
+        <select id="mAtlas" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;">
+          <option value="">&#8212; pick a saved location &#8212;</option>
+        </select>
+      </div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="mDate">Start Date</label>
+          <input type="date" id="mDate">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="mTime">Start Time</label>
+          <input type="time" id="mTime" step="60" value="06:00">
+        </div>
+      </div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="mDays">Days (1&#8211;300)</label>
+          <input type="number" id="mDays" min="1" max="300" value="30">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="mSign">Rising Sign (odd signs)</label>
+          <select id="mSign" style="background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;">
+            <option value="1">1 &#183; Aries</option>
+            <option value="3">3 &#183; Gemini</option>
+            <option value="5" selected>5 &#183; Leo</option>
+            <option value="7">7 &#183; Libra</option>
+            <option value="9">9 &#183; Sagittarius</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.85rem;">
+        <input type="checkbox" id="mStopFirst" style="width:auto;margin:0;">
+        <label for="mStopFirst" style="font-size:0.85rem;color:#a0a0b0;margin:0;">Stop on first match</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
+        <button class="btn-primary" id="mStartBtn" onclick="startMuhurtaSearch()">Start</button>
+        <button class="btn-sec" id="mStopBtn" onclick="stopMuhurtaSearch()" disabled>Stop</button>
+        <span id="mProgress" style="font-size:0.8rem;color:#707088;margin-left:0.4rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      </div>
+      <div style="font-size:0.76rem;color:#505068;margin-bottom:0.35rem;">Results (persisted across sessions)</div>
+      <div id="mResults" style="max-height:260px;overflow-y:auto;font-size:0.8rem;font-family:monospace;background:#08080f;border:1px solid #1a3060;border-radius:4px;padding:0.5rem;min-height:48px;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.4rem;">
+        <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="clearMuhurtaResults()">Clear Results</button>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="closeMuhurtaDialog()">Close</button>
+    </div>
+  </dialog>
   <script>
     // ═══════════════════════════════════════════════════
     // Storage helpers
@@ -1724,8 +1784,376 @@
       });
     }
 
+
+    // ═══════════════════════════════════════════════════
+    // Muhurta Search
+    // ═══════════════════════════════════════════════════
+    const MUHURTA_KEY = 'jyotish_muhurta';
+
+    const LAGNA_RULER = {
+      1:'Mars', 2:'Moon', 3:'Sun',  4:'Moon', 5:'Sun',    6:'Mercury',
+      7:'Venus', 8:'Jupiter', 9:'Jupiter', 10:'Saturn', 11:'Saturn', 12:'Mars'
+    };
+
+    // Nakshatra lords 0-based (Ashwini=0 ... Revati=26)
+    const NAK_LORDS_27 = [
+      'Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury',
+      'Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury',
+      'Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'
+    ];
+
+    function getMuhurtaResults() {
+      try { return JSON.parse(localStorage.getItem(MUHURTA_KEY) || '[]'); } catch { return []; }
+    }
+    function setMuhurtaResults(v) { localStorage.setItem(MUHURTA_KEY, JSON.stringify(v)); }
+
+    let muhurtaRunning = false;
+    let muhurtaAbort   = false;
+
+    function openMuhurtaDialog() {
+      rebuildMuhurtaAtlasSelect();
+      renderMuhurtaResults();
+      document.getElementById('dlgMuhurta').showModal();
+    }
+    function closeMuhurtaDialog() {
+      muhurtaAbort = true;
+      document.getElementById('dlgMuhurta').close();
+    }
+
+    function rebuildMuhurtaAtlasSelect() {
+      const sel = document.getElementById('mAtlas');
+      const prev = sel.value;
+      const names = Object.keys(getAtlas()).sort();
+      sel.innerHTML = '<option value="">&#8212; pick a saved location &#8212;</option>';
+      for (const n of names) {
+        const o = document.createElement('option');
+        o.value = o.textContent = n;
+        sel.appendChild(o);
+      }
+      if (prev) sel.value = prev;
+    }
+
+    function getMuhurtaLoc() {
+      const name = document.getElementById('mAtlas').value;
+      if (!name) return null;
+      const loc = getAtlas()[name];
+      if (!loc) return null;
+      return { name, lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz) };
+    }
+
+    function clearMuhurtaResults() {
+      if (!confirm('Clear all saved muhurta results?')) return;
+      setMuhurtaResults([]);
+      renderMuhurtaResults();
+    }
+
+    function renderMuhurtaResults() {
+      const results = getMuhurtaResults();
+      const el = document.getElementById('mResults');
+      if (!results.length) {
+        el.innerHTML = '<span style="color:#404058">No results yet.</span>';
+        return;
+      }
+      el.innerHTML = results.map(r =>
+        `<div style="padding:3px 0;border-bottom:1px solid #151525;">` +
+        `<span style="color:#c9a84c">${r.dt}</span> ` +
+        `<span style="color:#70c070">${r.signName}</span> lagna &nbsp;` +
+        `<span style="color:#808098">${r.loc}</span><br>` +
+        `<span style="color:#606078">Antar: ${r.antarDasha} &bull; ` +
+        `Planets ${r.strongPlanets} &bull; Houses ${r.strongHouses}</span></div>`
+      ).join('');
+    }
+
+    // Returns {date:"YYYY-MM-DD", time:"HH:MM:SS"} offset by addMins minutes from baseDateStr 00:00
+    function minuteOffset(baseDateStr, addMins) {
+      const totalMin = ((addMins % 1440) + 1440) % 1440;
+      const extraDays = Math.floor(addMins / 1440);
+      const [y, mo, d] = baseDateStr.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, mo - 1, d + extraDays));
+      const hh = String(Math.floor(totalMin / 60)).padStart(2, '0');
+      const mm = String(totalMin % 60).padStart(2, '0');
+      return { date: dt.toISOString().slice(0, 10), time: hh + ':' + mm + ':00' };
+    }
+
+    // Advance date by N days (pure date arithmetic)
+    function addDays(dateStr, n) {
+      const [y, mo, d] = dateStr.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, mo - 1, d + n));
+      return dt.toISOString().slice(0, 10);
+    }
+
+    async function fetchChartAt(date, time, loc) {
+      const res = await fetch('/api/v1/chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: loc.tz })
+      });
+      if (!res.ok) throw new Error('API ' + res.status + ' at ' + date + ' ' + time);
+      return res.json();
+    }
+
+    // Returns start minute (0-1439) when targetSign first rises on dayStr, or null.
+    async function findSignWindowStart(dayStr, targetSign, loc) {
+      // Sample every 2 hours (12 samples: 0, 120, 240 ... 1320)
+      const samples = [];
+      for (let m = 0; m < 1440; m += 120) {
+        if (muhurtaAbort) return null;
+        const { date, time } = minuteOffset(dayStr, m);
+        const data = await fetchChartAt(date, time, loc);
+        samples.push({ min: m, rashi: data.lagna.rashi });
+      }
+      // Edge: sign already rising at midnight
+      if (samples[0].rashi === targetSign) return 0;
+      // Find bracket: samples[i].rashi != target, samples[i+1].rashi == target
+      let bracketLo = null, bracketHi = null;
+      for (let i = 0; i < samples.length - 1; i++) {
+        if (samples[i].rashi !== targetSign && samples[i + 1].rashi === targetSign) {
+          bracketLo = samples[i].min;
+          bracketHi = samples[i + 1].min;
+          break;
+        }
+      }
+      if (bracketLo === null) return null; // sign doesn't rise today (in these samples)
+      // Binary search within bracket
+      let lo = bracketLo, hi = bracketHi;
+      while (hi - lo > 1) {
+        if (muhurtaAbort) return null;
+        const mid = Math.floor((lo + hi) / 2);
+        const { date, time } = minuteOffset(dayStr, mid);
+        const data = await fetchChartAt(date, time, loc);
+        if (data.lagna.rashi === targetSign) hi = mid; else lo = mid;
+      }
+      return hi; // first minute where rashi == targetSign
+    }
+
+    // Flat 5° check: does any FM aspect targetHouse MEP within 5°?
+    function mepAff(targetHouse, fmData, mepDeg) {
+      for (const fm of fmData) {
+        if (!fmAspectedHouses(fm.graha, fm.house).has(targetHouse)) continue;
+        if (Math.abs(fm.deg - mepDeg) < 5) return true;
+      }
+      return false;
+    }
+
+    // Any FM within 5° of planet? (allFmAspects already has <5° cutoff)
+    function pAff(planetName, analysis) {
+      const a = analysis[planetName];
+      return a ? a.allFmAspects.length > 0 : false;
+    }
+
+    // Screen a candidate muhurta chart. Returns {pass, reason} or {pass, strongPlanets, strongHouses, antarDasha}.
+    function screenMuhurta(data, analysis) {
+      const lr  = data.lagna.rashi;
+      const fms = FUNC_MALEFICS[lr] || new Set();
+      const mepDeg = data.lagna.degree_in_rashi;
+      const lagnaRuler = LAGNA_RULER[lr];
+
+      // Build flat fmData for this chart
+      const fmData = data.grahas
+        .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
+        .map(g => ({ graha: g.graha, house: ((g.rashi - lr + 12) % 12) + 1, deg: g.degree_in_rashi, rashi: g.rashi }));
+
+      // Rule 1: FM afflicts MEP of lagna ruler's MT sign house
+      const rulerMtRashi = MOOLA_RASHI[lagnaRuler];
+      if (rulerMtRashi) {
+        const rulerMtHouse = ((rulerMtRashi - lr + 12) % 12) + 1;
+        if (mepAff(rulerMtHouse, fmData, mepDeg))
+          return { pass: false, reason: `FM afflicts MT house of ${lagnaRuler} (h${rulerMtHouse})` };
+      }
+
+      // Rule 2: FM afflicts MEP of house lagna ruler occupies
+      const rulerG = data.grahas.find(g => g.graha === lagnaRuler);
+      if (rulerG) {
+        const rulerOccHouse = ((rulerG.rashi - lr + 12) % 12) + 1;
+        if (mepAff(rulerOccHouse, fmData, mepDeg))
+          return { pass: false, reason: `FM afflicts occupied house of ${lagnaRuler} (h${rulerOccHouse})` };
+      }
+
+      // Rule 3: Lagna ruler directly afflicted
+      if (pAff(lagnaRuler, analysis))
+        return { pass: false, reason: `${lagnaRuler} (lagna ruler) afflicted` };
+
+      // Rule 4: Any planet badly placed (inDushtana)
+      for (const a of Object.values(analysis)) {
+        if (a.inDushtana)
+          return { pass: false, reason: `${a.graha} badly placed (h${a.house})` };
+      }
+
+      // Rule 5a: Any special affliction anywhere
+      for (const a of Object.values(analysis)) {
+        for (const asp of a.allFmAspects) {
+          if (asp.special || asp.chainSpecial)
+            return { pass: false, reason: `Special affliction: ${asp.isRaKe ? 'Ra-Ke' : asp.fm} on ${a.graha}` };
+        }
+      }
+
+      // Rule 5b: 2+ distinct FMs afflicting MEP of same MT sign house
+      for (let h = 1; h <= 12; h++) {
+        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
+        if (!MOOLA_LORD[hRashi]) continue;
+        const seen = new Set();
+        for (const fm of fmData) {
+          if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
+          if (Math.abs(fm.deg - mepDeg) < 5) seen.add(fm.graha);
+        }
+        if (seen.size >= 2)
+          return { pass: false, reason: `2+ FMs afflict MT house ${h} MEP` };
+      }
+
+      // Rule 5c: 1 FM afflicts MT sign house MEP AND that house's lord is also afflicted
+      for (let h = 1; h <= 12; h++) {
+        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
+        const hLord  = MOOLA_LORD[hRashi];
+        if (!hLord) continue;
+        let hAff = false;
+        for (const fm of fmData) {
+          if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
+          if (Math.abs(fm.deg - mepDeg) < 5) { hAff = true; break; }
+        }
+        if (hAff && pAff(hLord, analysis))
+          return { pass: false, reason: `FM afflicts h${h} MEP and ${hLord} is afflicted` };
+      }
+
+      // Rule 6: Active antardasha
+      const chartDt = new Date(data.birth_data.date + 'T' + data.birth_data.time);
+      let activeAntar = null;
+      outer6: for (const d of (data.dasha || [])) {
+        for (const ad of (d.antardasha || [])) {
+          const s = new Date(ad.start), e = new Date(ad.end);
+          if (s <= chartDt && chartDt < e) { activeAntar = { dasha: d.lord, antar: ad.lord }; break outer6; }
+        }
+      }
+      if (activeAntar) {
+        const al = activeAntar.antar;
+        if (al === 'Rahu' || al === 'Ketu')
+          return { pass: false, reason: `Active antardasha ${al} is a node` };
+        if (fms.has(al))
+          return { pass: false, reason: `Active antardasha ${al} is FM` };
+        const aa = analysis[al];
+        if (aa && aa.strengthPct < 0.70)
+          return { pass: false, reason: `Active antardasha ${al} strength ${Math.round(aa.strengthPct * 100)}% < 70%` };
+        if (aa && aa.inDushtana)
+          return { pass: false, reason: `Active antardasha ${al} badly placed (h${aa.house})` };
+      }
+
+      // ── QUALIFY ──
+      // Q1: Moon nakshatra lord must be FB (not FM, not node)
+      const moonG = data.grahas.find(g => g.graha === 'Moon');
+      if (!moonG) return { pass: false, reason: 'No Moon data' };
+      const moonLon = (moonG.rashi - 1) * 30 + moonG.degree_in_rashi;
+      const nakIdx  = Math.floor(moonLon / (360 / 27));
+      const nakLord = NAK_LORDS_27[Math.min(nakIdx, 26)];
+      if (nakLord === 'Rahu' || nakLord === 'Ketu' || fms.has(nakLord))
+        return { pass: false, reason: `Moon nak lord ${nakLord} is FM/node` };
+
+      // Q2: 2+ of the 7 main planets with strengthPct >= 0.70
+      const MAIN_7 = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
+      const strongPlanets = MAIN_7.filter(p => analysis[p] && analysis[p].strengthPct >= 0.70).length;
+      if (strongPlanets < 2)
+        return { pass: false, reason: `Only ${strongPlanets} strong planets (need 2+)` };
+
+      // Q3: 6+ houses with sp >= 0.70
+      const houseMap = analysis._houses;
+      let strongHouses = 0;
+      for (let h = 1; h <= 12; h++) {
+        const hs = houseMap[h]; if (!hs) continue;
+        const sp = hs.mt ? (analysis[hs.lord] ? analysis[hs.lord].strengthPct : 0) : hs.sp;
+        if (sp >= 0.70) strongHouses++;
+      }
+      if (strongHouses < 6)
+        return { pass: false, reason: `Only ${strongHouses} strong houses (need 6+)` };
+
+      return {
+        pass: true,
+        strongPlanets,
+        strongHouses,
+        antarDasha: activeAntar ? (activeAntar.dasha + '/' + activeAntar.antar) : '?'
+      };
+    }
+
+    async function startMuhurtaSearch() {
+      if (muhurtaRunning) return;
+      const loc = getMuhurtaLoc();
+      if (!loc) { alert('Select a location from the atlas.'); return; }
+      const dateStr = document.getElementById('mDate').value;
+      if (!dateStr) { alert('Enter a start date.'); return; }
+      const timeVal  = document.getElementById('mTime').value || '00:00';
+      const days     = Math.min(300, Math.max(1, parseInt(document.getElementById('mDays').value) || 30));
+      const targetSign = parseInt(document.getElementById('mSign').value);
+      const stopFirst  = document.getElementById('mStopFirst').checked;
+
+      // Start minute for day 0
+      const [sh, sm] = timeVal.split(':').map(Number);
+      const startMin = sh * 60 + (sm || 0);
+
+      muhurtaRunning = true;
+      muhurtaAbort   = false;
+      document.getElementById('mStartBtn').disabled = true;
+      document.getElementById('mStopBtn').disabled  = false;
+      document.getElementById('mProgress').textContent = 'Starting…';
+
+      try {
+        for (let day = 0; day < days; day++) {
+          if (muhurtaAbort) break;
+          const dayStr = addDays(dateStr, day);
+          document.getElementById('mProgress').textContent = `Day ${day + 1}/${days}: ${dayStr}…`;
+
+          const winStart = await findSignWindowStart(dayStr, targetSign, loc);
+          if (muhurtaAbort) break;
+          if (winStart === null) continue;
+
+          // On day 0 honour the start time; subsequent days scan full window
+          const scanStart = (day === 0) ? Math.max(winStart, startMin) : winStart;
+
+          let m = scanStart;
+          while (m < 1440) {
+            if (muhurtaAbort) break;
+            const { date, time } = minuteOffset(dayStr, m);
+            const data = await fetchChartAt(date, time, loc);
+            if (data.lagna.rashi !== targetSign) break;
+
+            const analysis = analyzeAllGrahas(data);
+            const result   = screenMuhurta(data, analysis);
+
+            if (result.pass) {
+              const rec = {
+                dt: date + ' ' + time.slice(0, 5),
+                loc: loc.name,
+                sign: targetSign,
+                signName: RASHI_NAME[targetSign],
+                antarDasha: result.antarDasha,
+                strongPlanets: result.strongPlanets,
+                strongHouses: result.strongHouses
+              };
+              const results = getMuhurtaResults();
+              results.push(rec);
+              setMuhurtaResults(results);
+              renderMuhurtaResults();
+              if (stopFirst) { muhurtaAbort = true; break; }
+            }
+            m++;
+          }
+          if (muhurtaAbort) break;
+        }
+      } catch (err) {
+        document.getElementById('mProgress').textContent = 'Error: ' + err.message;
+      } finally {
+        muhurtaRunning = false;
+        muhurtaAbort   = false;
+        document.getElementById('mStartBtn').disabled = false;
+        document.getElementById('mStopBtn').disabled  = true;
+        const prog = document.getElementById('mProgress');
+        if (!prog.textContent.startsWith('Error')) prog.textContent = 'Done.';
+      }
+    }
+
+    function stopMuhurtaSearch() {
+      muhurtaAbort = true;
+      document.getElementById('mProgress').textContent = 'Stopping…';
+    }
+
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
