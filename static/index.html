@@ -1660,6 +1660,19 @@
       return String(day).padStart(2,'0') + '-' + MONTHS[m-1] + '-' + y;
     }
 
+    function fmtBeneficWindow(days) {
+      if (days === null || days === undefined) return '';
+      const y = Math.floor(days / 365);
+      const rem = days - y * 365;
+      const m = Math.floor(rem / 30);
+      const d = rem - m * 30;
+      const parts = [];
+      if (y) parts.push(y + 'y');
+      if (m) parts.push(m + 'm');
+      if (d || !parts.length) parts.push(d + 'd');
+      return parts.join(' ');
+    }
+
     function dashaColor(graha) {
       if (!lastAnalysis || !lastAnalysis[graha]) return '#c0c0d0';
       return lastAnalysis[graha].color || '#c0c0d0';
