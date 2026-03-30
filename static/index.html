@@ -1877,7 +1877,8 @@
           `<div style="flex:1;">` +
           `<span style="color:#a0b8c8">${r.dt.split(' ')[1]}</span> ` +
           `<span style="color:#70c070">${r.signName}</span> &nbsp;` +
-          `<span style="color:#606078">Antar: ${r.antarDasha} &bull; P${r.strongPlanets} H${r.strongHouses}</span></div>` +
+          `<span style="color:#606078">Antar: ${r.antarDasha}</span>&nbsp;` +
+          `<span style="color:#5a7a9a;font-size:0.73rem;">${r.antarStart ? fmtDashaDate(r.antarStart) : ""}</span></div>` +
           `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
           `background:#0f1e3a;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
           `</div>`;
@@ -2087,7 +2088,7 @@
       outer6: for (const d of (data.dasha || [])) {
         for (const ad of (d.antardasha || [])) {
           const s = new Date(ad.start), e = new Date(ad.end);
-          if (s <= chartDt && chartDt < e) { activeAntar = { dasha: d.lord, antar: ad.lord }; break outer6; }
+          if (s <= chartDt && chartDt < e) { activeAntar = { dasha: d.lord, antar: ad.lord, start: ad.start }; break outer6; }
         }
       }
       if (activeAntar) {
@@ -2134,7 +2135,8 @@
         pass: true,
         strongPlanets,
         strongHouses,
-        antarDasha: activeAntar ? (activeAntar.dasha + '/' + activeAntar.antar) : '?'
+        antarDasha: activeAntar ? (activeAntar.dasha + '/' + activeAntar.antar) : '?',
+        antarStart: activeAntar ? activeAntar.start : null
       };
     }
 
@@ -2190,6 +2192,7 @@
                 sign: targetSign,
                 signName: RASHI_NAME[targetSign],
                 antarDasha: result.antarDasha,
+                antarStart: result.antarStart,
                 strongPlanets: result.strongPlanets,
                 strongHouses: result.strongHouses
               };
