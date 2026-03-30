@@ -2083,8 +2083,8 @@
         const sp = hs.mt ? (analysis[hs.lord] ? analysis[hs.lord].strengthPct : 0) : hs.sp;
         if (sp >= 0.70) strongHouses++;
       }
-      if (strongHouses < 6)
-        return { pass: false, reason: `Only ${strongHouses} strong houses (need 6+)` };
+      if (strongHouses < 5)
+        return { pass: false, reason: `Only ${strongHouses} strong houses (need 5+)` };
 
       return {
         pass: true,
