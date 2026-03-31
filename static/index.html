@@ -27,6 +27,9 @@
     #mainRow { display:flex; flex:1; overflow:hidden; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; }
     #chartArea { flex:0 0 auto; min-width:0; }
     #dashaPanel { width:230px; flex-shrink:0; border:1px solid #334; border-left:2px solid #334; border-radius:0 4px 4px 0; align-self:flex-start; display:none; flex-direction:column; overflow:hidden; }
+    #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; }
+    #d9Label { color:#806030; font-size:0.78rem; text-align:center; margin:0 0 2px; }
+    #d9Chart { display:block; width:min(32vw,32vh); height:auto; }
     .dasha-hdr { display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0.6rem; border-bottom:1px solid #222; background:#0d1220; flex-shrink:0; }
     .dasha-hdr-title { color:#c9a84c; font-size:0.82rem; font-weight:bold; }
     .dasha-hdr-btns { display:flex; gap:3px; }
@@ -146,6 +149,11 @@
   <div id="mainRow">
   <div id="chartArea">
     <svg id="chart" viewBox="0 0 500 500" style="display:none"></svg>
+  </div>
+
+  <div id="d9Area">
+    <p id="d9Label">D9</p>
+    <svg id="d9Chart" viewBox="0 0 500 500"></svg>
   </div>
 
   <!-- ── Raw JSON ── -->
@@ -1679,6 +1687,63 @@
       if (text !== undefined) el.textContent = text;
       return el;
     }
+
+    function renderD9Chart(data, an) {
+      const d9Area = document.getElementById('d9Area');
+      const d9Svg  = document.getElementById('d9Chart');
+      if (!data.divisional_charts) { d9Area.style.display = 'none'; return; }
+      const d9 = data.divisional_charts.find(c => c.chart_type === 'D9');
+      if (!d9 || !d9.lagna || !d9.grahas) { d9Area.style.display = 'none'; return; }
+      const lr = d9.lagna.rashi;
+
+      d9Svg.innerHTML = '';
+      d9Svg.appendChild(svgEl('rect', {width:500,height:500,fill:'#080812'}));
+      for (let h=1;h<=12;h++) {
+        d9Svg.appendChild(svgEl('polygon', {
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:'#0d1428', stroke:'#7a5a20', 'stroke-width':'1.5'
+        }));
+      }
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#906030',
+          'font-family':'monospace','text-anchor':'middle','font-weight':'bold'},
+          String(houseSign(h,lr))));
+      }
+      // Build house->planet list
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      for (const g of d9.grahas) {
+        const house = ((g.rashi - lr + 12) % 12) + 1;
+        const abbr  = GRAHA_ABBR[g.graha] || g.graha.slice(0,2);
+        const color = (an && an[g.graha]) ? an[g.graha].color : '#a0b0c0';
+        hp[house].push({abbr, color});
+      }
+      // Lagna marker
+      hp[1].unshift({abbr:'As', color:'#e0e0c0'});
+      // Render 2 per row, no degrees
+      const LH = 13;
+      for (let h=1;h<=12;h++) {
+        const planets = hp[h]; if (!planets.length) continue;
+        const [cx,cy] = CENTROIDS[h];
+        const rows = [];
+        for (let i=0;i<planets.length;i+=2) rows.push(planets.slice(i,i+2));
+        let y0 = cy + 2 - (rows.length * LH) / 2 + LH / 2;
+        for (const row of rows) {
+          if (row.length === 1) {
+            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'10',fill:row[0].color,
+              'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
+          } else {
+            d9Svg.appendChild(svgEl('text',{x:cx-15,y:y0,'font-size':'10',fill:row[0].color,
+              'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
+            d9Svg.appendChild(svgEl('text',{x:cx+15,y:y0,'font-size':'10',fill:row[1].color,
+              'font-family':'monospace','text-anchor':'middle'},row[1].abbr));
+          }
+          y0 += LH;
+        }
+      }
+      d9Area.style.display = '';
+    }
     function fmtDeg(d) { return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0'); }
     function houseSign(h,lr) { return ((lr-1+h-1)%12)+1; }
 
@@ -1821,6 +1886,7 @@
       document.getElementById('dashaBtn').disabled = false;
       document.getElementById('editTestBtn').style.display = 'none';
       currentUserTestKey = null;
+      renderD9Chart(data, lastAnalysis);
       populateDashaPanel(data);
       requestAnimationFrame(() => {
         const svgEl = document.getElementById('chart');
