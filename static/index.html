@@ -1710,13 +1710,20 @@
           'font-family':'monospace','text-anchor':'middle','font-weight':'bold'},
           String(houseSign(h,lr))));
       }
+      // Compute D9 functional malefics from D9 lagna
+      const d9fms = FUNC_MALEFICS[lr] || new Set();
+      const d9Color = name => {
+        if (name === 'Rahu' || name === 'Ketu') return '#e06060';
+        if (d9fms.has(name)) return '#e06060';
+        return '#70c070';
+      };
       // Build house->planet list
       const hp = {};
       for (let h=1;h<=12;h++) hp[h]=[];
       for (const g of d9.grahas) {
         const house = ((g.rashi - lr + 12) % 12) + 1;
         const abbr  = GRAHA_ABBR[g.graha] || g.graha.slice(0,2);
-        const color = (an && an[g.graha]) ? an[g.graha].color : '#a0b0c0';
+        const color = d9Color(g.graha);
         hp[house].push({abbr, color});
       }
       // Lagna marker
