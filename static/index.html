@@ -1706,7 +1706,7 @@
       }
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
-        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#906030',
+        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'20',fill:'#906030',
           'font-family':'monospace','text-anchor':'middle','font-weight':'bold'},
           String(houseSign(h,lr))));
       }
@@ -1731,12 +1731,12 @@
         let y0 = cy + 2 - (rows.length * LH) / 2 + LH / 2;
         for (const row of rows) {
           if (row.length === 1) {
-            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'10',fill:row[0].color,
+            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'17',fill:row[0].color,
               'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
           } else {
-            d9Svg.appendChild(svgEl('text',{x:cx-15,y:y0,'font-size':'10',fill:row[0].color,
+            d9Svg.appendChild(svgEl('text',{x:cx-22,y:y0,'font-size':'17',fill:row[0].color,
               'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
-            d9Svg.appendChild(svgEl('text',{x:cx+15,y:y0,'font-size':'10',fill:row[1].color,
+            d9Svg.appendChild(svgEl('text',{x:cx+22,y:y0,'font-size':'17',fill:row[1].color,
               'font-family':'monospace','text-anchor':'middle'},row[1].abbr));
           }
           y0 += LH;
