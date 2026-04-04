@@ -5,7 +5,8 @@
   <title>Jyotish</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; }
+    body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+    #appWrap { display:flex; flex-direction:column; min-height:100vh; }
 
     /* ── Toolbar ── */
     .toolbar { display:flex; align-items:center; gap:0.4rem; background:#0d1220; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
@@ -17,6 +18,7 @@
     .tb-btn:disabled { opacity:0.35; cursor:not-allowed; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
     .tb-select:hover { background:#16213e; border-color:#1a4a80; }
+    #testsWrapper { display:contents; }
 
     /* ── Chart area ── */
     /* #chartArea managed by #mainRow */
@@ -26,25 +28,45 @@
     /* ── Main row (chart + dasha panel) ── */
     #mainRow { display:flex; flex:1; overflow:hidden; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; }
     #chartArea { flex:0 0 auto; min-width:0; }
-    #dashaPanel { width:230px; flex-shrink:0; border:1px solid #334; border-left:2px solid #334; border-radius:0 4px 4px 0; align-self:flex-start; display:none; flex-direction:column; overflow:hidden; }
+    #dashaPanel { width:calc(min(8.8vw,8.8vh) + 150px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#080812; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
+    #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
+    #dashaInner { border:1px solid #7a5a20; border-radius:4px; display:flex; flex-direction:column; flex:1; min-height:0; background:#0d1428; }
     #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; }
     #d9Label { color:#806030; font-size:0.78rem; text-align:center; margin:0 0 2px; }
     #d9Chart { display:block; width:min(44vw,44vh); height:auto; }
-    .dasha-hdr { display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0.6rem; border-bottom:1px solid #222; background:#0d1220; flex-shrink:0; }
-    .dasha-hdr-title { color:#c9a84c; font-size:0.82rem; font-weight:bold; }
-    .dasha-hdr-btns { display:flex; gap:3px; }
+    #rashiBox { display:none; width:min(44vw,44vh); background:#080812; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 10% 10%; }
+    #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
+    #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#0d1428; }
+    #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:0.82rem; }
+    #rashiTable td { padding:1px 5px; white-space:nowrap; }
+    .dasha-hdr-btns { display:flex; gap:3px; justify-content:center; padding:4px 0; flex-shrink:0; }
     .dasha-hdr-btns button { padding:1px 7px; font-size:0.75rem; background:#0f1e3a; color:#c0c0d0; border:1px solid #333; border-radius:3px; cursor:pointer; }
     .dasha-hdr-btns button:hover { background:#16213e; color:#e0e0e0; }
-    #dashaList { overflow-y:auto; font-size:0.78rem; font-family:monospace; padding:2px 0; }
+    #dashaList { flex:1; overflow-y:auto; font-size:0.78rem; font-family:monospace; padding:2px 0; }
     .dr { padding:1px 8px; white-space:nowrap; line-height:1.5; }
     .dr:hover { background:#16213e; }
     .dr.dr-now { background:#0a3a12; border-left:3px solid #50e060; padding-left:5px; color:#90f0a0; font-weight:bold; }
     .dr-sep { border-top:1px solid #334; margin:2px 0; }
     .dr .dr-date { color:#8090a0; margin-left:4px; }
 
-    /* ── Raw panel ── */
+    /* ── Raw / Ephemeris panel ── */
     #rawSection { padding:0 1.5rem 1.5rem; display:none; }
     #rawSection pre { background:#0a0a1a; border:1px solid #0f3460; border-radius:4px; padding:1rem; overflow:auto; max-height:500px; font-size:0.8rem; color:#a0e0a0; font-family:monospace; }
+
+    /* ── Settings panel ── */
+    #appWrap { transition:transform 0.25s ease; }
+    #appWrap.settings-open { transform:translateX(260px); }
+    #settingsPanel { position:fixed; top:0; left:0; height:100vh; width:260px; background:#0d1220; border-right:1px solid #1a4a80; z-index:200; transform:translateX(-100%); transition:transform 0.25s ease; display:flex; flex-direction:column; box-shadow:4px 0 16px rgba(0,0,0,0.5); }
+    #settingsPanel.open { transform:translateX(0); }
+    #settingsOverlay { position:fixed; inset:0; z-index:199; display:none; }
+    #settingsOverlay.open { display:block; }
+    .stg-hdr { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; flex-shrink:0; }
+    .stg-hdr-title { color:#c9a84c; font-size:1rem; font-weight:bold; }
+    .stg-body { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.7rem; overflow-y:auto; }
+    .stg-divider { border:none; border-top:1px solid #0f3460; margin:0.2rem 0; }
+    .stg-btn { width:100%; text-align:left; }
+    .stg-check { display:flex; align-items:center; gap:0.55rem; color:#c0c0d0; font-size:0.88rem; cursor:pointer; user-select:none; }
+    .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
 
     /* ── Dialogs (shared) ── */
     dialog { background:#16213e; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
@@ -113,34 +135,36 @@
   </style>
 </head>
 <body>
+  <div id="appWrap">
 
   <!-- ── Toolbar ── -->
   <header class="toolbar">
     <span class="app-title">Jyotish</span>
+    <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings">⚙</button>
     <div class="sep"></div>
     <button class="tb-btn" onclick="openNewDialog()">New</button>
     <button class="tb-btn" onclick="openOpenDialog()">Open</button>
     <button class="tb-btn" onclick="openAtlasDialog()">Atlas</button>
     <div class="sep"></div>
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
-    <button class="tb-btn" id="dashaBtn" onclick="toggleDashaPanel()" disabled>Dasha</button>
     <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()">Muhurta</button>
     <div class="sep" id="mNavSep" style="display:none"></div>
     <button class="tb-btn" id="mPrevBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(-1)">&#9664;</button>
     <span id="mNavLabel" style="display:none;font-size:0.78rem;color:#a0a0b0;min-width:2.2rem;text-align:center;"></span>
     <button class="tb-btn" id="mNextBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(1)">&#9654;</button>
-    <button class="tb-btn" id="rawToggleBtn" onclick="toggleRaw()">Raw</button>
-    <div class="sep"></div>
-    <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
-      <option value="">Tests…</option>
-      <option value="0">TC1 · Degree, Dushtana, Sun-like</option>
-      <option value="1">TC2 · FM Direct Affliction</option>
-      <option value="2">TC3 · Dispositor Chain + MT MEP</option>
-      <option value="3">TC4 · Chain Affliction</option>
-      <option value="4">TC5 · Rahu/Ketu Rules</option>
-      <option value="build">⊕ Build Test…</option>
-    </select>
-    <button class="tb-btn" id="editTestBtn" onclick="openEditTest()" style="display:none">Edit Test</button>
+    <div id="testsWrapper">
+      <div class="sep"></div>
+      <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
+        <option value="">Tests…</option>
+        <option value="0">TC1 · Degree, Dushtana, Sun-like</option>
+        <option value="1">TC2 · FM Direct Affliction</option>
+        <option value="2">TC3 · Dispositor Chain + MT MEP</option>
+        <option value="3">TC4 · Chain Affliction</option>
+        <option value="4">TC5 · Rahu/Ketu Rules</option>
+        <option value="build">⊕ Build Test…</option>
+      </select>
+      <button class="tb-btn" id="editTestBtn" onclick="openEditTest()" style="display:none">Edit Test</button>
+    </div>
   </header>
 
   <!-- ── Chart area ── -->
@@ -154,22 +178,45 @@
   <div id="d9Area">
     <p id="d9Label">D9</p>
     <svg id="d9Chart" viewBox="0 0 500 500"></svg>
+    <div id="rashiBox">
+      <div id="rashiTitle">Rashi Data</div>
+      <div id="rashiInner"><table id="rashiTable"></table></div>
+    </div>
   </div>
 
   <!-- ── Raw JSON ── -->
   <div id="dashaPanel">
-    <div class="dasha-hdr">
-      <span class="dasha-hdr-title">Dasha Periods</span>
+    <div id="dashaShadowTitle">Dasha Periods</div>
+    <div id="dashaInner">
       <div class="dasha-hdr-btns">
         <button onclick="dashaScrollNow()" title="Jump to current period">Now</button>
         <button onclick="dashaScrollTop()" title="Go to beginning">Top</button>
       </div>
+      <div id="dashaList"></div>
     </div>
-    <div id="dashaList"></div>
   </div>
   </div><!-- #mainRow -->
 
   <div id="rawSection"><pre id="rawJson"></pre></div>
+
+  </div><!-- #appWrap -->
+
+  <!-- ── Settings panel ── -->
+  <div id="settingsOverlay" onclick="closeSettings()"></div>
+  <div id="settingsPanel">
+    <div class="stg-hdr">
+      <span class="stg-hdr-title">Settings</span>
+      <button class="dlg-close-x" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="stg-body">
+      <button class="btn-sec stg-btn" onclick="exportData()">Export All Data</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="doImport(event)">
+      <button class="btn-sec stg-btn" onclick="document.getElementById('importFile').click()">Import All Data</button>
+      <hr class="stg-divider">
+      <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Ephemeris Data</label>
+      <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
+    </div>
+  </div>
 
   <!-- ════ New Chart dialog ════ -->
   <dialog id="dlgNew">
@@ -197,11 +244,12 @@
         <label class="f-label" for="nTz">UTC offset (hours, e.g. -8 for PST)</label>
         <input type="number" id="nTz" step="0.5" placeholder="-8">
       </div>
+      <p id="nTzWarn" style="display:none;color:#e05050;font-size:0.78rem;margin-top:0.25rem;margin-bottom:0.6rem;">Verify timezone and DST for dates before 1966 with <a href="https://www.astro.com/atlas" target="_blank" style="color:#e07070;">https://www.astro.com/atlas</a></p>
       <div class="f-divider"></div>
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="nDate">Date</label>
-          <input type="date" id="nDate">
+          <input type="date" id="nDate" oninput="document.getElementById('nTzWarn').style.display=this.value&&this.value<'1966-01-01'?'':'none';newUpdateTz();" onchange="document.getElementById('nTzWarn').style.display=this.value&&this.value<'1966-01-01'?'':'none';newUpdateTz();">
         </div>
         <div class="f-group">
           <label class="f-label" for="nTime">Time</label>
@@ -247,9 +295,14 @@
       <div id="atlasListWrap" style="max-height:40vh;overflow-y:auto;margin-bottom:1rem;"></div>
       <div class="f-divider"></div>
       <p class="f-label" style="margin-bottom:0.6rem;">Add / update location</p>
+      <input type="hidden" id="aTzName" value="">
       <div class="f-group">
-        <label class="f-label" for="aName">Name</label>
-        <input type="text" id="aName" placeholder="City, State">
+        <label class="f-label" for="aName">Name / City</label>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="text" id="aName" placeholder="City, State" style="flex:1;">
+          <button class="btn-sec" style="white-space:nowrap;font-size:0.82rem;padding:0.3rem 0.6rem;" onclick="atlasGeocode()">Lookup</button>
+        </div>
+        <div id="aGeoStatus" style="font-size:0.78rem;color:#a0a0b0;margin-top:0.2rem;min-height:1em;"></div>
       </div>
       <div class="f-row2">
         <div class="f-group">
@@ -262,7 +315,7 @@
         </div>
       </div>
       <div class="f-group">
-        <label class="f-label" for="aTz">UTC offset (hours, e.g. -8 for PST)</label>
+        <label class="f-label" for="aTz">UTC offset (hours) — auto-filled by Lookup</label>
         <input type="number" id="aTz" step="0.5" placeholder="-8">
       </div>
     </div>
@@ -340,12 +393,12 @@
       </div>
       <div class="f-row2">
         <div class="f-group">
-          <label class="f-label" for="mDays">Days (1&#8211;300)</label>
-          <input type="number" id="mDays" min="1" max="300" value="30">
+          <label class="f-label" for="mDays">Days (1&#8211;400)</label>
+          <input type="number" id="mDays" min="1" max="400" value="30">
         </div>
         <div class="f-group">
           <label class="f-label" for="mSign">Rising Sign</label>
-          <select id="mSign" style="background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;">
+          <select id="mSign" style="background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;" onchange="updateLagnaLordMin()">
             <option value="1">1 &#183; Aries</option>
             <option value="3">3 &#183; Gemini</option>
             <option value="5" selected>5 &#183; Leo</option>
@@ -356,9 +409,9 @@
       </div>
       <details id="mFilters" style="margin-bottom:0.85rem;border:1px solid #1a3060;border-radius:4px;padding:0.4rem 0.6rem;background:#0a1228;">
         <summary style="cursor:pointer;font-size:0.82rem;color:#8090b0;user-select:none;">Search Filters</summary>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1rem;margin-top:0.6rem;">
-          <div class="f-group">
-            <label class="f-label" for="mMinBenefic">Min benefic window</label>
+        <div style="margin-top:0.6rem;">
+          <div class="f-group" style="margin-bottom:0.6rem;">
+            <label class="f-label" for="mMinBenefic">Min benefic Antardasha</label>
             <select id="mMinBenefic" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
               <option value="0">Any</option>
               <option value="30">30 days</option>
@@ -368,48 +421,52 @@
               <option value="360">360 days</option>
             </select>
           </div>
-          <div class="f-group">
-            <label class="f-label" for="mMinLagna">Min lagna lord strength</label>
-            <select id="mMinLagna" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
-              <option value="0.60">60%</option>
-              <option value="0.70">70%</option>
-              <option value="0.80">80%</option>
-              <option value="0.90">90%</option>
-              <option value="1.00">100%</option>
-            </select>
-          </div>
-          <div class="f-group">
-            <label class="f-label" for="mMinHouses">Min strong houses</label>
-            <select id="mMinHouses" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-            </select>
-          </div>
-          <div class="f-group">
-            <label class="f-label" for="mMinPlanets">Min strong planets</label>
-            <select id="mMinPlanets" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
+          <div style="font-size:0.78rem;color:#8090b0;margin-bottom:0.3rem;">Planet minimum strength</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Sun</div>
+              <select id="mPlanet_Sun" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Moon</div>
+              <select id="mPlanet_Moon" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mars</div>
+              <select id="mPlanet_Mars" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mercury</div>
+              <select id="mPlanet_Mercury" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Jupiter</div>
+              <select id="mPlanet_Jupiter" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Venus</div>
+              <select id="mPlanet_Venus" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
+            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Saturn</div>
+              <select id="mPlanet_Saturn" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
+              </select></div>
           </div>
         </div>
       </details>
-      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.85rem;">
-        <input type="checkbox" id="mStopFirst" style="width:auto;margin:0;">
-        <label for="mStopFirst" style="font-size:0.85rem;color:#a0a0b0;margin:0;">Stop on first match</label>
-      </div>
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
         <button class="btn-primary" id="mStartBtn" onclick="startMuhurtaSearch()">Start</button>
         <button class="btn-sec" id="mStopBtn" onclick="stopMuhurtaSearch()" disabled>Stop</button>
         <span id="mProgress" style="font-size:0.8rem;color:#707088;margin-left:0.4rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       </div>
-      <div style="font-size:0.76rem;color:#505068;margin-bottom:0.35rem;">Results (persisted across sessions)</div>
+      <div style="font-size:0.76rem;color:#505068;margin-bottom:0.35rem;">Results (persisted across sessions) <span id="mSeriesCount"></span></div>
       <div id="mResults" style="max-height:260px;overflow-y:auto;font-size:0.8rem;font-family:monospace;background:#08080f;border:1px solid #1a3060;border-radius:4px;padding:0.5rem;min-height:48px;"></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:0.4rem;">
+      <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.4rem;">
+        <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="generateSummaryReport()">Report</button>
+        <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="generateStrengthReport()">Strength Report</button>
         <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="clearMuhurtaResults()">Clear Results</button>
       </div>
+      <textarea id="mStrReport" style="display:none;width:100%;box-sizing:border-box;margin-top:0.5rem;min-height:180px;background:#08080f;color:#a0e0a0;border:1px solid #1a3060;border-radius:4px;font-size:0.78rem;font-family:monospace;padding:0.5rem;" readonly></textarea>
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="closeMuhurtaDialog()">Close</button>
@@ -422,6 +479,7 @@
     const ATLAS_KEY    = 'jyotish_atlas';
     const CHARTS_KEY   = 'jyotish_charts';
     const RAW_KEY      = 'jyotish_raw';
+    const TESTS_KEY    = 'jyotish_tests_visible';
     const NEW_FORM_KEY = 'jyotish_new_form';
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
@@ -481,19 +539,81 @@
     // ═══════════════════════════════════════════════════
     // Raw toggle
     // ═══════════════════════════════════════════════════
-    let rawVisible = localStorage.getItem(RAW_KEY) === '1';
+    let rawVisible   = localStorage.getItem(RAW_KEY) === '1';
+    let testsVisible = localStorage.getItem(TESTS_KEY) !== '0'; // default true
 
     function applyRawState() {
       const hasContent = !!document.getElementById('rawJson').textContent.trim();
       document.getElementById('rawSection').style.display = (rawVisible && hasContent) ? 'block' : 'none';
-      document.getElementById('rawToggleBtn').classList.toggle('active', rawVisible);
     }
-    function toggleRaw() {
-      rawVisible = !rawVisible;
-      localStorage.setItem(RAW_KEY, rawVisible ? '1' : '0');
-      applyRawState();
+    function applyTestsState() {
+      document.getElementById('testsWrapper').style.display = testsVisible ? '' : 'none';
     }
     applyRawState();
+    applyTestsState();
+
+    // Settings panel
+    function openSettings() {
+      document.getElementById('chkEphemeris').checked = rawVisible;
+      document.getElementById('chkTests').checked     = testsVisible;
+      document.getElementById('settingsPanel').classList.add('open');
+      document.getElementById('settingsOverlay').classList.add('open');
+      document.getElementById('appWrap').classList.add('settings-open');
+      document.getElementById('gearBtn').classList.add('active');
+    }
+    function closeSettings() {
+      document.getElementById('settingsPanel').classList.remove('open');
+      document.getElementById('settingsOverlay').classList.remove('open');
+      document.getElementById('appWrap').classList.remove('settings-open');
+      document.getElementById('gearBtn').classList.remove('active');
+    }
+    document.getElementById('chkEphemeris').addEventListener('change', function() {
+      rawVisible = this.checked;
+      localStorage.setItem(RAW_KEY, rawVisible ? '1' : '0');
+      applyRawState();
+    });
+    document.getElementById('chkTests').addEventListener('change', function() {
+      testsVisible = this.checked;
+      localStorage.setItem(TESTS_KEY, testsVisible ? '1' : '0');
+      applyTestsState();
+    });
+
+    // Export / Import
+    function exportData() {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_'));
+      const obj = {};
+      for (const k of keys) obj[k] = localStorage.getItem(k);
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'jyotish-data-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    function doImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const obj = JSON.parse(e.target.result);
+          for (const [k, v] of Object.entries(obj)) {
+            if (k.startsWith('jyotish_')) localStorage.setItem(k, v);
+          }
+          event.target.value = '';
+          rawVisible   = localStorage.getItem(RAW_KEY) === '1';
+          testsVisible = localStorage.getItem(TESTS_KEY) !== '0';
+          document.getElementById('chkEphemeris').checked = rawVisible;
+          document.getElementById('chkTests').checked     = testsVisible;
+          applyRawState();
+          applyTestsState();
+          alert('Import complete. Reload the page to restore saved charts and atlas.');
+        } catch(err) {
+          alert('Import failed: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
 
     // ═══════════════════════════════════════════════════
     // DMS parser
@@ -537,7 +657,8 @@
       const tz  = parseFloat(document.getElementById('aTz').value);
       if (isNaN(lat) || isNaN(lon) || isNaN(tz)) { alert('Check lat/lon/timezone values.'); return; }
       const atlas = getAtlas();
-      atlas[name] = { lat: lat.toFixed(4), lon: lon.toFixed(4), tz };
+      const tzName = document.getElementById('aTzName').value.trim();
+      atlas[name] = { lat: lat.toFixed(4), lon: lon.toFixed(4), tz, ...(tzName && { tzName }) };
       setAtlas(atlas);
       rebuildAtlasList();
       rebuildNewAtlasSelect();
@@ -552,10 +673,34 @@
 
     function atlasEdit(name) {
       const loc = getAtlas()[name]; if (!loc) return;
-      document.getElementById('aName').value = name;
-      document.getElementById('aLat').value  = loc.lat;
-      document.getElementById('aLon').value  = loc.lon;
-      document.getElementById('aTz').value   = loc.tz;
+      document.getElementById('aName').value   = name;
+      document.getElementById('aLat').value    = loc.lat;
+      document.getElementById('aLon').value    = loc.lon;
+      document.getElementById('aTz').value     = loc.tz;
+      document.getElementById('aTzName').value = loc.tzName || '';
+      document.getElementById('aGeoStatus').textContent = loc.tzName ? 'tz: ' + loc.tzName : '';
+    }
+
+    async function atlasGeocode() {
+      const place = document.getElementById('aName').value.trim();
+      if (!place) { alert('Enter a city name first.'); return; }
+      const statusEl = document.getElementById('aGeoStatus');
+      statusEl.textContent = 'Looking up\u2026';
+      statusEl.style.color = '#a0a0b0';
+      try {
+        const res = await fetch('/api/v1/geocode?place=' + encodeURIComponent(place));
+        if (!res.ok) { statusEl.textContent = 'Not found.'; statusEl.style.color = '#e05050'; return; }
+        const data = await res.json();
+        document.getElementById('aLat').value    = data.latitude;
+        document.getElementById('aLon').value    = data.longitude;
+        document.getElementById('aTz').value     = data.timezone_offset;
+        document.getElementById('aTzName').value = data.timezone || '';
+        statusEl.textContent = (data.place || place) + (data.timezone ? ' \u00b7 ' + data.timezone : '');
+        statusEl.style.color = '#50c080';
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + e.message;
+        statusEl.style.color = '#e05050';
+      }
     }
 
     // ═══════════════════════════════════════════════════
@@ -581,6 +726,8 @@
       }
       document.getElementById('newErrMsg').textContent = '';
       document.getElementById('saveStatus').textContent = '';
+      const _nd = document.getElementById('nDate').value;
+      document.getElementById('nTzWarn').style.display = _nd && _nd < '1966-01-01' ? '' : 'none';
       document.getElementById('dlgNew').showModal();
     }
 
@@ -607,7 +754,15 @@
       const loc = getAtlas()[document.getElementById('nAtlas').value]; if (!loc) return;
       document.getElementById('nLat').value = loc.lat;
       document.getElementById('nLon').value = loc.lon;
-      document.getElementById('nTz').value  = loc.tz;
+      newUpdateTz();
+    }
+
+    function newUpdateTz() {
+      const atlasName = document.getElementById('nAtlas').value;
+      const loc = getAtlas()[atlasName]; if (!loc) return;
+      const date = document.getElementById('nDate').value;
+      const offset = (loc.tzName && date) ? getOffsetForDate(loc.tzName, date) : parseFloat(loc.tz);
+      document.getElementById('nTz').value = offset;
     }
 
     async function newSubmit() {
@@ -634,6 +789,9 @@
         });
         if (!res.ok) throw new Error('Server error ' + res.status);
         const data = await res.json();
+        const atlasName = document.getElementById('nAtlas').value;
+        const atlasEntry = getAtlas()[atlasName];
+        if (atlasEntry && atlasEntry.tzName) { data._locName = atlasName; data._tzName = atlasEntry.tzName; }
         renderChart(data);
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
@@ -700,6 +858,23 @@
         });
         if (!res.ok) throw new Error('Server error ' + res.status);
         const data = await res.json();
+        if (c.locationName) {
+          data._locName = c.locationName;
+          const atlasEntry = getAtlas()[c.locationName];
+          if (atlasEntry && atlasEntry.tzName) data._tzName = atlasEntry.tzName;
+        }
+        // Fallback: match by coordinates against atlas entries
+        if (!data._tzName) {
+          const atlas = getAtlas();
+          for (const [k, v] of Object.entries(atlas)) {
+            if (v.tzName && Math.abs(parseFloat(v.lat) - parseFloat(c.lat)) < 0.05 &&
+                Math.abs(parseFloat(v.lon) - parseFloat(c.lon)) < 0.05) {
+              data._locName = data._locName || k;
+              data._tzName = v.tzName;
+              break;
+            }
+          }
+        }
         renderChart(data);
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
@@ -727,6 +902,7 @@
       document.getElementById('nAtlas').value = c.locationName || '';
       document.getElementById('newErrMsg').textContent = '';
       document.getElementById('saveStatus').textContent = '';
+      document.getElementById('nTzWarn').style.display = c.date && c.date < '1966-01-01' ? '' : 'none';
       document.getElementById('dlgNew').showModal();
     }
 
@@ -1170,6 +1346,18 @@
             const mtSpecFM  = fm.graha === mmp || (isFMnode && isFMconj) || fmDusht || fmChain;
             mtRaw.push({ fm: fm.graha, orb, special: mtSpecFM, inMtHouse: isFMconj, mtHouse });
           }
+          // Ra-Ke axis merge: if both nodes afflict the MT house, consolidate into one entry
+          {
+            const raIdx = mtRaw.findIndex(a => a.fm === 'Rahu');
+            const keIdx = mtRaw.findIndex(a => a.fm === 'Ketu');
+            if (raIdx >= 0 && keIdx >= 0) {
+              const raE = mtRaw[raIdx], keE = mtRaw[keIdx];
+              const lo = Math.min(raIdx, keIdx), hi = Math.max(raIdx, keIdx);
+              mtRaw.splice(hi, 1); mtRaw.splice(lo, 1);
+              mtRaw.unshift({ fm:'Ra-Ke', orb:Math.min(raE.orb, keE.orb), special:true,
+                              inMtHouse:raE.inMtHouse || keE.inMtHouse, mtHouse, isRaKe:true });
+            }
+          }
           const mtCond5 = mtRaw.length >= 2;
           for (const mta of mtRaw) {
             const isSpec = mta.special || mtCond5;
@@ -1200,6 +1388,18 @@
             const fmChain2   = chainSpecialFMs.has(fm.graha);
             const occSpecFM  = fm.graha === mmp || (isFMnode2 && isFMconj2) || fmDusht2 || fmChain2;
             occRaw.push({ fm: fm.graha, orb, special: occSpecFM, isMtSign });
+          }
+          // Ra-Ke axis merge for occupied house
+          {
+            const raIdx = occRaw.findIndex(a => a.fm === 'Rahu');
+            const keIdx = occRaw.findIndex(a => a.fm === 'Ketu');
+            if (raIdx >= 0 && keIdx >= 0) {
+              const raE = occRaw[raIdx], keE = occRaw[keIdx];
+              const lo = Math.min(raIdx, keIdx), hi = Math.max(raIdx, keIdx);
+              occRaw.splice(hi, 1); occRaw.splice(lo, 1);
+              occRaw.unshift({ fm:'Ra-Ke', orb:Math.min(raE.orb, keE.orb), special:true,
+                               isMtSign, isRaKe:true });
+            }
           }
           const occCond5 = occRaw.length >= 2;
           for (const oa of occRaw) {
@@ -1531,7 +1731,8 @@
           const c5tag   = mta.cond5 ? ' [cond5]' : '';
           const lossPct = Math.round(mta.loss * 100);
           cur *= (1 - mta.loss);
-          html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mta.fm}${specTag}${c5tag} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+          const mtFmLabel = mta.isRaKe ? 'Rahu-Ketu axis' : mta.fm;
+          html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mtFmLabel}${specTag}${c5tag} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
         }
 
         // Step 7b: House of occupation MEP afflictions
@@ -1541,7 +1742,8 @@
           const mtTag   = oa.isMtSign ? ' [MT]' : '';
           const lossPct = Math.round(oa.loss * 100);
           cur *= (1 - oa.loss);
-          html += `<div class="an-item c-brown">Occ house (h${a.house}) afflicted by ${oa.fm}${specTag}${c5tag}${mtTag} — ${oa.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+          const occFmLabel = oa.isRaKe ? 'Rahu-Ketu axis' : oa.fm;
+          html += `<div class="an-item c-brown">Occ house (h${a.house}) afflicted by ${occFmLabel}${specTag}${c5tag}${mtTag} — ${oa.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
         }
 
         // Step 8: Direct FM afflictions (nodes cannot be weakened by afflictions)
@@ -1641,7 +1843,7 @@
           if (hs.mt) {
             const lord = an[hs.lord];
             const sp   = lord ? lord.strengthPct : null;
-            const cls  = (!sp || sp < 0.6) ? 'c-brown' : 'c-green';
+            const cls  = (!sp || sp < 0.6) ? 'c-brown' : (sp < 0.7 ? 'c-gold' : 'c-green');
             html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}) — MT lord ${hs.lord}: ${sp !== null ? pct(sp) : '?'}</div>`;
           } else {
             const hasAff = hs.afflictions && hs.afflictions.length > 0;
@@ -1701,7 +1903,7 @@
       for (let h=1;h<=12;h++) {
         d9Svg.appendChild(svgEl('polygon', {
           points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
-          fill:'#0d1428', stroke:'#7a5a20', 'stroke-width':'1.5'
+          fill:'#0d1428', stroke:'#7a5a20', 'stroke-width':'1'
         }));
       }
       for (let h=1;h<=12;h++) {
@@ -1749,10 +1951,69 @@
           y0 += LH;
         }
       }
+      // Label inside SVG
+      document.getElementById('d9Label').textContent = '';
+      d9Svg.appendChild(svgEl('text',{x:'250',y:'28','font-size':'20',fill:'#906030','font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'},'Navamsa'));
       d9Area.style.display = 'block';
     }
     function fmtDeg(d) { return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0'); }
     function houseSign(h,lr) { return ((lr-1+h-1)%12)+1; }
+
+    const RASHI_ABBR2 = ['','Ar','Ta','Ge','Ca','Le','Vi','Li','Sc','Sa','Cp','Aq','Pi'];
+    const NAK_LORD_SEQ = ['Ke','Ve','Su','Mo','Ma','Ra','Ju','Sa','Me'];
+    function nakLordAbbr(n) { return NAK_LORD_SEQ[(n - 1) % 9]; }
+
+    function renderRashiData(data, an) {
+      const box = document.getElementById('rashiBox');
+      const tbl = document.getElementById('rashiTable');
+      if (!data || !data.lagna) { box.style.display = 'none'; return; }
+      const lr  = data.lagna.rashi;
+      const fms = FUNC_MALEFICS[lr] || new Set();
+
+      function planetColor(name) {
+        if (name === 'As') return '#e0e0c0';
+        if (name === 'Rahu' || name === 'Ketu') return '#e06060';
+        if (fms.has(name)) return '#e06060';
+        return '#70c070';
+      }
+      function degStr(d) { return Math.floor(d) + '°' + String(Math.floor((d % 1) * 60)).padStart(2,'0') + '′'; }
+
+      const rows = [];
+      // Ascendant
+      rows.push({
+        abbr: 'As', name: 'As',
+        deg:  degStr(data.lagna.degree_in_rashi),
+        rasi: RASHI_ABBR2[data.lagna.rashi] || '',
+        nak:  data.lagna.nakshatra_name || '',
+        lord: nakLordAbbr(data.lagna.nakshatra)
+      });
+      // Grahas in canonical order
+      const GRAHA_ORDER = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
+      for (const name of GRAHA_ORDER) {
+        const g = data.grahas.find(x => x.graha === name);
+        if (!g) continue;
+        rows.push({
+          abbr: GRAHA_ABBR[name] || name.slice(0,2), name,
+          deg:  degStr(g.degree_in_rashi),
+          rasi: RASHI_ABBR2[g.rashi] || '',
+          nak:  g.nakshatra_name || '',
+          lord: g.nakshatra_lord ? (GRAHA_ABBR[g.nakshatra_lord] || g.nakshatra_lord.slice(0,2)) : nakLordAbbr(g.nakshatra)
+        });
+      }
+
+      tbl.innerHTML = rows.map(r => {
+        const col = planetColor(r.name);
+        return `<tr>
+          <td style="color:${col};font-weight:bold">${r.abbr}</td>
+          <td style="color:#b0b0c0;text-align:right">${r.deg}</td>
+          <td style="color:#b0b0c0;padding-left:8px">${r.rasi}</td>
+          <td style="color:#c9a84c;padding-left:8px">${r.nak}</td>
+          <td style="color:#b0b0c0;padding-left:8px">${r.lord}</td>
+        </tr>`;
+      }).join('');
+
+      box.style.display = 'block';
+    }
 
     // ═══════════════════════════════════════════════════
     // Chart renderer
@@ -1844,25 +2105,25 @@
       const svg = document.getElementById('chart');
       svg.innerHTML = '';
       svg.style.display = 'block';
-      svg.appendChild(svgEl('rect',{width:500,height:500,fill:'#0a0a1a'}));
+      svg.appendChild(svgEl('rect',{width:500,height:500,fill:'#080812'}));
 
       // House polygons
       for (let h=1;h<=12;h++) {
         svg.appendChild(svgEl('polygon',{
           points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
-          fill:'#16213e',stroke:'#c9a84c','stroke-width':'1.5'
+          fill:'#0d1428',stroke:'#7a5a20','stroke-width':'1'
         }));
       }
       // Sign numbers
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
-        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#c9a84c','font-family':'monospace','text-anchor':'middle','font-weight':'bold'},String(houseSign(h,lr))));
+        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:'#906030','font-family':'monospace','text-anchor':'middle','font-weight':'bold'},String(houseSign(h,lr))));
       }
 
       // Build house planet lists from analysis
       const hp = {};
       for (let h=1;h<=12;h++) hp[h]=[];
-      hp[1].push({label:'As',deg:mepDeg,color:'#e0e0e0',retro:false,isAs:true});
+      hp[1].push({label:'As',deg:mepDeg,color:'#e0e0c0',retro:false,isAs:true});
       for (const name of PLANET_ORDER) {
         const a = an[name]; if (!a) continue;
         hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,retro:a.retro,isAs:false});
@@ -1883,37 +2144,37 @@
         }
       }
 
-      // Title
-      const bd=data.birth_data;
-      document.getElementById('chartTitle').textContent =
-        `${data.name||'Chart'} — ${bd.date} ${bd.time} | Lat ${bd.latitude}, Lon ${bd.longitude} | TZ ${bd.timezone_offset} | Lagna: ${data.lagna.rashi_name}`;
+      // Title — rendered inside the SVG above the chart grid (y=0..50 space)
+      const bd = data.birth_data;
+      let titleStr;
+      if (data._tzName) {
+        const off = bd.timezone_offset;
+        const sign = off >= 0 ? '+' : '-';
+        const abs = Math.abs(off);
+        const hh = String(Math.floor(abs)).padStart(2, '0');
+        const mm = String(Math.round((abs % 1) * 60)).padStart(2, '0');
+        titleStr = `${bd.date} ${bd.time} ${data._locName || ''} tz->\u200b${data._tzName} UTC${sign}${hh}:${mm}`;
+      } else {
+        titleStr = `${data.name||'Chart'} \u2014 ${bd.date} ${bd.time} | TZ ${bd.timezone_offset} | Lagna: ${data.lagna.rashi_name}`;
+      }
+      document.getElementById('chartTitle').textContent = '';
+      svg.appendChild(svgEl('text',{x:'250',y:'28','font-size':'10.5',fill:'#906030','font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'},titleStr));
 
       // Enable Analysis button; hide Edit Test (only shown for user test charts)
       document.getElementById('analysisBtn').disabled = false;
-      document.getElementById('dashaBtn').disabled = false;
       document.getElementById('editTestBtn').style.display = 'none';
       currentUserTestKey = null;
       renderD9Chart(data, lastAnalysis);
+      renderRashiData(data, lastAnalysis);
       populateDashaPanel(data);
       requestAnimationFrame(() => {
-        const svgEl = document.getElementById('chart');
-        const hdrEl = document.querySelector('.dasha-hdr');
-        const h = svgEl ? svgEl.getBoundingClientRect().height : 0;
-        const hh = hdrEl ? hdrEl.getBoundingClientRect().height : 28;
-        if (h > 0) {
-          // Chart outer square starts at y=50 of 500 viewBox units = 10% from SVG top
-          const chartTopOffset = h * (50 / 500);
-          const listH = h - chartTopOffset - hh;
-          const panel = document.getElementById('dashaPanel');
-          const list  = document.getElementById('dashaList');
-          panel.style.marginTop = chartTopOffset + 'px';
-          list.style.height = listH + 'px';
-          // Padding-bottom lets the last row scroll to the top of the list
-          const firstRow = list.querySelector('.dr');
-          const rowH = firstRow ? firstRow.getBoundingClientRect().height : 18;
-          list.style.paddingBottom = Math.max(0, listH - rowH) + 'px';
-        }
-        if (dashaVisible) dashaScrollNow();
+        const d9Svg = document.getElementById('d9Chart');
+        const panel = document.getElementById('dashaPanel');
+        panel.style.marginTop = '0';
+        panel.style.display = 'flex';
+        const d9h = d9Svg ? d9Svg.getBoundingClientRect().height : 0;
+        if (d9h > 0) panel.style.height = d9h + 'px';
+        dashaScrollNow();
       });
     }
 
@@ -1936,22 +2197,28 @@
     ];
 
     const MUHURTA_CFG_KEY = 'jyotish_muhurta_cfg';
+    const MUHURTA_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
     function getMuhurtaCfg() {
       let cfg = {};
       try { cfg = JSON.parse(localStorage.getItem(MUHURTA_CFG_KEY) || '{}'); } catch(e) {}
+      const planetMins = {};
+      for (const p of MUHURTA_PLANETS) planetMins[p] = cfg.planetMins && cfg.planetMins[p] != null ? cfg.planetMins[p] : 0;
       return {
-        minBeneficDays:   cfg.minBeneficDays  != null ? cfg.minBeneficDays  : 0,
-        minLagnaStr:      cfg.minLagnaStr      != null ? cfg.minLagnaStr     : 0.60,
-        minStrongHouses:  cfg.minStrongHouses  != null ? cfg.minStrongHouses : 5,
-        minStrongPlanets: cfg.minStrongPlanets != null ? cfg.minStrongPlanets : 2
+        minBeneficDays:   cfg.minBeneficDays != null ? cfg.minBeneficDays : 0,
+        minStrongHouses:  5,
+        minStrongPlanets: 2,
+        planetMins
       };
     }
     function saveMuhurtaCfg() {
+      const planetMins = {};
+      for (const p of MUHURTA_PLANETS) {
+        const el = document.getElementById('mPlanet_' + p);
+        if (el) planetMins[p] = parseFloat(el.value) || 0;
+      }
       const cfg = {
-        minBeneficDays:   parseFloat(document.getElementById('mMinBenefic').value),
-        minLagnaStr:      parseFloat(document.getElementById('mMinLagna').value),
-        minStrongHouses:  parseInt(document.getElementById('mMinHouses').value),
-        minStrongPlanets: parseInt(document.getElementById('mMinPlanets').value)
+        minBeneficDays: parseFloat(document.getElementById('mMinBenefic').value),
+        planetMins
       };
       localStorage.setItem(MUHURTA_CFG_KEY, JSON.stringify(cfg));
     }
@@ -1964,9 +2231,18 @@
         if (!el.value) el.selectedIndex = 0;
       };
       sel('mMinBenefic', cfg.minBeneficDays);
-      sel('mMinLagna',   cfg.minLagnaStr);
-      sel('mMinHouses',  cfg.minStrongHouses);
-      sel('mMinPlanets', cfg.minStrongPlanets);
+      for (const p of MUHURTA_PLANETS) {
+        const v = cfg.planetMins[p] || 0;
+        sel('mPlanet_' + p, v > 0 ? parseFloat(v).toFixed(2) : '0');
+      }
+      updateLagnaLordMin();
+    }
+    function updateLagnaLordMin() {
+      const sign = parseInt(document.getElementById('mSign').value);
+      const lord = LAGNA_RULER[sign];
+      if (!lord) return;
+      const el = document.getElementById('mPlanet_' + lord);
+      if (el && parseFloat(el.value) < 0.60) el.value = '0.60';
     }
 
     function getMuhurtaResults() {
@@ -2007,7 +2283,7 @@
       if (!name) return null;
       const loc = getAtlas()[name];
       if (!loc) return null;
-      return { name, lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz) };
+      return { name, lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' };
     }
 
     function clearMuhurtaResults() {
@@ -2018,11 +2294,103 @@
       renderMuhurtaResults();
     }
 
+    function generateSummaryReport() {
+      const results = getMuhurtaResults();
+      const ta = document.getElementById('mStrReport');
+      if (!results.length) { ta.style.display = 'block'; ta.value = 'No results.'; return; }
+
+      // Build groups (same logic as renderMuhurtaResults)
+      const groups = [];
+      let gi = 0;
+      while (gi < results.length) {
+        const r0 = results[gi];
+        const d0 = r0.dt.split(' ')[0];
+        let gj = gi + 1;
+        while (gj < results.length) {
+          const rj = results[gj];
+          if (rj.dt.split(' ')[0] === d0 && rj.sign === r0.sign) gj++;
+          else break;
+        }
+        groups.push({ from: gi });
+        gi = gj;
+      }
+
+      const lines = [];
+      for (const g of groups) {
+        const r   = results[g.from];
+        const loc = getAtlas()[r.loc] || {};
+        const [date, time] = r.dt.split(' ');
+        const lon  = loc.lon !== undefined ? parseFloat(loc.lon).toFixed(4) : '?';
+        const lat  = loc.lat !== undefined ? parseFloat(loc.lat).toFixed(4) : '?';
+        const rawOff = (loc.tzName && date) ? getOffsetForDate(loc.tzName, date) : (loc.tz !== undefined ? parseFloat(loc.tz) : null);
+        let utcStr = '';
+        if (rawOff !== null) {
+          const sign = rawOff >= 0 ? '+' : '-';
+          const abs  = Math.abs(rawOff);
+          const hh   = String(Math.floor(abs)).padStart(2, '0');
+          const mm   = String(Math.round((abs % 1) * 60)).padStart(2, '0');
+          utcStr = `UTC${sign}${hh}:${mm}`;
+        }
+        lines.push(`${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}`);
+      }
+      ta.style.display = 'block';
+      ta.value = lines.join('\n');
+    }
+
+    async function generateStrengthReport() {
+      const results = getMuhurtaResults();
+      const ta = document.getElementById('mStrReport');
+      if (!results.length) { ta.style.display = 'block'; ta.value = 'No results.'; return; }
+
+      // Compute groups (same logic as renderMuhurtaResults)
+      const groups = [];
+      let gi = 0;
+      while (gi < results.length) {
+        const r0 = results[gi];
+        const d0 = r0.dt.split(' ')[0];
+        let gj = gi + 1;
+        while (gj < results.length) {
+          const rj = results[gj];
+          if (rj.dt.split(' ')[0] === d0 && rj.sign === r0.sign) gj++;
+          else break;
+        }
+        groups.push({ date: d0, from: gi, to: gj - 1 });
+        gi = gj;
+      }
+
+      ta.style.display = 'block';
+      ta.value = 'Fetching ' + groups.length + ' chart(s)…';
+
+      const lines = [];
+      for (const g of groups) {
+        const r = results[g.from];
+        const loc = getAtlas()[r.loc];
+        if (!loc) { lines.push(r.dt + '  [location "' + r.loc + '" not in atlas]'); continue; }
+        try {
+          const [date, hhmm] = r.dt.split(' ');
+          const data = await fetchChartAt(date, hhmm + ':00',
+            { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' });
+          const analysis = analyzeAllGrahas(data);
+          lines.push('── ' + r.dt + '  ' + r.signName + '  ' + r.loc + ' ──');
+          for (const p of MUHURTA_PLANETS) {
+            const a = analysis[p];
+            lines.push('  ' + p.padEnd(8) + (a ? Math.round(a.strengthPct * 100) + '%' : 'n/a'));
+          }
+          lines.push('');
+        } catch (err) {
+          lines.push(r.dt + '  ERROR: ' + err.message);
+        }
+      }
+      ta.value = lines.join('\n');
+    }
+
     function renderMuhurtaResults() {
       const results = getMuhurtaResults();
       const el = document.getElementById('mResults');
       if (!results.length) {
         el.innerHTML = '<span style="color:#404058">No results yet.</span>';
+        const sc = document.getElementById('mSeriesCount');
+        if (sc) sc.textContent = '';
         return;
       }
       // Group consecutive results with same date+sign (same rising-sign window)
@@ -2040,15 +2408,16 @@
         groups.push({ date: d0, from: gi, to: gj - 1 });
         gi = gj;
       }
+      const sc = document.getElementById('mSeriesCount');
+      if (sc) sc.textContent = '— ' + groups.length;
 
       const rowHtml = (r, i) => {
         const active = i === currentMuhurtaIdx;
-        return `<div style="padding:2px 0 2px 4px;border-left:2px solid ${active ? '#c9a84c' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
+        return `<div style="padding:2px 0 2px 4px;border-left:4px solid ${active ? '#ffd060' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
           `<div style="flex:1;">` +
           `<span style="color:#a0b8c8">${r.dt.split(' ')[1]}</span> ` +
           `<span style="color:#70c070">${r.signName}</span> &nbsp;` +
-          `<span style="color:#606078">Antar: ${r.antarDasha}</span>&nbsp;` +
-          `<span style="color:#5a7a9a;font-size:0.73rem;">${r.antarStart ? fmtDashaDate(r.antarStart) : ''}</span>` +
+          `<span style="color:#606078">Antardasha: ${r.antarDasha}</span>&nbsp;` +
           (r.beneficDays !== null && r.beneficDays !== undefined ? `<span style="color:#7ab87a;font-size:0.73rem;"> → ${fmtBeneficWindow(r.beneficDays)}</span>` : '') +
           `</div>` +
           `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
@@ -2060,7 +2429,7 @@
       let lastDate = null;
       for (const g of groups) {
         if (g.date !== lastDate) {
-          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${g.date}</div>`;
+          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${g.date}<span style="color:#7090a0;margin-left:0.6rem;">${results[g.from].loc}</span></div>`;
           lastDate = g.date;
         }
         html += rowHtml(results[g.from], g.from);
@@ -2089,10 +2458,14 @@
       const time = hhmm + ':00';
       try {
         const data = await fetchChartAt(date, time,
-          { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz) });
+          { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' });
+        data._locName = r.loc;
+        if (loc.tzName) data._tzName = loc.tzName;
         currentMuhurtaIdx = idx;
         document.getElementById('dlgMuhurta').close();
         renderChart(data);
+        document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+        applyRawState();
         updateMuhurtaNav(results.length);
       } catch (err) {
         alert('Error loading chart: ' + err.message);
@@ -2136,11 +2509,20 @@
       return dt.toISOString().slice(0, 10);
     }
 
+    function getOffsetForDate(ianaTimezone, dateStr) {
+      // Returns UTC offset in hours for ianaTimezone on dateStr, DST-aware
+      const dt    = new Date(dateStr + 'T12:00:00Z');
+      const local = new Date(dt.toLocaleString('en-US', { timeZone: ianaTimezone }));
+      const utc   = new Date(dt.toLocaleString('en-US', { timeZone: 'UTC' }));
+      return (local - utc) / 3600000;
+    }
+
     async function fetchChartAt(date, time, loc) {
+      const tzOffset = (loc.tzName) ? getOffsetForDate(loc.tzName, date) : loc.tz;
       const res = await fetch('/api/v1/chart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: loc.tz })
+        body: JSON.stringify({ date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: tzOffset })
       });
       if (!res.ok) throw new Error('API ' + res.status + ' at ' + date + ' ' + time);
       return res.json();
@@ -2228,10 +2610,17 @@
       if (pAff(lagnaRuler, analysis))
         return { pass: false, reason: `${lagnaRuler} (lagna ruler) afflicted` };
 
-      // Rule 3b: Lagna ruler strength < 60%
-      const lagnaRulerA = analysis[lagnaRuler];
-      if (lagnaRulerA && lagnaRulerA.strengthPct < cfg.minLagnaStr)
-        return { pass: false, reason: `${lagnaRuler} (lagna ruler) strength ${Math.round(lagnaRulerA.strengthPct * 100)}% < 60%` };
+      // Rule 3b: Per-planet minimum strength (lagna ruler has 60% floor)
+      const planetMins = cfg.planetMins || {};
+      for (const p of MUHURTA_PLANETS) {
+        let minStr = planetMins[p] || 0;
+        if (p === lagnaRuler) minStr = Math.max(0.60, minStr);
+        if (minStr > 0) {
+          const pa = analysis[p];
+          if (pa && pa.strengthPct < minStr)
+            return { pass: false, reason: `${p} strength ${Math.round(pa.strengthPct * 100)}% < ${Math.round(minStr * 100)}% required` };
+        }
+      }
 
       // Rule 4: Any planet badly placed (inDushtana)
       // Filter to planet entries only — analysis also contains _houses/_mepDeg/_sunIsFM
@@ -2366,9 +2755,9 @@
       const dateStr = document.getElementById('mDate').value;
       if (!dateStr) { alert('Enter a start date.'); return; }
       const timeVal  = document.getElementById('mTime').value || '00:00';
-      const days     = Math.min(300, Math.max(1, parseInt(document.getElementById('mDays').value) || 30));
+      const days     = Math.min(400, Math.max(1, parseInt(document.getElementById('mDays').value) || 30));
       const targetSign = parseInt(document.getElementById('mSign').value);
-      const stopFirst  = document.getElementById('mStopFirst').checked;
+
 
       // Start minute for day 0
       const [sh, sm] = timeVal.split(':').map(Number);
@@ -2380,14 +2769,17 @@
       document.getElementById('mStopBtn').disabled  = false;
       const muhurtaStartTime = Date.now();
       document.getElementById('mProgress').textContent = 'Starting…';
+      let fetchErrors = 0;
 
       try {
         for (let day = 0; day < days; day++) {
           if (muhurtaAbort) break;
           const dayStr = addDays(dateStr, day);
-          document.getElementById('mProgress').textContent = `Day ${day + 1}/${days}: ${dayStr}…`;
+          document.getElementById('mProgress').textContent = `Day ${day + 1}/${days}: ${dayStr}…` + (fetchErrors ? ` (${fetchErrors} err)` : '');
 
-          const winStart = await findSignWindowStart(dayStr, targetSign, loc);
+          let winStart;
+          try { winStart = await findSignWindowStart(dayStr, targetSign, loc); }
+          catch (e) { fetchErrors++; continue; }
           if (muhurtaAbort) break;
           if (winStart === null) continue;
 
@@ -2398,7 +2790,9 @@
           while (m < 1440) {
             if (muhurtaAbort) break;
             const { date, time } = minuteOffset(dayStr, m);
-            const data = await fetchChartAt(date, time, loc);
+            let data;
+            try { data = await fetchChartAt(date, time, loc); }
+            catch (e) { fetchErrors++; break; }
             if (data.lagna.rashi !== targetSign) break;
 
             const analysis = analyzeAllGrahas(data);
@@ -2420,7 +2814,6 @@
               results.push(rec);
               setMuhurtaResults(results);
               renderMuhurtaResults();
-              if (stopFirst) { muhurtaAbort = true; break; }
             }
             m++;
           }
@@ -2438,7 +2831,7 @@
           const secs = ((Date.now() - muhurtaStartTime) / 1000).toFixed(1);
           const mins = Math.floor(secs / 60);
           const elapsed = mins > 0 ? `${mins}m ${(secs % 60).toFixed(1)}s` : `${secs}s`;
-          prog.textContent = `Done. (${elapsed})`;
+          prog.textContent = `Done. (${elapsed})` + (fetchErrors ? `  ${fetchErrors} fetch error(s)` : '');
         }
       }
     }
@@ -2552,7 +2945,7 @@
       for (let h=1;h<=12;h++) {
         svg.appendChild(svgEl('polygon',{
           points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
-          fill:'#16213e',stroke:'#c9a84c','stroke-width':'1.5'
+          fill:'#16213e',stroke:'#7a5a20','stroke-width':'1'
         }));
       }
       for (let h=1;h<=12;h++) {
