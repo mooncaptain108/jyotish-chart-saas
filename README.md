@@ -7,7 +7,10 @@ Verified by comparing output against
 1. https://www.prokerala.com/astrology/birth-chart
 2. https://deva.guru
 3. https://astrologyayurveda.com/birth-chart-calculator/
-4. Verified locations, timezones and daylight saving status at https://www.astro.com/atlas
+
+
+Verified locations, timezones and daylight saving status at https://www.astro.com/atlas
+
 
 #### Designed Pimarily to Search for Auspicious Times
 1. For each date, time, location the application shows the Lagna, Navamsa, Rasi data, and the Vimsottari Dashas.
