@@ -215,8 +215,25 @@
       <hr class="stg-divider">
       <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Ephemeris Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
+      <hr class="stg-divider">
+      <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Show Welcome Message</button>
     </div>
   </div>
+
+  <!-- ════ Welcome dialog ════ -->
+  <dialog id="dlgWelcome" style="max-width:480px;">
+    <div class="dlg-header">
+      <h2>Jyotish Query</h2>
+      <button class="dlg-close-x" onclick="closeWelcome()">✕</button>
+    </div>
+    <div class="dlg-body" style="line-height:1.6;color:#c0c0d0;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
+      <div id="welcomeContent"></div>
+    </div>
+    <div class="dlg-footer" style="justify-content:space-between;align-items:center;">
+      <label class="stg-check" style="margin:0;"><input type="checkbox" id="chkHideWelcome"> Hide this message on startup</label>
+      <button class="btn-sec" onclick="closeWelcome()">Close</button>
+    </div>
+  </dialog>
 
   <!-- ════ New Chart dialog ════ -->
   <dialog id="dlgNew">
@@ -481,6 +498,7 @@
     const RAW_KEY      = 'jyotish_raw';
     const TESTS_KEY    = 'jyotish_tests_visible';
     const NEW_FORM_KEY = 'jyotish_new_form';
+    const WELCOME_KEY  = 'jyotish_hide_welcome';
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
@@ -551,6 +569,50 @@
     }
     applyRawState();
     applyTestsState();
+
+    // Welcome dialog
+    function mdToHtml(md) {
+      // Strip lines that are checkbox placeholders (the UI provides the real checkbox)
+      const lines = md.split('\n').filter(l => !/^\s*\[\s*\]/.test(l));
+      const text = lines.join('\n');
+      const paras = text.split(/\n{2,}/);
+      return paras.map(p => {
+        p = p.trim();
+        if (!p) return '';
+        if (p.startsWith('### ')) return `<h4 style="color:#c9a84c;margin:0 0 0.6rem">${p.slice(4)}</h4>`;
+        if (p.startsWith('## '))  return `<h3 style="color:#c9a84c;margin:0 0 0.6rem">${p.slice(3)}</h3>`;
+        if (p.startsWith('# '))   return `<h2 style="color:#c9a84c;margin:0 0 0.75rem">${p.slice(2)}</h2>`;
+        p = p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        p = p.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        return `<p style="margin:0 0 0.75rem">${p}</p>`;
+      }).join('');
+    }
+
+    let _welcomeMd = null;  // cache fetched content
+
+    function openWelcome() {
+      document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
+      const dlg = document.getElementById('dlgWelcome');
+      const content = document.getElementById('welcomeContent');
+      if (_welcomeMd !== null) {
+        content.innerHTML = mdToHtml(_welcomeMd);
+        dlg.showModal();
+        return;
+      }
+      content.innerHTML = '<em>Loading…</em>';
+      dlg.showModal();
+      fetch('static/Open.md?_=' + Date.now())
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(md => { _welcomeMd = md; content.innerHTML = mdToHtml(md); })
+        .catch(() => { content.innerHTML = '<p>Welcome to Jyotish Query. Use New or Muhurta to get started.</p>'; });
+    }
+    function closeWelcome() {
+      localStorage.setItem(WELCOME_KEY, document.getElementById('chkHideWelcome').checked ? '1' : '0');
+      document.getElementById('dlgWelcome').close();
+    }
+    if (localStorage.getItem(WELCOME_KEY) !== '1') {
+      openWelcome();
+    }
 
     // Settings panel
     function openSettings() {
