@@ -1,5 +1,5 @@
 ## Vedic Jyotish Query
-Uses the Vedic Jyotish Chart API - visit this link to see the API (https://github.com/rsaisankalp/vedic-j#otish-api)
+Uses the Vedic Jyotish Chart API - visit this link to see the API (https://github.com/rsaisankalp/vedic-jyotish-api)
 
 The API uses the Swiss Ephemeris.
 
