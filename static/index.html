@@ -5,6 +5,11 @@
   <title>Jyotish</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    .md-content ul, .md-content ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    .md-content li { margin-bottom: 0.25rem; }
+    .md-content p  { margin-bottom: 0.75rem; }
+    .md-content h1,.md-content h2,.md-content h3,.md-content h4 { color:#c9a84c; margin-bottom:0.6rem; }
+    .md-content a  { color:#5a9fd4; }
     body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
     #appWrap { display:flex; flex-direction:column; min-height:100vh; }
 
@@ -85,6 +90,13 @@
     input:focus, select:focus { outline:none; border-color:#c9a84c; }
     .f-row2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
     .f-hint { font-size:0.72rem; color:#505070; margin-top:0.2rem; }
+    .tcb-exp-table { width:100%; border-collapse:collapse; font-size:0.75rem; }
+    .tcb-exp-table th { color:#606080; font-weight:normal; text-align:center; padding:2px 2px 4px; white-space:nowrap; }
+    .tcb-exp-table th:first-child { text-align:left; width:24px; }
+    .tcb-exp-table td { padding:2px; text-align:center; vertical-align:middle; }
+    .tcb-exp-table td:first-child { text-align:left; color:#9090a8; padding-right:4px; }
+    .tcb-exp-input { width:38px; background:#0a1228; border:1px solid #1a4a80; color:#c0c0d0; border-radius:3px; padding:1px 3px; font-size:0.75rem; -moz-appearance:textfield; }
+    .tcb-exp-input::-webkit-outer-spin-button, .tcb-exp-input::-webkit-inner-spin-button { -webkit-appearance:none; }
     .f-divider { border-top:1px solid #0f3460; margin:0.75rem 0; }
     .f-save-status { font-size:0.8rem; color:#70c070; margin-left:auto; align-self:center; }
 
@@ -133,6 +145,7 @@
     .c-gray  { color:#808098; }
     .an-run  { color:#808098; font-size:0.75rem; margin-left:0.4rem; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <div id="appWrap">
@@ -209,16 +222,31 @@
       <button class="dlg-close-x" onclick="closeSettings()">✕</button>
     </div>
     <div class="stg-body">
-      <button class="btn-sec stg-btn" onclick="exportData()">Export All Data</button>
+      <button class="btn-sec stg-btn" onclick="exportData()">Export</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="doImport(event)">
-      <button class="btn-sec stg-btn" onclick="document.getElementById('importFile').click()">Import All Data</button>
+      <button class="btn-sec stg-btn" onclick="document.getElementById('importFile').click()">Import</button>
       <hr class="stg-divider">
-      <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Ephemeris Data</label>
+      <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Jyotish Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
       <hr class="stg-divider">
-      <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Show Welcome Message</button>
+      <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Welcome</button>
+      <button class="btn-sec stg-btn" onclick="openAbout(); closeSettings();">About</button>
     </div>
   </div>
+
+  <!-- ════ About dialog ════ -->
+  <dialog id="dlgAbout" style="max-width:480px;">
+    <div class="dlg-header">
+      <h2>About</h2>
+      <button class="dlg-close-x" onclick="closeAbout()">✕</button>
+    </div>
+    <div class="dlg-body" style="line-height:1.6;color:#c0c0d0;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
+      <div id="aboutContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="closeAbout()">Close</button>
+    </div>
+  </dialog>
 
   <!-- ════ Welcome dialog ════ -->
   <dialog id="dlgWelcome" style="max-width:480px;">
@@ -227,7 +255,7 @@
       <button class="dlg-close-x" onclick="closeWelcome()">✕</button>
     </div>
     <div class="dlg-body" style="line-height:1.6;color:#c0c0d0;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
-      <div id="welcomeContent"></div>
+      <div id="welcomeContent" class="md-content"></div>
     </div>
     <div class="dlg-footer" style="justify-content:space-between;align-items:center;">
       <label class="stg-check" style="margin:0;"><input type="checkbox" id="chkHideWelcome"> Hide this message on startup</label>
@@ -375,6 +403,26 @@
         <button class="btn-sec" onclick="tcbSubmit()">Enter</button>
       </div>
       <p class="f-hint" style="margin:0 0 0.5rem;">Commands: <code>lagna virgo</code> &nbsp;·&nbsp; <code>moon scorpio 12</code> &nbsp;·&nbsp; <code>rahu aries 15</code> (auto-fills ketu) &nbsp;·&nbsp; <code>clear moon</code> &nbsp;·&nbsp; <code>reset</code><br>Signs by name or number 1–12. Degree defaults to 15. Add <code>r</code> for retrograde.</p>
+      <details id="tcb-exp-section" style="margin-top:0.5rem;border:1px solid #1a3060;border-radius:4px;padding:0.3rem 0.6rem 0.5rem;background:#0a1228;">
+        <summary style="cursor:pointer;font-size:0.82rem;color:#8090b0;user-select:none;">Expected Results</summary>
+        <div style="margin-top:0.5rem;overflow-x:auto;">
+          <table class="tcb-exp-table">
+            <thead><tr>
+              <th></th>
+              <th title="isWeak">Wk</th>
+              <th title="isFM">FM</th>
+              <th title="combust">Cb</th>
+              <th title="inOwnMT">MT</th>
+              <th title="debilitated">Db</th>
+              <th title="inDushtana">Du</th>
+              <th title="isMMP (Most Malefic Planet)">MP</th>
+              <th>Min%</th>
+              <th>Max%</th>
+            </tr></thead>
+            <tbody id="tcb-exp-body"></tbody>
+          </table>
+        </div>
+      </details>
     </div>
     <div class="dlg-footer">
       <button id="tcb-delete" class="btn-sec" onclick="tcbDelete()" style="display:none;margin-right:auto;">Delete</button>
@@ -595,7 +643,7 @@
       const dlg = document.getElementById('dlgWelcome');
       const content = document.getElementById('welcomeContent');
       if (_welcomeMd !== null) {
-        content.innerHTML = mdToHtml(_welcomeMd);
+        content.innerHTML = marked.parse(_welcomeMd);
         dlg.showModal();
         return;
       }
@@ -603,12 +651,38 @@
       dlg.showModal();
       fetch('static/Open.md?_=' + Date.now())
         .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-        .then(md => { _welcomeMd = md; content.innerHTML = mdToHtml(md); })
+        .then(md => { _welcomeMd = md; content.innerHTML = marked.parse(md); })
         .catch(() => { content.innerHTML = '<p>Welcome to Jyotish Query. Use New or Muhurta to get started.</p>'; });
     }
     function closeWelcome() {
       localStorage.setItem(WELCOME_KEY, document.getElementById('chkHideWelcome').checked ? '1' : '0');
       document.getElementById('dlgWelcome').close();
+    }
+
+    let _aboutMd = null;
+    function openAbout() {
+      const dlg = document.getElementById('dlgAbout');
+      const content = document.getElementById('aboutContent');
+      if (_aboutMd !== null) {
+        _aboutApply(_aboutMd);
+        dlg.showModal();
+        return;
+      }
+      dlg.showModal();
+      fetch('static/About.md?_=' + Date.now())
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(md => { _aboutMd = md; _aboutApply(md); })
+        .catch(() => { content.innerHTML = '<p>Jyotish Query — Vedic chart analysis tool.</p>'; });
+    }
+    function _aboutApply(md) {
+      const lines = md.split('\n');
+      const firstLine = lines[0].replace(/^#+\s*/, '').trim();
+      const body = lines.slice(1).join('\n');
+      document.querySelector('#dlgAbout .dlg-header h2').textContent = firstLine || 'About';
+      document.getElementById('aboutContent').innerHTML = marked.parse(body);
+    }
+    function closeAbout() {
+      document.getElementById('dlgAbout').close();
     }
     if (localStorage.getItem(WELCOME_KEY) !== '1') {
       openWelcome();
@@ -644,7 +718,10 @@
     function exportData() {
       const keys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_'));
       const obj = {};
-      for (const k of keys) obj[k] = localStorage.getItem(k);
+      for (const k of keys) {
+        const v = localStorage.getItem(k);
+        try { obj[k] = JSON.parse(v); } catch { obj[k] = v; }
+      }
       const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -660,7 +737,8 @@
         try {
           const obj = JSON.parse(e.target.result);
           for (const [k, v] of Object.entries(obj)) {
-            if (k.startsWith('jyotish_')) localStorage.setItem(k, v);
+            if (k.startsWith('jyotish_'))
+              localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
           }
           event.target.value = '';
           rawVisible   = localStorage.getItem(RAW_KEY) === '1';
@@ -1121,6 +1199,7 @@
           tp('Ketu',3,3),     // h3, at 3° — exempt; Rahu/Ketu mutual aspect suppressed
         ]},
     ];
+    window._TEST_CHARTS = TEST_CHARTS; // expose for Playwright
 
     let currentUserTestKey = null;
     function loadTestChart(idx) {
@@ -2910,7 +2989,8 @@
     // ═══════════════════════════════════════════════════
     // Test Chart Builder
     // ═══════════════════════════════════════════════════
-    const TCB_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
+    const TCB_PLANETS   = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
+    const TCB_EXP_FLAGS = ['isWeak','isFM','combust','inOwnMT','debilitated','inDushtana','isMMP'];
     const TCB_SIGN_MAP = {
       aries:1,taurus:2,gemini:3,cancer:4,leo:5,virgo:6,
       libra:7,scorpio:8,sagittarius:9,capricorn:10,aquarius:11,pisces:12,
@@ -2952,6 +3032,7 @@
       document.getElementById('tcb-input').value = '';
       tcbLog('');
       tcbUpdateStatus();
+      tcbExpLoad(data.expected);
       document.getElementById('dlgBuild').showModal();
       setTimeout(() => document.getElementById('tcb-input').focus(), 50);
     }
@@ -2968,6 +3049,7 @@
       document.getElementById('tcb-input').value = '';
       tcbLog('');
       tcbUpdateStatus();
+      tcbExpLoad(tcbState.expected);
       document.getElementById('dlgBuild').showModal();
       setTimeout(() => document.getElementById('tcb-input').focus(), 50);
     }
@@ -3155,7 +3237,7 @@
 
     function tcbBuildData() {
       const name = document.getElementById('tcb-name').value.trim() || 'User Test';
-      return {
+      const data = {
         name,
         birth_data:{ date:'2000-01-01', time:'12:00:00', latitude:0, longitude:0, timezone_offset:0 },
         ayanamsa:0,
@@ -3165,6 +3247,9 @@
           return { graha:p, rashi:g.rashi, degree_in_rashi:g.degree, retrograde:g.retro||false };
         })
       };
+      const expected = tcbExpRead();
+      if (expected) data.expected = expected;
+      return data;
     }
 
     function tcbSave() {
@@ -3189,12 +3274,62 @@
       const name = document.getElementById('tcb-name').value.trim();
       if (!name) { tcbLog('Enter a name first', 'err'); return; }
       tcbState.name = name;
+      tcbState.expected = tcbExpRead();
       const key = 'jyotish_utd_' + name;
       localStorage.setItem(key, JSON.stringify(tcbState));
       if (tcbEditKey && tcbEditKey !== key) localStorage.removeItem(tcbEditKey);
       tcbEditKey = key;
       document.getElementById('tcb-delete').style.display = '';
       tcbLog(`Draft saved: "${name}"`, 'ok');
+    }
+
+    // ── Expected Results UI ──────────────────────────────────────────────────
+    function tcbExpRender() {
+      const body = document.getElementById('tcb-exp-body');
+      if (!body) return;
+      body.innerHTML = TCB_PLANETS.map(p => {
+        const abbr = (GRAHA_ABBR && GRAHA_ABBR[p]) || p.slice(0,2);
+        const checks = TCB_EXP_FLAGS.map(f =>
+          `<td><input type="checkbox" id="tcb-exp-${p}-${f}" title="${f}"></td>`
+        ).join('');
+        return `<tr>
+          <td>${abbr}</td>${checks}
+          <td><input type="number" id="tcb-exp-${p}-min" class="tcb-exp-input" placeholder="—" min="0" max="300" step="1"></td>
+          <td><input type="number" id="tcb-exp-${p}-max" class="tcb-exp-input" placeholder="—" min="0" max="300" step="1"></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function tcbExpLoad(expected) {
+      expected = expected || {};
+      for (const p of TCB_PLANETS) {
+        const exp = expected[p] || {};
+        for (const f of TCB_EXP_FLAGS) {
+          const el = document.getElementById(`tcb-exp-${p}-${f}`);
+          if (el) el.checked = exp[f] === true;
+        }
+        const minEl = document.getElementById(`tcb-exp-${p}-min`);
+        const maxEl = document.getElementById(`tcb-exp-${p}-max`);
+        if (minEl) minEl.value = exp.minStrength != null ? exp.minStrength : '';
+        if (maxEl) maxEl.value = exp.maxStrength != null ? exp.maxStrength : '';
+      }
+    }
+
+    function tcbExpRead() {
+      const expected = {};
+      for (const p of TCB_PLANETS) {
+        const entry = {};
+        for (const f of TCB_EXP_FLAGS) {
+          const el = document.getElementById(`tcb-exp-${p}-${f}`);
+          if (el && el.checked) entry[f] = true;
+        }
+        const minEl = document.getElementById(`tcb-exp-${p}-min`);
+        const maxEl = document.getElementById(`tcb-exp-${p}-max`);
+        if (minEl && minEl.value !== '') entry.minStrength = parseFloat(minEl.value);
+        if (maxEl && maxEl.value !== '') entry.maxStrength = parseFloat(maxEl.value);
+        if (Object.keys(entry).length > 0) expected[p] = entry;
+      }
+      return Object.keys(expected).length > 0 ? expected : null;
     }
 
     function tcbDelete() {
@@ -3249,7 +3384,7 @@
     }
 
     // Populate user tests on page load
-    document.addEventListener('DOMContentLoaded', tcbRefreshDropdown);
+    document.addEventListener('DOMContentLoaded', () => { tcbRefreshDropdown(); tcbExpRender(); });
 
   </script>
 </body>
