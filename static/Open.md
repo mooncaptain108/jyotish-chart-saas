@@ -7,3 +7,5 @@ All the data that is entered into Jyotish Query is stored locally in the browser
 To move data to another location and to prevent loss of data use the Export button to save your data to a file on the computer. From there you can restore the data or load the file using the Import button into another browser or copy it to another computer to be loaded there.
 
 No data is stored on the server that is running Jyotish Query.
+
+Click the Gear icon to see more options.
