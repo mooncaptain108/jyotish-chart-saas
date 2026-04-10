@@ -44,11 +44,15 @@ class DivisionalGraha(BaseModel):
     graha: str
     rashi: int
     rashi_name: str
+    degree_in_rashi: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class DivisionalLagna(BaseModel):
     rashi: int
     rashi_name: str
+    degree_in_rashi: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class DivisionalChartResponse(BaseModel):

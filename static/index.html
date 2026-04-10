@@ -168,13 +168,7 @@
     <div id="testsWrapper">
       <div class="sep"></div>
       <select class="tb-select" id="testSelect" onchange="loadTestChart(this.value); this.value=''">
-        <option value="">Tests…</option>
-        <option value="0">TC1 · Degree, Dushtana, Sun-like</option>
-        <option value="1">TC2 · FM Direct Affliction</option>
-        <option value="2">TC3 · Dispositor Chain + MT MEP</option>
-        <option value="3">TC4 · Chain Affliction</option>
-        <option value="4">TC5 · Rahu/Ketu Rules</option>
-        <option value="build">⊕ Build Test…</option>
+        <option value="">Tests…</option>        <option value="build">⊕ Build Test…</option>
       </select>
       <button class="tb-btn" id="editTestBtn" onclick="openEditTest()" style="display:none">Edit Test</button>
     </div>
@@ -1052,154 +1046,6 @@
     function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     // ═══════════════════════════════════════════════════
-    // Test charts — hardwired data to exercise logic paths
-    // Fields used by analysis: graha, rashi, degree_in_rashi, retrograde
-    // Lagna fields used: rashi, degree_in_rashi, rashi_name
-    // ═══════════════════════════════════════════════════
-    function tp(graha, rashi, deg, retro=false) {
-      return { graha, rashi, degree_in_rashi:deg, retrograde:retro };
-    }
-    const TEST_BD = { date:'TEST', time:'--', latitude:0, longitude:0, timezone_offset:0 };
-
-    const TEST_CHARTS = [
-
-      // ── TC1: Degree weakness, dushtana, MT-in-dushtana exempt, sun-like boost ──
-      // Leo lagna (5), MEP 15°. FMs: Moon (MMP). Sun-like: Mercury (h2/Virgo), Venus (h3/Libra), Mars (h9/Aries)
-      // Expected:
-      //   Sun   h1  3°  → Weak 60% (degree)
-      //   Moon  h9  15° → FM/MMP, Strong
-      //   Mars  h6  15° → Dushtana −50% → Weak 50%
-      //   Merc  h2   2° → Weak deg 40% + sun-like +25% → Weak 65%
-      //   Jupi  h6  15° → Debilitated −50% + Dushtana −50% → Weak 25%
-      //   Venus h3  27° → Weak deg 60% + sun-like +25% → Weak 85%
-      //   Sat   h7  15° → Strong 100% (MT self)
-      //   Rahu  h11 15° → Strong
-      //   Ketu  h5  15° → Dispositor Jupiter(25%) → Weak 25%
-      { name:'TC1 · Degree, Dushtana, Sun-like', birth_data:TEST_BD,
-        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
-        grahas:[
-          tp('Sun',5,3),      // h1, weak by degree
-          tp('Moon',1,15),    // h9, FM/MMP
-          tp('Mars',10,15),   // h6, dushtana
-          tp('Mercury',6,2),  // h2, weak deg + sun-like boost
-          tp('Jupiter',10,15),// h6, debilitated + dushtana
-          tp('Venus',7,27),   // h3, weak deg + sun-like boost
-          tp('Saturn',11,15), // h7, strong MT
-          tp('Rahu',3,15),    // h11
-          tp('Ketu',9,15),    // h5, dispositor Jupiter
-        ]},
-
-      // ── TC2: FM direct affliction — regular, special, non-damaging boundary ──
-      // Leo lagna (5), MEP 15°. Moon is MMP.
-      // Expected:
-      //   Sun   h1 14.5° → Moon conj 0.5° special → −75% → Weak 25%
-      //   Moon  h1 15°   → FM/MMP
-      //   Merc  h1 16.8° → Moon 1.8° special → −75% → Weak 25%
-      //   Mars  h7 15°   → Moon 7th aspect 0° special → −75% → Weak 25%
-      //   Sat   h1 17.5° → Moon 2.5° special >2° → NOT damaging (gray) → Strong 100%
-      //   Jupi  h9 15°   → unafflicted → Strong 100%
-      //   Venus h11 15°  → unafflicted → Strong 100%
-      //   Rahu  h12 15°  → FM, no key aspect
-      //   Ketu  h6 15°   → FM, aspects h2/h6/h10/h12 only
-      { name:'TC2 · FM Direct Affliction', birth_data:TEST_BD,
-        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
-        grahas:[
-          tp('Sun',5,14.5),   // h1, Moon 0.5° → −75%
-          tp('Moon',5,15),    // h1, FM/MMP
-          tp('Mercury',5,16.8),// h1, Moon 1.8° → −75%
-          tp('Mars',11,15),   // h7, Moon 7th 0° → −75%
-          tp('Jupiter',1,15), // h9, unafflicted
-          tp('Venus',3,15),   // h11, unafflicted
-          tp('Saturn',5,17.5),// h1, Moon 2.5° → not damaging
-          tp('Rahu',4,15),    // h12
-          tp('Ketu',10,15),   // h6
-        ]},
-
-      // ── TC3: Dispositor cascade + MT house MEP affliction ──
-      // Leo lagna (5), MEP 15°. FMs: Moon (MMP).
-      // Chain: Mercury/Moon → Sun → Mars(weak)
-      // MT house affliction: Moon in h9 (Aries = Mars's MT) at MEP degree
-      // Expected:
-      //   Mars  h4  2°  → Weak deg 40% × MT-house-affliction(Moon 0°, loss 75%) → 10%
-      //   Sun   h9  9°  → Strong deg, dispositor Mars(10%) → capped Weak 10%
-      //   Moon  h1  15° → FM/MMP, dispositor Sun(10%) → capped Weak 10%
-      //   Merc  h1  12° → Strong deg, dispositor Sun(10%) → capped Weak 10%
-      //   Venus h3  15° → sun-like MT self, Strong 100%
-      //   Jupi  h10 15° → Strong 100%
-      //   Sat   h7  15° → Strong 100%
-      //   Rahu  h11 15° → Strong
-      //   Ketu  h5  15° → dispositor Jupiter(100%) → no cap
-      { name:'TC3 · Dispositor Chain + MT MEP', birth_data:TEST_BD,
-        lagna:{ rashi:5, degree_in_rashi:15, rashi_name:'Simha' },
-        grahas:[
-          tp('Sun',1,9),      // h9, strong deg, dispositor Mars
-          tp('Moon',1,15),    // h9, FM/MMP — afflicts MEP of h9 (Mars's MT) at 0°
-          tp('Mars',8,2),     // h4, weak deg 40%, MT-house aff 75% loss → 10%
-          tp('Mercury',5,12), // h1, strong deg, dispositor Sun
-          tp('Jupiter',2,15), // h10, strong
-          tp('Venus',7,15),   // h3, sun-like self-MT
-          tp('Saturn',11,15), // h7, strong self-MT
-          tp('Rahu',3,15),    // h11
-          tp('Ketu',9,15),    // h5, dispositor Jupiter(100%)
-        ]},
-
-      // ── TC4: Chain affliction (FM afflicted by another FM → chain-special) ──
-      // Scorpio lagna (8), MEP 15°. FMs: Venus (MMP), Mars. Sun-like: Jupiter (h2/Sagitt), Moon (h9/Cancer)
-      // Expected:
-      //   Venus h1 15° → FM/MMP
-      //   Mars  h1 16° → FM, chain-special (Venus MMP conjunct 1°)
-      //   Sun   h4 15° → Mars chain-special 4th aspect 0° → −75% → Weak 25%
-      //   Moon  h7 15° → Venus MMP 7th aspect 0° → −75% → Weak 25%
-      //   Merc  h8 15° → dushtana −50% → Weak 50%
-      //   Jupi  h2 15° → sun-like MT, Strong 100%
-      //   Sat   h4 15° → unafflicted (Mars aspects h1/7/4/8 — Sat h4 15°, Mars h1 16°, orb 1° → Mars chain-special dmgOrb=2 → damaging → −75% → Weak 25%)
-      //   Rahu  h9 15° → dispositor Moon(25%) → Weak 25%
-      //   Ketu  h3 15° → FM, unafflicted
-      { name:'TC4 · Chain Affliction', birth_data:TEST_BD,
-        lagna:{ rashi:8, degree_in_rashi:15, rashi_name:'Vrishchika' },
-        grahas:[
-          tp('Sun',11,15),    // h4 for Sc lagna
-          tp('Moon',2,15),    // h7 for Sc lagna
-          tp('Mars',8,16),    // h1, FM chain-special (aff by Venus 1°)
-          tp('Mercury',3,15), // h8, dushtana
-          tp('Jupiter',9,15), // h2, sun-like MT
-          tp('Venus',8,15),   // h1, FM/MMP
-          tp('Saturn',11,15), // h4, chain-special aff by Mars 1°
-          tp('Rahu',4,15),    // h9 for Sc lagna, dispositor Moon
-          tp('Ketu',10,15),   // h3 for Sc lagna
-        ]},
-
-      // ── TC5: Rahu/Ketu special rules ──
-      // Aries lagna (1), MEP 15°. FMs: Mercury (MMP=Ketu). Sun-like: Sun(h5/Leo), Jupiter(h9/Sagitt)...
-      // Actually for Aries: h2=Ta(no MT), h3=Ge(no MT), h9=Sa(9,Jupiter MT) → Jupiter sun-like
-      // Tests: Rahu/Ketu exempt degree weakness; Ketu near Sun not combust;
-      //        Rahu in MT sign → has dispositor; Mercury (FM) in own MT (h6 Virgo) → exempt dushtana;
-      //        Rahu/Ketu mutual aspect suppressed
-      // Expected:
-      //   Sun   h5 15°  → Strong 100% (self-MT Leo)
-      //   Moon  h4 15°  → Strong 100% (self-MT Cancer)
-      //   Mars  h1 15°  → Strong 100% (self-MT Aries)
-      //   Merc  h6 15°  → FM, in own MT Virgo in dushtana h6 → EXEMPT → Strong 100%
-      //   Jupi  h2 15°  → sun-like planet in Sagitt (sun-like sign for Aries h9) — but Jupiter is in h2 Taurus, not Sagitt → no boost. Strong 100%
-      //   Venus h7 15°  → Strong 100% (self-MT Libra)
-      //   Sat   h11 15° → Strong 100% (self-MT Aquarius)
-      //   Rahu  h9 3°   → no degree weakness shown (node exempt), dispositor Jupiter(100%)
-      //   Ketu  h3 3°   → no degree weakness shown (node exempt), near Sun? No. Mutual aspect with Rahu suppressed
-      { name:'TC5 · Rahu/Ketu Rules', birth_data:TEST_BD,
-        lagna:{ rashi:1, degree_in_rashi:15, rashi_name:'Mesha' },
-        grahas:[
-          tp('Sun',5,15),     // h5, self-MT
-          tp('Moon',4,15),    // h4, self-MT
-          tp('Mars',1,15),    // h1, self-MT
-          tp('Mercury',6,15), // h6, FM, own MT in dushtana → exempt
-          tp('Jupiter',2,15), // h2
-          tp('Venus',7,15),   // h7, self-MT
-          tp('Saturn',11,15), // h11, self-MT
-          tp('Rahu',9,3),     // h9, at 3° (would be weak for regular planet — exempt)
-          tp('Ketu',3,3),     // h3, at 3° — exempt; Rahu/Ketu mutual aspect suppressed
-        ]},
-    ];
-    window._TEST_CHARTS = TEST_CHARTS; // expose for Playwright
 
     let currentUserTestKey = null;
     function loadTestChart(idx) {
@@ -1209,7 +1055,9 @@
         const key = idx.slice(4);
         const raw = localStorage.getItem(key);
         if (raw) {
-          renderChart(JSON.parse(raw));
+          const chartData = JSON.parse(raw);
+          if (chartData.birth_data) chartData.birth_data._isTest = true;
+          renderChart(chartData);
           // Set after renderChart — renderChart clears it
           currentUserTestKey = key;
           document.getElementById('editTestBtn').style.display = '';
@@ -1220,9 +1068,6 @@
         openTestBuilder(idx.slice(4));
         return;
       }
-      currentUserTestKey = null;
-      document.getElementById('editTestBtn').style.display = 'none';
-      renderChart(TEST_CHARTS[parseInt(idx)]);
     }
 
     // ═══════════════════════════════════════════════════
@@ -2005,6 +1850,20 @@
         }
       }
 
+      // ── Muhurta screening banner ──
+      const mScreen = screenMuhurta(data, an, getMuhurtaCfg());
+      if (mScreen.pass) {
+        html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;font-size:0.85rem;">
+          ✓ Passes Muhurta screening &nbsp;·&nbsp; ${mScreen.strongPlanets} strong planets &nbsp;·&nbsp; ${mScreen.strongHouses} strong houses
+          ${mScreen.antarDasha ? ` &nbsp;·&nbsp; Antardasha: ${mScreen.antarDasha}` : ''}
+          ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${mScreen.beneficDays}d` : ''}
+        </div>` + html;
+      } else {
+        html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#2b0d0d;border:1px solid #7a2a2a;color:#ca6d6d;font-size:0.85rem;">
+          ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}
+        </div>` + html;
+      }
+
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
     }
@@ -2288,7 +2147,9 @@
       // Title — rendered inside the SVG above the chart grid (y=0..50 space)
       const bd = data.birth_data;
       let titleStr;
-      if (data._tzName) {
+      if (bd._isTest) {
+        titleStr = data.name || 'Test Chart';
+      } else if (data._tzName) {
         const off = bd.timezone_offset;
         const sign = off >= 0 ? '+' : '-';
         const abs = Math.abs(off);
@@ -2472,7 +2333,7 @@
           const mm   = String(Math.round((abs % 1) * 60)).padStart(2, '0');
           utcStr = `UTC${sign}${hh}:${mm}`;
         }
-        lines.push(`${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}`);
+        const antarStr = r.antarDasha ? `  Antardasha: ${r.antarDasha}${r.beneficDays != null ? " → " + fmtBeneficWindow(r.beneficDays) : ""}` : ""; lines.push(`${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}`);
       }
       ta.style.display = 'block';
       ta.value = lines.join('\n');
@@ -2774,7 +2635,7 @@
       // Rule 5a: Any special affliction anywhere
       for (const a of planetEntries) {
         for (const asp of a.allFmAspects) {
-          if (asp.special || asp.chainSpecial)
+          if ((asp.special || asp.chainSpecial) && asp.isDamaging)
             return { pass: false, reason: `Special affliction: ${asp.isRaKe ? 'Ra-Ke' : asp.fm} on ${a.graha}` };
         }
       }
@@ -3239,7 +3100,7 @@
       const name = document.getElementById('tcb-name').value.trim() || 'User Test';
       const data = {
         name,
-        birth_data:{ date:'2000-01-01', time:'12:00:00', latitude:0, longitude:0, timezone_offset:0 },
+        birth_data:{ date:'2000-01-01', time:'12:00:00', latitude:0, longitude:0, timezone_offset:0, _isTest:true },
         ayanamsa:0,
         lagna:{ rashi:tcbState.lagna.rashi, degree_in_rashi:tcbState.lagna.degree, rashi_name:RASHI_NAME[tcbState.lagna.rashi] },
         grahas: TCB_PLANETS.map(p => {

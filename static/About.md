@@ -7,8 +7,8 @@ Verified by comparing output against
 - https://www.prokerala.com/astrology/birth-chart
 - https://deva.guru
 - https://astrologyayurveda.com/birth-chart-calculator/
-
-
+- JyotishTools application JyotishTools.com
+  
 Verified locations, timezones and daylight saving status at https://www.astro.com/atlas
 
 
@@ -38,7 +38,12 @@ Verified locations, timezones and daylight saving status at https://www.astro.co
     Dismiss if there is a concentration of malefic influence.
     Any of the following qualifies as a concentration:
  
-    - Any special affliction. Do this search  ("site: https://www.yournetastrologer.com/ special affliction")
+    - Any special affliction.
+      - a conjunction or aspect from the most malefic planet,
+      - an aspect from a functional malefic planet placed in a dusthana house,
+      - a conjunction with Rahu or Ketu (Rahu-Ketu axis),
+      - an aspect of a functional malefic planet afflicted by other functional malefic planet(s),
+      - more than one functional malefic planet at the same time.
     - More than one affliction to the MEP of an MT sign.
     - One affliction to the MEP of an MT sign along with a separate affliction to the MT lord.
 
@@ -49,9 +54,6 @@ Verified locations, timezones and daylight saving status at https://www.astro.co
     - Five or more strong houses.
     
 4. Users may also enter in additional filters:
-   - The minimum length of the benefic Antardasha - in days.
+   - The minimum length of the benefic Antardasha.
    - The minimum strength of any planet. (Note: the minimum strength of the Lagna ruler of the Muhurta is internally set to 60% but can be increased here.)
 5. The results are displayed in a list and any result can be displayed in a chart - which includes Lagna, Navamsa, Vimsottari Dashas, Rasi list - with Nakshatras.
-
-
-        

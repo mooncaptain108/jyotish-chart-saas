@@ -39,3 +39,7 @@ lib64/
 =0.104.0
 lib64
 static/chart.html
+
+ephemeris/
+*.se1
+*.bak

@@ -165,6 +165,31 @@ _DIVISIONAL_FUNCS = {
     "D60": _d60_sign,
 }
 
+# Divisions per sign for uniform chart types (D30 is non-uniform, excluded)
+_DIVISIONAL_N = {
+    "D1": 1,
+    "D2": 2,
+    "D3": 3,
+    "D7": 7,
+    "D9": 9,
+    "D10": 10,
+    "D12": 12,
+    "D60": 60,
+}
+
+
+def _divisional_degree(longitude: float, chart_type: str):
+    """Compute degree_in_rashi (0-30) for uniform divisional charts.
+
+    Returns None for D30 (Trimsamsa) which uses non-uniform segments.
+    """
+    n = _DIVISIONAL_N.get(chart_type)
+    if n is None:
+        return None
+    degree = longitude % 30
+    division_size = 30.0 / n
+    return (degree % division_size) * n
+
 
 def compute_divisional_chart(planet_positions: dict[str, dict],
                              ascendant_longitude: float,
@@ -184,16 +209,22 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
         raise ValueError(f"Unsupported divisional chart: {chart_type}")
 
     lagna_sign = func(ascendant_longitude)
+    lagna_deg = _divisional_degree(ascendant_longitude, chart_type)
+    lagna_lon = (lagna_sign - 1) * 30.0 + lagna_deg if lagna_deg is not None else None
 
     grahas = []
     from constants.grahas import GRAHA_NAMES
     for name in GRAHA_NAMES:
         lon = planet_positions[name]["longitude"]
         sign = func(lon)
+        deg = _divisional_degree(lon, chart_type)
+        div_lon = (sign - 1) * 30.0 + deg if deg is not None else None
         grahas.append({
             "graha": name,
             "rashi": sign,
             "rashi_name": RASHI_NAMES[sign],
+            "degree_in_rashi": deg,
+            "longitude": div_lon,
         })
 
     return {
@@ -201,6 +232,8 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
         "lagna": {
             "rashi": lagna_sign,
             "rashi_name": RASHI_NAMES[lagna_sign],
+            "degree_in_rashi": lagna_deg,
+            "longitude": lagna_lon,
         },
         "grahas": grahas,
     }
