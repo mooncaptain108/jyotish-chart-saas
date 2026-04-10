@@ -222,6 +222,7 @@
       <hr class="stg-divider">
       <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Jyotish Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
+      <label class="stg-check"><input type="checkbox" id="chkCoordDMS"> Coordinates as D°M'</label>
       <hr class="stg-divider">
       <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Welcome</button>
       <button class="btn-sec stg-btn" onclick="openAbout(); closeSettings();">About</button>
@@ -686,6 +687,7 @@
     function openSettings() {
       document.getElementById('chkEphemeris').checked = rawVisible;
       document.getElementById('chkTests').checked     = testsVisible;
+      document.getElementById('chkCoordDMS').checked  = localStorage.getItem('jyotish_coord_dms') === '1';
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -706,6 +708,9 @@
       testsVisible = this.checked;
       localStorage.setItem(TESTS_KEY, testsVisible ? '1' : '0');
       applyTestsState();
+    });
+    document.getElementById('chkCoordDMS').addEventListener('change', function() {
+      localStorage.setItem('jyotish_coord_dms', this.checked ? '1' : '0');
     });
 
     // Export / Import
@@ -1624,7 +1629,7 @@
       let html = `<div class="an-lagna">
         <strong style="color:#c9a84c">${RASHI_NAME[lr]}</strong> lagna (${lr}) &nbsp;·&nbsp;
         MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
-        ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${bd.latitude} Lon ${bd.longitude}
+        ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
       </div>`;
 
       // Fixed canonical order
@@ -1957,6 +1962,13 @@
       d9Area.style.display = 'block';
     }
     function fmtDeg(d) { return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0'); }
+    function fmtCoord(val, isLat) {
+      const dms = localStorage.getItem('jyotish_coord_dms') === '1';
+      if (!dms) return val;
+      const abs = Math.abs(val), deg = Math.floor(abs), min = Math.floor((abs - deg) * 60);
+      const dir = isLat ? (val >= 0 ? 'N' : 'S') : (val >= 0 ? 'E' : 'W');
+      return deg + '°' + String(min).padStart(2, '0') + "'" + dir;
+    }
     function houseSign(h,lr) { return ((lr-1+h-1)%12)+1; }
 
     const RASHI_ABBR2 = ['','Ar','Ta','Ge','Ca','Le','Vi','Li','Sc','Sa','Cp','Aq','Pi'];
