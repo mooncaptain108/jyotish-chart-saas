@@ -1,11 +1,12 @@
 ## Vedic Jyotish Query
 Uses the Vedic Jyotish Chart API - visit this link to see the API (https://github.com/rsaisankalp/vedic-jyotish-api)
 
-The API uses the Swiss Ephemeris.
-Using Lahiri VP285
-Using True Node
-Using Nutation
-Using Sidereal Year 365.256
+Internals 
+- Swiss Ephemeris.
+- Lahiri VP285
+- True Node
+- Nutation
+- Sidereal Year 365.256
 
 Verified by comparing output against 
 - https://www.prokerala.com/astrology/birth-chart
