@@ -5,7 +5,6 @@ The API uses the Swiss Ephemeris.
 
 Verified by comparing output against 
 - https://www.prokerala.com/astrology/birth-chart
-- https://deva.guru
 - https://astrologyayurveda.com/birth-chart-calculator/
 
 
