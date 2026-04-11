@@ -3,7 +3,7 @@
 import swisseph as swe
 
 # Ayanamsa: Lahiri (Chitrapaksha) — standard in Indian Jyotish
-AYANAMSA = swe.SIDM_LAHIRI
+AYANAMSA = swe.SIDM_LAHIRI_VP285
 
 # House system: Equal ('E') is default; Sripati ('B') available as option
 DEFAULT_HOUSE_SYSTEM = b"E"

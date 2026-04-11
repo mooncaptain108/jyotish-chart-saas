@@ -222,8 +222,8 @@
       <hr class="stg-divider">
       <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Jyotish Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
-      <label class="stg-check"><input type="checkbox" id="chkCoordDMS"> Coordinates as D°M'</label>
-      <label class="stg-check"><input type="checkbox" id="chkD1Deg"> Show D1 deg:min</label>
+      <label class="stg-check"><input type="checkbox" id="chkDegMin"> Degrees: deg:min</label>
+      <label class="stg-check"><input type="checkbox" id="chkDecimal"> Degrees: decimal</label>
       <hr class="stg-divider">
       <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Welcome</button>
       <button class="btn-sec stg-btn" onclick="openAbout(); closeSettings();">About</button>
@@ -688,8 +688,9 @@
     function openSettings() {
       document.getElementById('chkEphemeris').checked = rawVisible;
       document.getElementById('chkTests').checked     = testsVisible;
-      document.getElementById('chkCoordDMS').checked  = localStorage.getItem('jyotish_coord_dms') === '1';
-      document.getElementById('chkD1Deg').checked     = localStorage.getItem('jyotish_d1_deg') !== '0';
+      const degFmt = localStorage.getItem('jyotish_deg_fmt') || 'degmin';
+      document.getElementById('chkDegMin').checked  = degFmt !== 'decimal';
+      document.getElementById('chkDecimal').checked = degFmt === 'decimal';
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -711,12 +712,23 @@
       localStorage.setItem(TESTS_KEY, testsVisible ? '1' : '0');
       applyTestsState();
     });
-    document.getElementById('chkCoordDMS').addEventListener('change', function() {
-      localStorage.setItem('jyotish_coord_dms', this.checked ? '1' : '0');
+    document.getElementById('chkDegMin').addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById('chkDecimal').checked = false;
+        localStorage.setItem('jyotish_deg_fmt', 'degmin');
+        if (lastData) renderChart(lastData);
+      } else {
+        this.checked = true;
+      }
     });
-    document.getElementById('chkD1Deg').addEventListener('change', function() {
-      localStorage.setItem('jyotish_d1_deg', this.checked ? '1' : '0');
-      if (lastData) renderChart(lastData);
+    document.getElementById('chkDecimal').addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById('chkDegMin').checked = false;
+        localStorage.setItem('jyotish_deg_fmt', 'decimal');
+        if (lastData) renderChart(lastData);
+      } else {
+        this.checked = true;
+      }
     });
 
     // Export / Import
@@ -1967,10 +1979,13 @@
       d9Svg.appendChild(svgEl('text',{x:'250',y:'28','font-size':'20',fill:'#906030','font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'},'Navamsa'));
       d9Area.style.display = 'block';
     }
-    function fmtDeg(d) { return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0'); }
+    function fmtDeg(d) {
+      if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
+        return d.toFixed(2);
+      return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0');
+    }
     function fmtCoord(val, isLat) {
-      const dms = localStorage.getItem('jyotish_coord_dms') === '1';
-      if (!dms) return val;
+      if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal') return val;
       const abs = Math.abs(val), deg = Math.floor(abs), min = Math.floor((abs - deg) * 60);
       const dir = isLat ? (val >= 0 ? 'N' : 'S') : (val >= 0 ? 'E' : 'W');
       return deg + '°' + String(min).padStart(2, '0') + "'" + dir;
@@ -2149,7 +2164,6 @@
       for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
 
       // Planet labels
-      const showD1Deg = localStorage.getItem('jyotish_d1_deg') !== '0';
       const LH=13;
       for (let h=1;h<=12;h++) {
         const planets=hp[h]; if(!planets.length) continue;
@@ -2158,10 +2172,8 @@
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
           const line = p.isAs
-            ? (showD1Deg ? 'As '+fmtDeg(p.deg) : 'As')
-            : showD1Deg
-              ? p.label+(retroMark?'R ':' ')+fmtDeg(p.deg)
-              : p.label+retroMark;
+            ? 'As '+fmtDeg(p.deg)
+            : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
           svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'11',fill:p.color,'font-family':'monospace','text-anchor':'middle'},line));
           y0+=LH;
         }

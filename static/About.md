@@ -2,15 +2,16 @@
 Uses the Vedic Jyotish Chart API - visit this link to see the API (https://github.com/rsaisankalp/vedic-jyotish-api)
 
 The API uses the Swiss Ephemeris.
+Using Lahiri VP285
+Using True Node
+Using Nutation
+Using Sidereal Year 365.256
 
 Verified by comparing output against 
 - https://www.prokerala.com/astrology/birth-chart
-- https://deva.guru
-- https://astrologyayurveda.com/birth-chart-calculator/
+- https://vedicastrochart.com/natal-chart
 - JyotishTools application JyotishTools.com
-  
-Verified locations, timezones and daylight saving status at https://www.astro.com/atlas
-
+- Verified locations, timezones and daylight saving status at https://www.astro.com/atlas
 
 #### Designed Pimarily to Search for Auspicious Times
 1. For each date, time, location the application shows the Lagna, Navamsa, Rasi data, and the Vimsottari Dashas.
