@@ -223,6 +223,7 @@
       <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show Jyotish Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
       <label class="stg-check"><input type="checkbox" id="chkCoordDMS"> Coordinates as D°M'</label>
+      <label class="stg-check"><input type="checkbox" id="chkD1Deg"> Show D1 deg:min</label>
       <hr class="stg-divider">
       <button class="btn-sec stg-btn" onclick="openWelcome(); closeSettings();">Welcome</button>
       <button class="btn-sec stg-btn" onclick="openAbout(); closeSettings();">About</button>
@@ -688,6 +689,7 @@
       document.getElementById('chkEphemeris').checked = rawVisible;
       document.getElementById('chkTests').checked     = testsVisible;
       document.getElementById('chkCoordDMS').checked  = localStorage.getItem('jyotish_coord_dms') === '1';
+      document.getElementById('chkD1Deg').checked     = localStorage.getItem('jyotish_d1_deg') !== '0';
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -711,6 +713,10 @@
     });
     document.getElementById('chkCoordDMS').addEventListener('change', function() {
       localStorage.setItem('jyotish_coord_dms', this.checked ? '1' : '0');
+    });
+    document.getElementById('chkD1Deg').addEventListener('change', function() {
+      localStorage.setItem('jyotish_d1_deg', this.checked ? '1' : '0');
+      if (lastData) renderChart(lastData);
     });
 
     // Export / Import
@@ -2143,14 +2149,19 @@
       for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
 
       // Planet labels
+      const showD1Deg = localStorage.getItem('jyotish_d1_deg') !== '0';
       const LH=13;
       for (let h=1;h<=12;h++) {
         const planets=hp[h]; if(!planets.length) continue;
         const [cx,cy]=CENTROIDS[h];
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
-          const line = p.isAs ? ('As '+fmtDeg(p.deg))
-            : (p.label+((p.retro&&!NO_RETRO_LABEL.has(p.label))?'R ':' ')+fmtDeg(p.deg));
+          const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          const line = p.isAs
+            ? (showD1Deg ? 'As '+fmtDeg(p.deg) : 'As')
+            : showD1Deg
+              ? p.label+(retroMark?'R ':' ')+fmtDeg(p.deg)
+              : p.label+retroMark;
           svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'11',fill:p.color,'font-family':'monospace','text-anchor':'middle'},line));
           y0+=LH;
         }
