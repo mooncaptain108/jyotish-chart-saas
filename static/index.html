@@ -1874,17 +1874,23 @@
       }
 
       // ── Muhurta screening banner ──
-      const mScreen = screenMuhurta(data, an, getMuhurtaCfg());
-      if (mScreen.pass) {
-        html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;font-size:0.85rem;">
-          ✓ Passes Muhurta screening &nbsp;·&nbsp; ${mScreen.strongPlanets} strong planets &nbsp;·&nbsp; ${mScreen.strongHouses} strong houses
-          ${mScreen.antarDasha ? ` &nbsp;·&nbsp; Antardasha: ${mScreen.antarDasha}` : ''}
-          ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${mScreen.beneficDays}d` : ''}
-        </div>` + html;
-      } else {
-        html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#2b0d0d;border:1px solid #7a2a2a;color:#ca6d6d;font-size:0.85rem;">
-          ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}
-        </div>` + html;
+      // Only show for odd rising signs (1,3,5,7,9) and charts < 1 year old or in the future
+      const MUHURTA_LAGNA = new Set([1,3,5,7,9]);
+      const chartDateMs = new Date(data.birth_data.date).getTime();
+      const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
+      if (MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo) {
+        const mScreen = screenMuhurta(data, an, getMuhurtaCfg());
+        if (mScreen.pass) {
+          html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;font-size:0.85rem;">
+            ✓ Passes Muhurta screening &nbsp;·&nbsp; ${mScreen.strongPlanets} strong planets &nbsp;·&nbsp; ${mScreen.strongHouses} strong houses
+            ${mScreen.antarDasha ? ` &nbsp;·&nbsp; Antardasha: ${mScreen.antarDasha}` : ''}
+            ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${mScreen.beneficDays}d` : ''}
+          </div>` + html;
+        } else {
+          html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#2b0d0d;border:1px solid #7a2a2a;color:#ca6d6d;font-size:0.85rem;">
+            ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}
+          </div>` + html;
+        }
       }
 
       document.getElementById('analysisContent').innerHTML = html;
