@@ -32,7 +32,7 @@ Thumbs.db
 *.env
 
 # Swiss Ephemeris data files (optional, Moshier built-in is used)
-ephe/
+# ephe/
 DATA_LICENSE
 lib/
 lib64/
@@ -40,6 +40,6 @@ lib64/
 lib64
 static/chart.html
 
-ephemeris/
-*.se1
+# ephemeris/ decided to add 25mb
+#*.se1
 *.bak

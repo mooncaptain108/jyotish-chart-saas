@@ -1,0 +1,11 @@
+node_modules
+Dockerfile
+.git
+.gitignore
+dist/**
+README.md
+tests/*.*
+venv/*.*
+__pycache__/
+lib/
+lib64/
