@@ -43,3 +43,5 @@ static/chart.html
 # ephemeris/ decided to add 25mb
 #*.se1
 *.bak
+pushJyotish
+dive_0.13.1_linux_amd64.deb

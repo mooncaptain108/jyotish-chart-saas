@@ -10,19 +10,19 @@
     .md-content p  { margin-bottom: 0.75rem; }
     .md-content h1,.md-content h2,.md-content h3,.md-content h4 { color:#c9a84c; margin-bottom:0.6rem; }
     .md-content a  { color:#5a9fd4; }
-    body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+    body { font-family: sans-serif; background: #222240; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
     #appWrap { display:flex; flex-direction:column; min-height:100vh; }
 
     /* ── Toolbar ── */
-    .toolbar { display:flex; align-items:center; gap:0.4rem; background:#0d1220; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
+    .toolbar { display:flex; align-items:center; gap:0.4rem; background:#141a2a; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
     .toolbar .app-title { color:#c9a84c; font-weight:bold; font-size:1rem; margin-right:0.75rem; }
     .toolbar .sep { width:1px; height:1.4rem; background:#0f3460; margin:0 0.25rem; }
     .tb-btn { padding:0.35rem 0.75rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; white-space:nowrap; }
-    .tb-btn:hover { background:#16213e; color:#e0e0e0; border-color:#1a4a80; }
-    .tb-btn.active { background:#16213e; color:#c9a84c; border-color:#c9a84c; }
+    .tb-btn:hover { background:#1e2a48; color:#e0e0e0; border-color:#1a4a80; }
+    .tb-btn.active { background:#1e2a48; color:#c9a84c; border-color:#c9a84c; }
     .tb-btn:disabled { opacity:0.35; cursor:not-allowed; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
-    .tb-select:hover { background:#16213e; border-color:#1a4a80; }
+    .tb-select:hover { background:#1e2a48; border-color:#1a4a80; }
     #testsWrapper { display:contents; }
 
     /* ── Chart area ── */
@@ -33,35 +33,35 @@
     /* ── Main row (chart + dasha panel) ── */
     #mainRow { display:flex; flex:1; overflow:hidden; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; }
     #chartArea { flex:0 0 auto; min-width:0; }
-    #dashaPanel { width:calc(min(8.8vw,8.8vh) + 150px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#080812; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
+    #dashaPanel { width:calc(min(8.8vw,8.8vh) + 150px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
     #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
-    #dashaInner { border:1px solid #7a5a20; border-radius:4px; display:flex; flex-direction:column; flex:1; min-height:0; background:#0d1428; }
+    #dashaInner { border:1px solid #7a5a20; border-radius:4px; display:flex; flex-direction:column; flex:1; min-height:0; background:#182038; }
     #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; }
     #d9Label { color:#806030; font-size:0.78rem; text-align:center; margin:0 0 2px; }
     #d9Chart { display:block; width:min(44vw,44vh); height:auto; }
-    #rashiBox { display:none; width:min(44vw,44vh); background:#080812; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 10% 10%; }
+    #rashiBox { display:none; width:min(44vw,44vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 10% 10%; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
-    #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#0d1428; }
+    #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#182038; }
     #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:0.82rem; }
     #rashiTable td { padding:1px 5px; white-space:nowrap; }
     .dasha-hdr-btns { display:flex; gap:3px; justify-content:center; padding:4px 0; flex-shrink:0; }
-    .dasha-hdr-btns button { padding:1px 7px; font-size:0.75rem; background:#0f1e3a; color:#c0c0d0; border:1px solid #333; border-radius:3px; cursor:pointer; }
-    .dasha-hdr-btns button:hover { background:#16213e; color:#e0e0e0; }
+    .dasha-hdr-btns button { padding:1px 7px; font-size:0.75rem; background:#162040; color:#c0c0d0; border:1px solid #333; border-radius:3px; cursor:pointer; }
+    .dasha-hdr-btns button:hover { background:#1e2a48; color:#e0e0e0; }
     #dashaList { flex:1; overflow-y:auto; font-size:0.78rem; font-family:monospace; padding:2px 0; }
     .dr { padding:1px 8px; white-space:nowrap; line-height:1.5; }
-    .dr:hover { background:#16213e; }
+    .dr:hover { background:#1e2a48; }
     .dr.dr-now { background:#0a3a12; border-left:3px solid #50e060; padding-left:5px; color:#90f0a0; font-weight:bold; }
     .dr-sep { border-top:1px solid #334; margin:2px 0; }
     .dr .dr-date { color:#8090a0; margin-left:4px; }
 
     /* ── Raw / Ephemeris panel ── */
     #rawSection { padding:0 1.5rem 1.5rem; display:none; }
-    #rawSection pre { background:#0a0a1a; border:1px solid #0f3460; border-radius:4px; padding:1rem; overflow:auto; max-height:500px; font-size:0.8rem; color:#a0e0a0; font-family:monospace; }
+    #rawSection pre { background:#121224; border:1px solid #0f3460; border-radius:4px; padding:1rem; overflow:auto; max-height:500px; font-size:0.8rem; color:#a0e0a0; font-family:monospace; }
 
     /* ── Settings panel ── */
     #appWrap { transition:transform 0.25s ease; }
     #appWrap.settings-open { transform:translateX(260px); }
-    #settingsPanel { position:fixed; top:0; left:0; height:100vh; width:260px; background:#0d1220; border-right:1px solid #1a4a80; z-index:200; transform:translateX(-100%); transition:transform 0.25s ease; display:flex; flex-direction:column; box-shadow:4px 0 16px rgba(0,0,0,0.5); }
+    #settingsPanel { position:fixed; top:0; left:0; height:100vh; width:260px; background:#141a2a; border-right:1px solid #1a4a80; z-index:200; transform:translateX(-100%); transition:transform 0.25s ease; display:flex; flex-direction:column; box-shadow:4px 0 16px rgba(0,0,0,0.5); }
     #settingsPanel.open { transform:translateX(0); }
     #settingsOverlay { position:fixed; inset:0; z-index:199; display:none; }
     #settingsOverlay.open { display:block; }
@@ -74,7 +74,7 @@
     .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
 
     /* ── Dialogs (shared) ── */
-    dialog { background:#16213e; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
+    dialog { background:#1e2a48; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
     dialog::backdrop { background:rgba(0,0,0,0.15); }
     .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
@@ -86,7 +86,7 @@
     /* ── Form elements ── */
     .f-label { display:block; margin-bottom:0.2rem; font-size:0.8rem; color:#a0a0b0; }
     .f-group { margin-bottom:0.9rem; }
-    input[type="text"], input[type="date"], input[type="time"], input[type="number"], select { width:100%; padding:0.45rem 0.7rem; background:#0f1e3a; border:1px solid #1a4a80; border-radius:4px; color:#e0e0e0; font-size:0.95rem; }
+    input[type="text"], input[type="date"], input[type="time"], input[type="number"], select { width:100%; padding:0.45rem 0.7rem; background:#162040; border:1px solid #1a4a80; border-radius:4px; color:#e0e0e0; font-size:0.95rem; }
     input:focus, select:focus { outline:none; border-color:#c9a84c; }
     .f-row2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
     .f-hint { font-size:0.72rem; color:#505070; margin-top:0.2rem; }
@@ -95,25 +95,25 @@
     .tcb-exp-table th:first-child { text-align:left; width:24px; }
     .tcb-exp-table td { padding:2px; text-align:center; vertical-align:middle; }
     .tcb-exp-table td:first-child { text-align:left; color:#9090a8; padding-right:4px; }
-    .tcb-exp-input { width:38px; background:#0a1228; border:1px solid #1a4a80; color:#c0c0d0; border-radius:3px; padding:1px 3px; font-size:0.75rem; -moz-appearance:textfield; }
+    .tcb-exp-input { width:38px; background:#101e30; border:1px solid #1a4a80; color:#c0c0d0; border-radius:3px; padding:1px 3px; font-size:0.75rem; -moz-appearance:textfield; }
     .tcb-exp-input::-webkit-outer-spin-button, .tcb-exp-input::-webkit-inner-spin-button { -webkit-appearance:none; }
     .f-divider { border-top:1px solid #0f3460; margin:0.75rem 0; }
     .f-save-status { font-size:0.8rem; color:#70c070; margin-left:auto; align-self:center; }
 
     /* ── Buttons ── */
-    .btn-primary { padding:0.45rem 1.1rem; background:#c9a84c; color:#1a1a2e; border:none; border-radius:4px; font-size:0.9rem; font-weight:bold; cursor:pointer; }
+    .btn-primary { padding:0.45rem 1.1rem; background:#c9a84c; color:#222240; border:none; border-radius:4px; font-size:0.9rem; font-weight:bold; cursor:pointer; }
     .btn-primary:hover { background:#e0bf6a; }
     .btn-primary:disabled { background:#6a5a2a; cursor:not-allowed; }
-    .btn-sec { padding:0.45rem 1.1rem; background:#0f1e3a; color:#c0c0d0; border:1px solid #1a4a80; border-radius:4px; font-size:0.9rem; cursor:pointer; }
-    .btn-sec:hover { background:#16213e; color:#e0e0e0; }
+    .btn-sec { padding:0.45rem 1.1rem; background:#162040; color:#c0c0d0; border:1px solid #1a4a80; border-radius:4px; font-size:0.9rem; cursor:pointer; }
+    .btn-sec:hover { background:#1e2a48; color:#e0e0e0; }
     .btn-danger { padding:0.45rem 0.8rem; background:transparent; color:#c06060; border:1px solid #6a3030; border-radius:4px; font-size:0.85rem; cursor:pointer; }
     .btn-danger:hover { background:#2a1010; }
 
     /* ── Chart library / atlas tables ── */
     .chart-list, .atlas-list { width:100%; border-collapse:collapse; font-size:0.85rem; }
     .chart-list th, .atlas-list th { text-align:left; color:#a0a0b0; font-weight:normal; padding:0.3rem 0.5rem; border-bottom:1px solid #0f3460; }
-    .chart-list td, .atlas-list td { padding:0.4rem 0.5rem; border-bottom:1px solid #0a1428; vertical-align:middle; }
-    .chart-list tr.data-row:hover td { background:#0f1e3a; cursor:pointer; }
+    .chart-list td, .atlas-list td { padding:0.4rem 0.5rem; border-bottom:1px solid #182038; vertical-align:middle; }
+    .chart-list tr.data-row:hover td { background:#162040; cursor:pointer; }
     .chart-list tr.data-row td:last-child, .atlas-list td:last-child { cursor:default; white-space:nowrap; }
     .no-records { color:#505070; font-size:0.85rem; padding:1rem 0; text-align:center; }
 
@@ -146,12 +146,12 @@
     .an-run  { color:#808098; font-size:0.75rem; margin-left:0.4rem; }
 
     /* ── Light theme overrides ── */
-    body.light { background: #f0ece0; color: #1a1a2e; }
+    body.light { background: #f0ece0; color: #222240; }
     body.light .toolbar { background: #e0d8c4; border-bottom-color: #c0a870; }
     body.light .toolbar .app-title { color: #7a5808; }
     body.light .toolbar .sep { background: #c0a870; }
     body.light .tb-btn { color: #2a2a3e; border-color: #c0a870; }
-    body.light .tb-btn:hover { background: #d8d0bc; color: #1a1a2e; border-color: #a09060; }
+    body.light .tb-btn:hover { background: #d8d0bc; color: #222240; border-color: #a09060; }
     body.light .tb-btn.active { background: #d8d0bc; color: #7a5808; border-color: #7a5808; }
     body.light .tb-select { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-select:hover { background: #d8d0bc; border-color: #a09060; }
@@ -164,7 +164,7 @@
     body.light #rashiInner { background: #ede8d8; border-color: #c09040; }
     body.light #d9Label { color: #6a4808; }
     body.light .dasha-hdr-btns button { background: #e8e2d0; color: #2a2a3e; border-color: #c0a870; }
-    body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #1a1a2e; }
+    body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #222240; }
     body.light .dr.dr-now { background: #d0ead0; border-left-color: #208020; color: #204820; }
     body.light .dr .dr-date { color: #5a6870; }
     body.light #rawSection pre { background: #faf8f0; border-color: #c0a870; color: #205020; }
@@ -174,13 +174,13 @@
     body.light .stg-check { color: #2a2a3e; }
     body.light .stg-check input[type=checkbox] { accent-color: #7a5808; }
     body.light .stg-divider { border-top-color: #c0a870; }
-    body.light dialog { background: #f5f0e4; border-color: #a09060; color: #1a1a2e; }
+    body.light dialog { background: #f5f0e4; border-color: #a09060; color: #222240; }
     body.light .dlg-header { border-bottom-color: #c0a870; }
     body.light .dlg-header h2 { color: #7a5808; }
     body.light .dlg-footer { border-top-color: #c0a870; }
     body.light .dlg-close-x { color: #807870; }
-    body.light .dlg-close-x:hover { color: #1a1a2e; }
-    body.light input[type="text"], body.light input[type="date"], body.light input[type="time"], body.light input[type="number"], body.light select { background: #faf8f0; border-color: #a09060; color: #1a1a2e; }
+    body.light .dlg-close-x:hover { color: #222240; }
+    body.light input[type="text"], body.light input[type="date"], body.light input[type="time"], body.light input[type="number"], body.light select { background: #faf8f0; border-color: #a09060; color: #222240; }
     body.light input:focus, body.light select:focus { border-color: #7a5808; }
     body.light .f-label { color: #5a5860; }
     body.light .f-hint { color: #7a7890; }
@@ -189,7 +189,7 @@
     body.light .btn-primary:hover { background: #9a7010; }
     body.light .btn-primary:disabled { background: #b0a080; }
     body.light .btn-sec { background: #e8e2d0; color: #2a2a3e; border-color: #a09060; }
-    body.light .btn-sec:hover { background: #d8d0bc; color: #1a1a2e; }
+    body.light .btn-sec:hover { background: #d8d0bc; color: #222240; }
     body.light .btn-danger { color: #a02020; border-color: #c06060; }
     body.light .btn-danger:hover { background: #f0d8d8; }
     body.light .chart-list th, body.light .atlas-list th { color: #5a5860; border-bottom-color: #c0a870; }
@@ -469,7 +469,7 @@
         <button class="btn-sec" onclick="tcbSubmit()">Enter</button>
       </div>
       <p class="f-hint" style="margin:0 0 0.5rem;">Commands: <code>lagna virgo</code> &nbsp;·&nbsp; <code>moon scorpio 12</code> &nbsp;·&nbsp; <code>rahu aries 15</code> (auto-fills ketu) &nbsp;·&nbsp; <code>clear moon</code> &nbsp;·&nbsp; <code>reset</code><br>Signs by name or number 1–12. Degree defaults to 15. Add <code>r</code> for retrograde.</p>
-      <details id="tcb-exp-section" style="margin-top:0.5rem;border:1px solid #1a3060;border-radius:4px;padding:0.3rem 0.6rem 0.5rem;background:#0a1228;">
+      <details id="tcb-exp-section" style="margin-top:0.5rem;border:1px solid #1a3060;border-radius:4px;padding:0.3rem 0.6rem 0.5rem;background:#101e30;">
         <summary style="cursor:pointer;font-size:0.82rem;color:#8090b0;user-select:none;">Expected Results</summary>
         <div style="margin-top:0.5rem;overflow-x:auto;">
           <table class="tcb-exp-table">
@@ -508,7 +508,7 @@
     <div class="dlg-body">
       <div class="f-group">
         <label class="f-label" for="mAtlas">Location</label>
-        <select id="mAtlas" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;">
+        <select id="mAtlas" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;">
           <option value="">&#8212; pick a saved location &#8212;</option>
         </select>
       </div>
@@ -529,7 +529,7 @@
         </div>
         <div class="f-group">
           <label class="f-label" for="mSign">Rising Sign</label>
-          <select id="mSign" style="background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;" onchange="updateLagnaLordMin()">
+          <select id="mSign" style="background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;" onchange="updateLagnaLordMin()">
             <option value="1">1 &#183; Aries</option>
             <option value="3">3 &#183; Gemini</option>
             <option value="5" selected>5 &#183; Leo</option>
@@ -538,12 +538,12 @@
           </select>
         </div>
       </div>
-      <details id="mFilters" style="margin-bottom:0.85rem;border:1px solid #1a3060;border-radius:4px;padding:0.4rem 0.6rem;background:#0a1228;">
+      <details id="mFilters" style="margin-bottom:0.85rem;border:1px solid #1a3060;border-radius:4px;padding:0.4rem 0.6rem;background:#101e30;">
         <summary style="cursor:pointer;font-size:0.82rem;color:#8090b0;user-select:none;">Search Filters</summary>
         <div style="margin-top:0.6rem;">
           <div class="f-group" style="margin-bottom:0.6rem;">
             <label class="f-label" for="mMinBenefic">Min benefic Antardasha</label>
-            <select id="mMinBenefic" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
+            <select id="mMinBenefic" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
               <option value="0">Any</option>
               <option value="30">30 days</option>
               <option value="60">60 days</option>
@@ -555,31 +555,31 @@
           <div style="font-size:0.78rem;color:#8090b0;margin-bottom:0.3rem;">Planet minimum strength</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Sun</div>
-              <select id="mPlanet_Sun" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Sun" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Moon</div>
-              <select id="mPlanet_Moon" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Moon" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mars</div>
-              <select id="mPlanet_Mars" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Mars" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mercury</div>
-              <select id="mPlanet_Mercury" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Mercury" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Jupiter</div>
-              <select id="mPlanet_Jupiter" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Jupiter" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Venus</div>
-              <select id="mPlanet_Venus" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Venus" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
             <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Saturn</div>
-              <select id="mPlanet_Saturn" style="width:100%;background:#0f1e3a;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+              <select id="mPlanet_Saturn" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
           </div>
@@ -1224,7 +1224,7 @@
         houseStroke: '#c09040',
         houseNum:    '#6a4808',
         chartTitle:  '#6a4808',
-        asColor:     '#1a1a2e',
+        asColor:     '#222240',
         colorCombust:'#2040c0',
         colorFM:     '#c02020',
         colorWeak:   '#8a6020',
@@ -1232,8 +1232,8 @@
         colorStrong: '#206020',
         planetDim:   '#4a4a60',
       } : {
-        chartBg:     '#080812',
-        houseFill:   '#0d1428',
+        chartBg:     '#141428',
+        houseFill:   '#182038',
         houseStroke: '#7a5a20',
         houseNum:    '#906030',
         chartTitle:  '#906030',
@@ -2571,7 +2571,7 @@
           (r.beneficDays !== null && r.beneficDays !== undefined ? `<span style="color:#7ab87a;font-size:0.73rem;"> → ${fmtBeneficWindow(r.beneficDays)}</span>` : '') +
           `</div>` +
           `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
-          `background:#0f1e3a;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
+          `background:#162040;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
           `</div>`;
       };
 
@@ -3402,10 +3402,10 @@
     function applyDarkReader(light) {
       if (light) {
         document.body.classList.add('light');
-        document.getElementById('drBtn').classList.add('active');
+        document.getElementById('drBtn').classList.remove('active');
       } else {
         document.body.classList.remove('light');
-        document.getElementById('drBtn').classList.remove('active');
+        document.getElementById('drBtn').classList.add('active');
       }
       localStorage.setItem(DR_KEY, light ? '1' : '0');
       // Re-render charts with new palette

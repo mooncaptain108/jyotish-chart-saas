@@ -4,8 +4,15 @@ Dockerfile
 .gitignore
 dist/**
 README.md
-tests/*.*
-venv/*.*
+tests/
 __pycache__/
 lib/
 lib64/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+=0.104.0
+DATA_LICENSE
+LICENSE
+startup
