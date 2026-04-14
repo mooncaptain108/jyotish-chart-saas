@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Jyotish</title>
+  <link rel="icon" type="image/png" href="/static/maninthemoon2.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     .md-content ul, .md-content ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
@@ -79,6 +80,7 @@
     .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
     .dlg-body { padding:1.25rem; }
+    .dlg-body-md { color:#c0c0d0; }
     .dlg-footer { display:flex; gap:0.5rem; justify-content:flex-end; padding:0.75rem 1.25rem; border-top:1px solid #0f3460; }
     .dlg-close-x { background:none; border:none; color:#606080; font-size:1.2rem; cursor:pointer; line-height:1; padding:0 0.25rem; }
     .dlg-close-x:hover { color:#e0e0e0; }
@@ -146,6 +148,27 @@
     .an-run  { color:#808098; font-size:0.75rem; margin-left:0.4rem; }
 
     /* ── Light theme overrides ── */
+
+    /* ── Muhurta dialog theme ── */
+    .muh-empty       { color:#404058; }
+    .muh-row-time    { color:#a0b8c8; }
+    .muh-row-sign    { color:#70c070; }
+    .muh-row-antar   { color:#606078; }
+    .muh-row-benefic { color:#7ab87a; font-size:0.73rem; }
+    .muh-row-btn     { flex-shrink:0; font-size:0.72rem; padding:1px 6px; background:#162040; color:#c9a84c; border:1px solid; border-radius:3px; cursor:pointer; }
+    .muh-row-date    { font-size:0.74rem; color:#c9a84c; padding:5px 0 2px; border-bottom:1px solid #2a3858; }
+    .muh-row-loc     { color:#7090a0; margin-left:0.6rem; }
+    .muh-row-more    { cursor:pointer; font-size:0.73rem; color:#607090; padding:2px 0; }
+
+    .muh-select  { background:#162040; color:#c0c0d0; border:1px solid #1a4a80; border-radius:4px; }
+    .muh-filters { border:1px solid #1a3060; border-radius:4px; padding:0.4rem 0.6rem; background:#101e30; margin-bottom:0.85rem; }
+    .muh-filter-summary { cursor:pointer; font-size:0.82rem; color:#8090b0; user-select:none; }
+    .muh-filter-hdr     { font-size:0.78rem; color:#8090b0; margin-bottom:0.3rem; }
+    .muh-planet-lbl     { font-size:0.72rem; color:#a0a8b8; margin-bottom:2px; }
+    .muh-progress       { font-size:0.8rem; color:#707088; margin-left:0.4rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .muh-results-label  { font-size:0.76rem; color:#505068; margin-bottom:0.35rem; }
+    .muh-results  { max-height:260px; overflow-y:auto; font-size:0.8rem; font-family:monospace; background:#08080f; border:1px solid #1a3060; border-radius:4px; padding:0.5rem; min-height:48px; }
+    .muh-str-report { width:100%; box-sizing:border-box; margin-top:0.5rem; min-height:180px; background:#08080f; color:#a0e0a0; border:1px solid #1a3060; border-radius:4px; font-size:0.78rem; font-family:monospace; padding:0.5rem; }
     body.light { background: #f0ece0; color: #222240; }
     body.light .toolbar { background: #e0d8c4; border-bottom-color: #c0a870; }
     body.light .toolbar .app-title { color: #7a5808; }
@@ -175,11 +198,43 @@
     body.light .stg-check input[type=checkbox] { accent-color: #7a5808; }
     body.light .stg-divider { border-top-color: #c0a870; }
     body.light dialog { background: #f5f0e4; border-color: #a09060; color: #222240; }
+    body.light dialog::backdrop { background: rgba(0,0,0,0); }
+    /* Persistent warm dim in light mode; deepens behind open dialogs */
+    body.light::after {
+        content: ""; position: fixed; inset: 0;
+        background: rgba(70,45,5,0.13);
+        pointer-events: none; z-index: 50;
+        transition: background 0.2s;
+    }
+    body.light:has(dialog[open])::after {
+        background: rgba(50,25,0,0.38);
+    }
     body.light .dlg-header { border-bottom-color: #c0a870; }
     body.light .dlg-header h2 { color: #7a5808; }
     body.light .dlg-footer { border-top-color: #c0a870; }
     body.light .dlg-close-x { color: #807870; }
     body.light .dlg-close-x:hover { color: #222240; }
+    body.light .dlg-body-md { color: #2a1a08; }
+    body.light .muh-select       { background:#faf8f0; color:#222240; border-color:#a09060; }
+    body.light .muh-filters      { background:#ede8d8; border-color:#c0a870; }
+    body.light .muh-filter-summary { color:#5a4a30; }
+    body.light .muh-filter-hdr   { color:#5a4a30; }
+    body.light .muh-planet-lbl   { color:#6a5838; }
+    body.light .muh-progress     { color:#6a6050; }
+    body.light .muh-results-label { color:#3a3020; }
+    body.light .muh-results      { background:#faf8f0; border-color:#c0a870; color:#222240; }
+    body.light .muh-str-report   { background:#faf8f0; color:#204820; border-color:#c0a870; }
+    body.light .muh-empty       { color:#8080a0; }
+    body.light .muh-row-time    { color:#1a3858; }
+    body.light .muh-row-sign    { color:#1a5a1a; }
+    body.light .muh-row-antar   { color:#3a3858; }
+    body.light .muh-row-benefic { color:#1a4a1a; }
+    body.light .muh-row-btn     { background:#e8e0cc; color:#7a5808; }
+    body.light .muh-row-date    { color:#7a5808; border-bottom-color:#c0a870; }
+    body.light .muh-row-loc     { color:#4a6070; }
+    body.light .muh-row-more    { color:#3a5060; }
+
+
     body.light input[type="text"], body.light input[type="date"], body.light input[type="time"], body.light input[type="number"], body.light select { background: #faf8f0; border-color: #a09060; color: #222240; }
     body.light input:focus, body.light select:focus { border-color: #7a5808; }
     body.light .f-label { color: #5a5860; }
@@ -221,8 +276,8 @@
 
   <!-- ── Toolbar ── -->
   <header class="toolbar">
-    <span class="app-title">Jyotish</span>
-    <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings">⚙</button>
+    <span class="app-title">Jyotish Query</span>
+    <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings" style="padding:0.2rem 0.4rem;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
     <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Dark Reader">DR</button>
     <div class="sep"></div>
     <button class="tb-btn" onclick="openNewDialog()">New</button>
@@ -306,7 +361,7 @@
       <h2>About</h2>
       <button class="dlg-close-x" onclick="closeAbout()">✕</button>
     </div>
-    <div class="dlg-body" style="line-height:1.6;color:#c0c0d0;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
       <div id="aboutContent" class="md-content"></div>
     </div>
     <div class="dlg-footer">
@@ -320,7 +375,7 @@
       <h2>Jyotish Query</h2>
       <button class="dlg-close-x" onclick="closeWelcome()">✕</button>
     </div>
-    <div class="dlg-body" style="line-height:1.6;color:#c0c0d0;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:60vh;overflow-y:auto;">
       <div id="welcomeContent" class="md-content"></div>
     </div>
     <div class="dlg-footer" style="justify-content:space-between;align-items:center;">
@@ -508,7 +563,7 @@
     <div class="dlg-body">
       <div class="f-group">
         <label class="f-label" for="mAtlas">Location</label>
-        <select id="mAtlas" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;">
+        <select id="mAtlas" class="muh-select" style="width:100%;padding:0.35rem 0.5rem;">
           <option value="">&#8212; pick a saved location &#8212;</option>
         </select>
       </div>
@@ -529,7 +584,7 @@
         </div>
         <div class="f-group">
           <label class="f-label" for="mSign">Rising Sign</label>
-          <select id="mSign" style="background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.35rem 0.5rem;width:100%;" onchange="updateLagnaLordMin()">
+          <select id="mSign" class="muh-select" style="width:100%;padding:0.35rem 0.5rem;" onchange="updateLagnaLordMin()">
             <option value="1">1 &#183; Aries</option>
             <option value="3">3 &#183; Gemini</option>
             <option value="5" selected>5 &#183; Leo</option>
@@ -538,12 +593,12 @@
           </select>
         </div>
       </div>
-      <details id="mFilters" style="margin-bottom:0.85rem;border:1px solid #1a3060;border-radius:4px;padding:0.4rem 0.6rem;background:#101e30;">
-        <summary style="cursor:pointer;font-size:0.82rem;color:#8090b0;user-select:none;">Search Filters</summary>
+      <details id="mFilters" class="muh-filters">
+        <summary class="muh-filter-summary">Search Filters</summary>
         <div style="margin-top:0.6rem;">
           <div class="f-group" style="margin-bottom:0.6rem;">
             <label class="f-label" for="mMinBenefic">Min benefic Antardasha</label>
-            <select id="mMinBenefic" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:4px;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
+            <select id="mMinBenefic" class="muh-select" style="width:100%;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
               <option value="0">Any</option>
               <option value="30">30 days</option>
               <option value="60">60 days</option>
@@ -552,34 +607,34 @@
               <option value="360">360 days</option>
             </select>
           </div>
-          <div style="font-size:0.78rem;color:#8090b0;margin-bottom:0.3rem;">Planet minimum strength</div>
+          <div class="muh-filter-hdr">Planet minimum strength</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Sun</div>
-              <select id="mPlanet_Sun" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Sun</div>
+              <select id="mPlanet_Sun" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Moon</div>
-              <select id="mPlanet_Moon" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Moon</div>
+              <select id="mPlanet_Moon" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mars</div>
-              <select id="mPlanet_Mars" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Mars</div>
+              <select id="mPlanet_Mars" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Mercury</div>
-              <select id="mPlanet_Mercury" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Mercury</div>
+              <select id="mPlanet_Mercury" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Jupiter</div>
-              <select id="mPlanet_Jupiter" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Jupiter</div>
+              <select id="mPlanet_Jupiter" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Venus</div>
-              <select id="mPlanet_Venus" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Venus</div>
+              <select id="mPlanet_Venus" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
-            <div><div style="font-size:0.72rem;color:#a0a8b8;margin-bottom:2px;">Saturn</div>
-              <select id="mPlanet_Saturn" style="width:100%;background:#162040;color:#c0c0d0;border:1px solid #1a4a80;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
+            <div><div class="muh-planet-lbl">Saturn</div>
+              <select id="mPlanet_Saturn" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.78rem;" onchange="saveMuhurtaCfg()">
                 <option value="0">Any</option><option value="0.60">60%</option><option value="0.70">70%</option><option value="0.80">80%</option><option value="0.90">90%</option><option value="1.00">100%</option>
               </select></div>
           </div>
@@ -588,16 +643,16 @@
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
         <button class="btn-primary" id="mStartBtn" onclick="startMuhurtaSearch()">Start</button>
         <button class="btn-sec" id="mStopBtn" onclick="stopMuhurtaSearch()" disabled>Stop</button>
-        <span id="mProgress" style="font-size:0.8rem;color:#707088;margin-left:0.4rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        <span id="mProgress" class="muh-progress"></span>
       </div>
-      <div style="font-size:0.76rem;color:#505068;margin-bottom:0.35rem;">Results (persisted across sessions) <span id="mSeriesCount"></span></div>
-      <div id="mResults" style="max-height:260px;overflow-y:auto;font-size:0.8rem;font-family:monospace;background:#08080f;border:1px solid #1a3060;border-radius:4px;padding:0.5rem;min-height:48px;"></div>
+      <div class="muh-results-label">Results (persisted across sessions) <span id="mSeriesCount"></span></div>
+      <div id="mResults" class="muh-results"></div>
       <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.4rem;">
         <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="generateSummaryReport()">Report</button>
         <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="generateStrengthReport()">Strength Report</button>
         <button class="btn-sec" style="font-size:0.78rem;padding:0.25rem 0.6rem;" onclick="clearMuhurtaResults()">Clear Results</button>
       </div>
-      <textarea id="mStrReport" style="display:none;width:100%;box-sizing:border-box;margin-top:0.5rem;min-height:180px;background:#08080f;color:#a0e0a0;border:1px solid #1a3060;border-radius:4px;font-size:0.78rem;font-family:monospace;padding:0.5rem;" readonly></textarea>
+      <textarea id="mStrReport" class="muh-str-report" style="display:none;" readonly></textarea>
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="closeMuhurtaDialog()">Close</button>
@@ -2538,7 +2593,7 @@
       const results = getMuhurtaResults();
       const el = document.getElementById('mResults');
       if (!results.length) {
-        el.innerHTML = '<span style="color:#404058">No results yet.</span>';
+        el.innerHTML = '<span class="muh-empty">No results yet.</span>';
         const sc = document.getElementById('mSeriesCount');
         if (sc) sc.textContent = '';
         return;
@@ -2565,13 +2620,12 @@
         const active = i === currentMuhurtaIdx;
         return `<div style="padding:2px 0 2px 4px;border-left:4px solid ${active ? '#ffd060' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
           `<div style="flex:1;">` +
-          `<span style="color:#a0b8c8">${r.dt.split(' ')[1]}</span> ` +
-          `<span style="color:#70c070">${r.signName}</span> &nbsp;` +
-          `<span style="color:#606078">Antardasha: ${r.antarDasha}</span>&nbsp;` +
-          (r.beneficDays !== null && r.beneficDays !== undefined ? `<span style="color:#7ab87a;font-size:0.73rem;"> → ${fmtBeneficWindow(r.beneficDays)}</span>` : '') +
+          `<span class="muh-row-time">${r.dt.split(' ')[1]}</span> ` +
+          `<span class="muh-row-sign">${r.signName}</span> &nbsp;` +
+          `<span class="muh-row-antar">Antardasha: ${r.antarDasha}</span>&nbsp;` +
+          (r.beneficDays !== null && r.beneficDays !== undefined ? `<span class="muh-row-benefic"> → ${fmtBeneficWindow(r.beneficDays)}</span>` : '') +
           `</div>` +
-          `<button onclick="loadMuhurtaChart(${i})" style="flex-shrink:0;font-size:0.72rem;padding:1px 6px;` +
-          `background:#162040;color:#c9a84c;border:1px solid ${active ? '#c9a84c' : '#2a3858'};border-radius:3px;cursor:pointer;">Chart</button>` +
+          `<button onclick="loadMuhurtaChart(${i})" class="muh-row-btn" style="border-color:${active ? '#c9a84c' : '#2a3858'};">Chart</button>` +
           `</div>`;
       };
 
@@ -2579,7 +2633,7 @@
       let lastDate = null;
       for (const g of groups) {
         if (g.date !== lastDate) {
-          html += `<div style="font-size:0.74rem;color:#c9a84c;padding:5px 0 2px;border-bottom:1px solid #2a3858;margin-top:${lastDate ? '3px' : '0'};">${g.date}<span style="color:#7090a0;margin-left:0.6rem;">${results[g.from].loc}</span></div>`;
+          html += `<div class="muh-row-date" style="margin-top:${lastDate ? '3px' : '0'};">${g.date}<span class="muh-row-loc">${results[g.from].loc}</span></div>`;
           lastDate = g.date;
         }
         html += rowHtml(results[g.from], g.from);
@@ -2589,7 +2643,7 @@
           const count = g.to - g.from;
           const hasActive = currentMuhurtaIdx > g.from && currentMuhurtaIdx <= g.to;
           html += `<details${hasActive ? ' open' : ''} style="margin:1px 0 2px 4px;">` +
-            `<summary style="cursor:pointer;font-size:0.73rem;color:#607090;padding:2px 0;">` +
+            `<summary class="muh-row-more">` +
             `Charts ${t1} – ${t2} (${count} more)</summary>`;
           for (let i = g.from + 1; i <= g.to; i++) html += rowHtml(results[i], i);
           html += `</details>`;
@@ -2992,7 +3046,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
