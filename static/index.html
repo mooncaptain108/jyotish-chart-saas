@@ -296,6 +296,7 @@
     <div class="sep"></div>
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
     <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()">Muhurta</button>
+    <span id="muhurtaStatus" style="display:none;font-size:0.82rem;color:#a0c870;white-space:nowrap;margin-left:0.3rem;font-family:monospace;"></span>
     <div class="sep"></div>
     <div class="tb-dropdown" id="helpDropdown">
       <button class="tb-btn" onclick="toggleHelpMenu(event)">Help &#9662;</button>
@@ -2731,8 +2732,27 @@
     }
     function setMuhurtaResults(v) { localStorage.setItem(MUHURTA_KEY, JSON.stringify(v)); }
 
-    let muhurtaRunning = false;
-    let muhurtaAbort   = false;
+    let muhurtaRunning   = false;
+    let muhurtaAbort     = false;
+    let muhurtaStartTime = 0;
+    let muhurtaDays      = 0;
+
+    function showMuhurtaStatus(text) {
+      const el = document.getElementById('muhurtaStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.style.display = text ? '' : 'none';
+    }
+    function updateMuhurtaStatus() {
+      if (!document.getElementById('dlgMuhurta').open) {
+        const secs = (Date.now() - muhurtaStartTime) / 1000;
+        const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+        const elapsed = m > 0 ? m + 'm ' + s + 's' : s + 's';
+        const dayEl = document.getElementById('mProgress');
+        const dayText = dayEl ? dayEl.textContent : '';
+        showMuhurtaStatus('Muhurta · ' + dayText + ' · ' + elapsed);
+      }
+    }
     let currentMuhurtaIdx = -1;
 
     function openMuhurtaDialog() {
@@ -2743,11 +2763,22 @@
       const filters = document.getElementById('mFilters');
       if (filters) filters.open = shouldAutoOpenFilters();
       document.getElementById('dlgMuhurta').showModal();
+      // Restore button states if a search is still running in the background
+      document.getElementById('mStartBtn').disabled = muhurtaRunning;
+      document.getElementById('mStopBtn').disabled  = !muhurtaRunning;
+      showMuhurtaStatus('');
     }
     function closeMuhurtaDialog() {
       saveMuhurtaForm();
-      muhurtaAbort = true;
       document.getElementById('dlgMuhurta').close();
+      const el = document.getElementById('muhurtaStatus');
+      if (el) {
+        if (muhurtaRunning) {
+          updateMuhurtaStatus();       // show current progress
+        } else {
+          showMuhurtaStatus('');       // search done — user acknowledged, clear it
+        }
+      }
     }
 
     function rebuildMuhurtaAtlasSelect() {
@@ -3251,7 +3282,8 @@
       muhurtaAbort   = false;
       document.getElementById('mStartBtn').disabled = true;
       document.getElementById('mStopBtn').disabled  = false;
-      const muhurtaStartTime = Date.now();
+      muhurtaStartTime = Date.now();
+      muhurtaDays = days;
       document.getElementById('mProgress').textContent = 'Starting…';
       let fetchErrors = 0;
 
@@ -3260,6 +3292,7 @@
           if (muhurtaAbort) break;
           const dayStr = addDays(dateStr, day);
           document.getElementById('mProgress').textContent = `Day ${day + 1}/${days}: ${dayStr}…` + (fetchErrors ? ` (${fetchErrors} err)` : '');
+          updateMuhurtaStatus();
 
           let winStart;
           try { winStart = await findSignWindowStart(dayStr, targetSign, loc); }
@@ -3316,6 +3349,7 @@
           const mins = Math.floor(secs / 60);
           const elapsed = mins > 0 ? `${mins}m ${(secs % 60).toFixed(1)}s` : `${secs}s`;
           prog.textContent = `Done. (${elapsed})` + (fetchErrors ? `  ${fetchErrors} fetch error(s)` : '');
+          showMuhurtaStatus('Muhurta · ' + prog.textContent);
         }
       }
     }
