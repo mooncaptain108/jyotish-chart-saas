@@ -5,18 +5,11 @@
 3. The baked in screening rules are:
     
     Search only in:
-
    - Aires (lagna lord Mars)
    - Gemini (lagna lord Sun)
    - Leo (lagna lord Sun)
    - Libra (lagna lord Venus)
    - Sagittarius (lagna lord Jupiter)
-
-    Dismiss if any of the following are afflicted within 5°.
-
-    - MEP of lagna lord house.
-    - MEP of occupied house of lagna lord.
-    - lagna lord.
 
     Dismiss if there are any badly placed planets.
 
