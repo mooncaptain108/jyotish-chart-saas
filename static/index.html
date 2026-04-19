@@ -3105,26 +3105,6 @@
         .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
         .map(g => ({ graha: g.graha, house: ((g.rashi - lr + 12) % 12) + 1, deg: g.degree_in_rashi, rashi: g.rashi }));
 
-      // Rule 1: FM afflicts MEP of lagna ruler's MT sign house
-      const rulerMtRashi = MOOLA_RASHI[lagnaRuler];
-      if (rulerMtRashi) {
-        const rulerMtHouse = ((rulerMtRashi - lr + 12) % 12) + 1;
-        if (mepAff(rulerMtHouse, fmData, mepDeg))
-          return { pass: false, reason: `FM afflicts MT house of ${lagnaRuler} (h${rulerMtHouse})` };
-      }
-
-      // Rule 2: FM afflicts MEP of house lagna ruler occupies
-      const rulerG = data.grahas.find(g => g.graha === lagnaRuler);
-      if (rulerG) {
-        const rulerOccHouse = ((rulerG.rashi - lr + 12) % 12) + 1;
-        if (mepAff(rulerOccHouse, fmData, mepDeg))
-          return { pass: false, reason: `FM afflicts occupied house of ${lagnaRuler} (h${rulerOccHouse})` };
-      }
-
-      // Rule 3: Lagna ruler directly afflicted
-      if (pAff(lagnaRuler, analysis))
-        return { pass: false, reason: `${lagnaRuler} (lagna ruler) afflicted` };
-
       // Rule 3b: Per-planet minimum strength (lagna ruler has 60% floor)
       const planetMins = cfg.planetMins || {};
       for (const p of MUHURTA_PLANETS) {
