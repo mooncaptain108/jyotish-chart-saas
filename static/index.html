@@ -6,10 +6,13 @@
   <link rel="icon" type="image/png" href="/static/maninthemoon2.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    .md-content ul, .md-content ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    .md-content ul, .md-content ol { padding-left: 2.5rem; margin-bottom: 0.75rem; }
     .md-content li { margin-bottom: 0.25rem; }
     .md-content p  { margin-bottom: 0.75rem; }
-    .md-content h1,.md-content h2,.md-content h3,.md-content h4 { color:#c9a84c; margin-bottom:0.6rem; }
+    .md-content h1,.md-content h2 { color:#c9a84c; margin-top:1.4rem; margin-bottom:0.7rem; }
+    .md-content h3,.md-content h4 { color:#c9a84c; margin-top:1.0rem; margin-bottom:0.5rem; }
+    .md-content table { margin-left:2rem; margin-bottom:0.75rem; border-collapse:collapse; }
+    .md-content th, .md-content td { padding:0.2rem 0.8rem 0.2rem 0; text-align:left; }
     .md-content a  { color:#5a9fd4; }
     body { font-family: sans-serif; background: #222240; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
     #appWrap { display:flex; flex-direction:column; min-height:100vh; }
@@ -268,7 +271,7 @@
     body.light .an-section-head { color: #5a5860; border-bottom-color: #c0a870; }
     body.light .an-loc, body.light .an-run { color: #6a6a80; }
     body.light .c-gold { color: #7a5808; }
-    body.light .md-content h1,.md-content h2,.md-content h3,.md-content h4 { color: #7a5808; }
+    body.light .md-content h1, body.light .md-content h2, body.light .md-content h3, body.light .md-content h4 { color: #7a5808; }
     body.light .md-content a { color: #2060a0; }
     body.light .tcb-exp-table th { color: #5a5878; }
     body.light .tcb-exp-table td:first-child { color: #6a6a80; }
@@ -305,6 +308,7 @@
       <ul class="tb-menu" id="helpMenu">
         <li><button onclick="openHelpMuhurta(); closeHelpMenu();">Muhurta</button></li>
         <li><button onclick="openHelpCalc(); closeHelpMenu();">Calculations</button></li>
+        <li><button onclick="openHelpAnalysis(); closeHelpMenu();">Analysis Rules</button></li>
         <li><button onclick="openHelpData(); closeHelpMenu();">Data Storage</button></li>
         <li><hr></li>
         <li><button onclick="openAbout(); closeHelpMenu();">About</button></li>
@@ -436,6 +440,17 @@
     </div>
   </dialog>
 
+  <!-- ════ Help: Analysis Rules dialog ════ -->
+  <dialog id="dlgHelpAnalysis" style="max-width:640px;">
+    <div class="dlg-header">
+      <h2>Analysis Rules</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpAnalysis').close()">✕</button>
+    </div>
+    <div class="dlg-body md-content" id="helpAnalysisContent" style="max-height:70vh;overflow-y:auto;line-height:1.55;"></div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpAnalysis').close()">Close</button>
+    </div>
+  </dialog>
   <!-- ════ Help: Data Storage dialog ════ -->
   <dialog id="dlgHelpData" style="max-width:600px;">
     <div class="dlg-header">
@@ -1013,7 +1028,7 @@
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd' }[dlgId];
+      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1028,6 +1043,7 @@
     function openHelpMuhurta() { _openHelpDoc('dlgHelpMuhurta', 'helpMuhurtaContent', 'static/Muhurta.md'); }
     function openHelpCalc()    { _openHelpDoc('dlgHelpCalc',    'helpCalcContent',    'static/Calculations.md'); }
     function openHelpData()    { _openHelpDoc('dlgHelpData',    'helpDataContent',    'static/DataStorage.md'); }
+    function openHelpAnalysis() { _openHelpDoc('dlgHelpAnalysis', 'helpAnalysisContent', 'static/AnalysisRules.md'); }
 
     function openWelcome() {
       document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
@@ -2007,7 +2023,7 @@
       for (let pass = 0; pass < 7; pass++) {
         let changed = false;
         for (const a of Object.values(analysis)) {
-          if (a.isNode || a.combust || !a.dispositor || a.dispositor === a.graha) continue;
+          if (!a.dispositor || a.dispositor === a.graha) continue;
           const disp = analysis[a.dispositor];
           if (!disp) continue;
           if (disp.isWeak) {
@@ -3592,7 +3608,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════

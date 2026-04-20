@@ -1,4 +1,5 @@
-###
+# Jyotish Query
+## Calculation Choices and Code Libraries Used.
 
 Jyotish Query uses the Vedic Jyotish Chart API - visit this link to see the API (https://github.com/rsaisankalp/vedic-jyotish-api)
 
