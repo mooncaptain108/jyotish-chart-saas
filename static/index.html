@@ -165,6 +165,8 @@
     .muh-row-date    { font-size:0.74rem; color:#c9a84c; padding:5px 0 2px; border-bottom:1px solid #2a3858; }
     .muh-row-loc     { color:#7090a0; margin-left:0.6rem; }
     .muh-row-more    { cursor:pointer; font-size:0.73rem; color:#607090; padding:2px 0; }
+    .muh-sign-hdr    { font-size:0.82rem; color:#c9a84c; font-weight:bold; padding:5px 0 2px; margin-top:4px; border-bottom:1px solid #2a3858; margin-bottom:2px; }
+    body.light .muh-sign-hdr { color:#7a5c10; border-bottom-color:#c0a870; }
 
     .muh-select  { background:#162040; color:#c0c0d0; border:1px solid #1a4a80; border-radius:4px; }
     .muh-filters { border:1px solid #1a3060; border-radius:4px; padding:0.4rem 0.6rem; background:#101e30; margin-bottom:0.85rem; }
@@ -694,30 +696,99 @@
           <label class="f-label" for="mDays">Days (1&#8211;400)</label>
           <input type="number" id="mDays" min="1" max="400" value="30" onchange="saveMuhurtaForm()">
         </div>
-        <div class="f-group">
-          <label class="f-label" for="mSign">Rising Sign</label>
-          <select id="mSign" class="muh-select" style="width:100%;padding:0.35rem 0.5rem;" onchange="updateLagnaLordMin(); saveMuhurtaForm()">
-            <option value="1">1 &#183; Aries</option>
-            <option value="3">3 &#183; Gemini</option>
-            <option value="5" selected>5 &#183; Leo</option>
-            <option value="7">7 &#183; Libra</option>
-            <option value="9">9 &#183; Sagittarius</option>
-          </select>
+        <div class="f-group" style="grid-column:1/-1;">
+          <label class="f-label">Rising Signs</label>
+          <div style="display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:0.3rem;align-items:center;">
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_3" checked onchange="saveMuhurtaForm()"> Gemini
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_1" onchange="saveMuhurtaForm()"> Aries
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_5" onchange="saveMuhurtaForm()"> Leo
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_7" onchange="saveMuhurtaForm()"> Libra
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_9" onchange="saveMuhurtaForm()"> Sagittarius
+            </label>
+          </div>
         </div>
       </div>
       <details id="mFilters" class="muh-filters">
         <summary class="muh-filter-summary">Search Filters</summary>
         <div style="margin-top:0.6rem;">
-          <div class="f-group" style="margin-bottom:0.6rem;">
-            <label class="f-label" for="mMinBenefic">Min benefic Antardasha</label>
-            <select id="mMinBenefic" class="muh-select" style="width:100%;padding:0.28rem 0.4rem;" onchange="saveMuhurtaCfg()">
-              <option value="0">Any</option>
-              <option value="30">30 days</option>
-              <option value="60">60 days</option>
-              <option value="90">90 days</option>
-              <option value="180">180 days</option>
-              <option value="360">360 days</option>
-            </select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;">
+            <div>
+              <div class="muh-planet-lbl">Antardasha Min Length</div>
+              <select id="mMinBenefic" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option>
+                <option value="30" selected>30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="180">180 days</option>
+                <option value="360">360 days</option>
+              </select>
+            </div>
+            <div>
+              <div class="muh-planet-lbl">Antardasha Strength</div>
+              <select id="mAntarMin" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option>
+                <option value="0.60">60%</option>
+                <option value="0.70" selected>70%</option>
+                <option value="0.80">80%</option>
+                <option value="0.90">90%</option>
+                <option value="1.00">100%</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;">
+            <div>
+              <div class="muh-planet-lbl">Lagna Lord min</div>
+              <select id="mLagnaLordMin" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option>
+                <option value="0.60" selected>60%</option>
+                <option value="0.70">70%</option>
+                <option value="0.80">80%</option>
+                <option value="0.90">90%</option>
+                <option value="1.00">100%</option>
+              </select>
+            </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;grid-column:span 2;">
+            <div>
+              <div class="muh-planet-lbl">Min strong planets</div>
+              <select id="mMinStrongPlanets" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option>
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+              </select>
+            </div>
+            <div>
+              <div class="muh-planet-lbl">Min strong houses</div>
+              <select id="mMinStrongHouses" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="0">Any</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+              </select>
+            </div>
+          </div>
+          </div>
+          <div style="margin-bottom:0.5rem;">
+            <button class="btn-sec" style="font-size:0.8rem;padding:0.18rem 0.7rem;" onclick="setMuhurtaDefaults()">Default</button>
           </div>
           <div class="muh-filter-hdr">Planet minimum strength</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
@@ -752,6 +823,60 @@
           </div>
         </div>
       </details>
+      <details id="mExceptions" class="muh-filters" style="margin-bottom:0.6rem;display:none;">
+        <summary class="muh-filter-summary">Exceptions</summary>
+        <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.45rem;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <label class="f-label" for="mAntarMin_exc" style="white-space:nowrap;margin:0;">Antardasha Strength</label>
+            <select id="mAntarMin_exc" class="muh-select" style="padding:0.2rem 0.4rem;font-size:0.88rem;">
+              <option value="0">Any</option>
+              <option value="0.60">60%</option>
+              <option value="0.70" selected>70%</option>
+              <option value="0.80">80%</option>
+              <option value="0.90">90%</option>
+              <option value="1.00">100%</option>
+            </select>
+          </div>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowWeakLagna" onchange="saveMuhurtaCfg()">
+            Allow weak lagna lord (below 60%)
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mLowerStrong" onchange="saveMuhurtaCfg()">
+            Consider 60% as Strong
+          </label>
+          <div style="font-size:0.8rem;color:#607090;margin-top:0.15rem;">Special Afflictions</div>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowAffMmp" onchange="saveMuhurtaCfg()">
+            Allow most malefic planet aspect / conjunction
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowAffDust" onchange="saveMuhurtaCfg()">
+            Allow FM placed in a dushtana house
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowAffRaKe" onchange="saveMuhurtaCfg()">
+            Allow Ra-Ke axis conjunction
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowAffChain" onchange="saveMuhurtaCfg()">
+            Allow FM afflicted by other FM(s)
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowAffCond5" onchange="saveMuhurtaCfg()">
+            Allow multiple FMs simultaneously
+          </label>
+          <div style="font-size:0.8rem;color:#607090;margin-top:0.15rem;">MEP Rules</div>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowRule5b" onchange="saveMuhurtaCfg()">
+            Allow 2+ FMs afflicting same MT house MEP
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#a0b0c0;">
+            <input type="checkbox" id="mAllowRule5c" onchange="saveMuhurtaCfg()">
+            Allow FM on MT house MEP with lord afflicted
+          </label>
+        </div>
+      </details>
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
         <button class="btn-primary" id="mStartBtn" onclick="startMuhurtaSearch()">Start</button>
         <button class="btn-sec" id="mStopBtn" onclick="stopMuhurtaSearch()" disabled>Stop</button>
@@ -761,7 +886,7 @@
       <div id="mResults" class="muh-results"></div>
       <div style="display:flex;justify-content:flex-end;gap:0.4rem;margin-top:0.4rem;">
         <button class="btn-sec" style="font-size:0.88rem;padding:0.25rem 0.6rem;" onclick="generateSummaryReport()">Report</button>
-        <button class="btn-sec" style="font-size:0.88rem;padding:0.25rem 0.6rem;" onclick="generateStrengthReport()">Strength Report</button>
+        <button class="btn-sec" id="mSaveReportBtn" style="font-size:0.88rem;padding:0.25rem 0.6rem;display:none;" onclick="saveReport()">Save Report</button>
         <button class="btn-sec" style="font-size:0.88rem;padding:0.25rem 0.6rem;" onclick="clearMuhurtaResults()">Clear Results</button>
       </div>
       <textarea id="mStrReport" class="muh-str-report" style="display:none;" readonly></textarea>
@@ -2636,6 +2761,14 @@
 
     const MUHURTA_CFG_KEY = 'jyotish_muhurta_cfg';
     const MUHURTA_FORM_KEY = 'jyotish_muhurta_form';
+    const MUHURTA_SIGN_ORDER = [3,1,5,7,9];
+    const MUHURTA_SIGN_NAMES = {1:'Aries',3:'Gemini',5:'Leo',7:'Libra',9:'Sagittarius'};
+    function getMuhurtaSigns() {
+      return MUHURTA_SIGN_ORDER.filter(s => {
+        const el = document.getElementById('mSign_' + s);
+        return el && el.checked;
+      });
+    }
     const MUHURTA_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
     function getMuhurtaCfg() {
       let cfg = {};
@@ -2643,9 +2776,19 @@
       const planetMins = {};
       for (const p of MUHURTA_PLANETS) planetMins[p] = cfg.planetMins && cfg.planetMins[p] != null ? cfg.planetMins[p] : 0;
       return {
-        minBeneficDays:   cfg.minBeneficDays != null ? cfg.minBeneficDays : 0,
-        minStrongHouses:  5,
-        minStrongPlanets: 2,
+        minBeneficDays:      cfg.minBeneficDays != null ? cfg.minBeneficDays : 0,
+        minStrongHouses:     cfg.minStrongHouses  != null ? cfg.minStrongHouses  : 5,
+        minStrongPlanets:    cfg.minStrongPlanets != null ? cfg.minStrongPlanets : 2,
+        antarMin:            cfg.antarMin != null ? cfg.antarMin : 0.70,
+        lowerStrongThreshold: cfg.lowerStrongThreshold || false,
+        lagnaLordMin:        cfg.lagnaLordMin != null ? cfg.lagnaLordMin : 0.60,
+        allowAffMmp:         cfg.allowAffMmp  || false,
+        allowAffDust:        cfg.allowAffDust || false,
+        allowAffRaKe:        cfg.allowAffRaKe || false,
+        allowAffChain:       cfg.allowAffChain || false,
+        allowAffCond5:       cfg.allowAffCond5 || false,
+        allowRule5b:         cfg.allowRule5b   || false,
+        allowRule5c:         cfg.allowRule5c   || false,
         planetMins
       };
     }
@@ -2655,8 +2798,21 @@
         const el = document.getElementById('mPlanet_' + p);
         if (el) planetMins[p] = parseFloat(el.value) || 0;
       }
+      const g = id => document.getElementById(id);
       const cfg = {
-        minBeneficDays: parseFloat(document.getElementById('mMinBenefic').value),
+        minBeneficDays:       parseFloat(g('mMinBenefic').value),
+        minStrongPlanets:     parseInt(g('mMinStrongPlanets').value) || 0,
+        minStrongHouses:      parseInt(g('mMinStrongHouses').value)  || 0,
+        antarMin:             parseFloat(g('mAntarMin').value) || 0,
+        lowerStrongThreshold: g('mLowerStrong').checked,
+        lagnaLordMin:         parseFloat(g('mLagnaLordMin').value) || 0,
+        allowAffMmp:          g('mAllowAffMmp').checked,
+        allowAffDust:         g('mAllowAffDust').checked,
+        allowAffRaKe:         g('mAllowAffRaKe').checked,
+        allowAffChain:        g('mAllowAffChain').checked,
+        allowAffCond5:        g('mAllowAffCond5').checked,
+        allowRule5b:          g('mAllowRule5b').checked,
+        allowRule5c:          g('mAllowRule5c').checked,
         planetMins
       };
       localStorage.setItem(MUHURTA_CFG_KEY, JSON.stringify(cfg));
@@ -2669,19 +2825,39 @@
         el.value = String(val);
         if (!el.value) el.selectedIndex = 0;
       };
-      sel('mMinBenefic', cfg.minBeneficDays);
+      sel('mMinBenefic',         cfg.minBeneficDays);
+      sel('mMinStrongPlanets',  cfg.minStrongPlanets != null ? cfg.minStrongPlanets : 2);
+      sel('mMinStrongHouses',   cfg.minStrongHouses  != null ? cfg.minStrongHouses  : 5);
+      const selCfg = (id, val) => { const e = document.getElementById(id); if (e) { e.value = String(val); if (!e.value) e.selectedIndex = 0; } };
+      const chkCfg = (id, val) => { const e = document.getElementById(id); if (e) e.checked = !!val; };
+      { const v = cfg.antarMin != null ? cfg.antarMin : 0.70; selCfg('mAntarMin', v > 0 ? parseFloat(v).toFixed(2) : '0'); }
+      chkCfg('mLowerStrong',   cfg.lowerStrongThreshold);
+      { const v = cfg.lagnaLordMin != null ? cfg.lagnaLordMin : 0.60; selCfg('mLagnaLordMin', v > 0 ? parseFloat(v).toFixed(2) : '0'); }
+      chkCfg('mAllowAffMmp',   cfg.allowAffMmp);
+      chkCfg('mAllowAffDust',  cfg.allowAffDust);
+      chkCfg('mAllowAffRaKe',  cfg.allowAffRaKe);
+      chkCfg('mAllowAffChain', cfg.allowAffChain);
+      chkCfg('mAllowAffCond5', cfg.allowAffCond5);
+      chkCfg('mAllowRule5b',   cfg.allowRule5b);
+      chkCfg('mAllowRule5c',   cfg.allowRule5c);
       for (const p of MUHURTA_PLANETS) {
         const v = cfg.planetMins[p] || 0;
         sel('mPlanet_' + p, v > 0 ? parseFloat(v).toFixed(2) : '0');
       }
-      updateLagnaLordMin();
     }
     function updateLagnaLordMin() {
-      const sign = parseInt(document.getElementById('mSign').value);
-      const lord = LAGNA_RULER[sign];
-      if (!lord) return;
-      const el = document.getElementById('mPlanet_' + lord);
-      if (el && parseFloat(el.value) < 0.60) el.value = '0.60';
+      // Lagna lord 60% floor is enforced server-side per rising sign; no UI change needed.
+    }
+
+    function setMuhurtaDefaults() {
+      const s = (id, v) => { const e = document.getElementById(id); if (e) { e.value = String(v); } };
+      s('mMinBenefic', 30);
+      s('mAntarMin', '0.70');
+      s('mLagnaLordMin', '0.60');
+      s('mMinStrongPlanets', 2);
+      s('mMinStrongHouses', 5);
+      for (const p of MUHURTA_PLANETS) s('mPlanet_' + p, 0);
+      saveMuhurtaCfg();
     }
 
     function saveMuhurtaForm() {
@@ -2690,7 +2866,7 @@
         date:  document.getElementById('mDate').value,
         time:  document.getElementById('mTime').value,
         days:  document.getElementById('mDays').value,
-        sign:  document.getElementById('mSign').value
+        signs: getMuhurtaSigns()
       };
       localStorage.setItem(MUHURTA_FORM_KEY, JSON.stringify(form));
     }
@@ -2705,24 +2881,23 @@
       if (form.date)  document.getElementById('mDate').value = form.date;
       if (form.time)  document.getElementById('mTime').value = form.time;
       if (form.days != null && form.days !== '') document.getElementById('mDays').value = form.days;
-      if (form.sign != null) {
-        const sel = document.getElementById('mSign');
-        if (Array.from(sel.options).some(o => o.value === String(form.sign))) {
-          sel.value = String(form.sign);
-          updateLagnaLordMin();
-        }
+      if (Array.isArray(form.signs) && form.signs.length) {
+        MUHURTA_SIGN_ORDER.forEach(s => {
+          const el = document.getElementById('mSign_' + s);
+          if (el) el.checked = form.signs.includes(s);
+        });
+        updateLagnaLordMin();
       }
     }
 
     function shouldAutoOpenFilters() {
       const cfg = getMuhurtaCfg();
-      if (cfg.minBeneficDays > 0) return true;
-      const sign = parseInt(document.getElementById('mSign').value);
-      const lord = LAGNA_RULER[sign];
+      if (cfg.minBeneficDays !== 30) return true;
+      if (cfg.antarMin !== 0.70) return true;
+      if (cfg.lagnaLordMin !== 0.60) return true;
+      if (cfg.minStrongPlanets !== 2 || cfg.minStrongHouses !== 5) return true;
       for (const p of MUHURTA_PLANETS) {
-        const v = cfg.planetMins[p] || 0;
-        if (p === lord && v > 0.60) return true;  // lagna lord above 60%
-        if (p !== lord && v > 0)    return true;  // any other planet not Any
+        if ((cfg.planetMins[p] || 0) > 0) return true;
       }
       return false;
     }
@@ -2736,6 +2911,8 @@
     let muhurtaAbort     = false;
     let muhurtaStartTime = 0;
     let muhurtaDays      = 0;
+    let muhurtaJobId     = null;
+    let muhurtaPollTimer = null;
 
     function showMuhurtaStatus(text) {
       const el = document.getElementById('muhurtaStatus');
@@ -2847,10 +3024,38 @@
           const mm   = String(Math.round((abs % 1) * 60)).padStart(2, '0');
           utcStr = `UTC${sign}${hh}:${mm}`;
         }
-        const antarStr = r.antarDasha ? `  Antardasha: ${r.antarDasha}${r.beneficDays != null ? " → " + fmtBeneficWindow(r.beneficDays) : ""}` : ""; lines.push(`${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}`);
+        const antarStr = r.antarDasha ? `  Antardasha: ${r.antarDasha}${r.beneficDays != null ? " → " + fmtBeneficWindow(r.beneficDays) : ""}` : "";
+        const excStr = (r.exceptionsUsed && r.exceptionsUsed.length) ? `  [! ${r.exceptionsUsed.join(', ')}]` : '';
+        const prefix = (r.exceptionsUsed && r.exceptionsUsed.length) ? '! ' : '';
+        lines.push(`${prefix}${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}${excStr}`);
       }
       ta.style.display = 'block';
       ta.value = lines.join('\n');
+      const sb = document.getElementById('mSaveReportBtn');
+      if (sb) sb.style.display = '';
+    }
+
+    async function saveReport() {
+      const text = document.getElementById('mStrReport').value;
+      if (!text || text === 'No results.') return;
+      try {
+        if (window.showSaveFilePicker) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: 'muhurta-report.txt',
+            types: [{ description: 'Text / Markdown', accept: {'text/plain': ['.txt', '.md']} }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+        } else {
+          const blob = new Blob([text], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'muhurta-report.txt';
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+      } catch(e) { if (e.name !== 'AbortError') alert('Save failed: ' + e.message); }
     }
 
     async function generateStrengthReport() {
@@ -2901,7 +3106,13 @@
     }
 
     function renderMuhurtaResults() {
-      const results = getMuhurtaResults();
+      // Sort: Gemini by dt first, then all other signs by dt
+      const rawResults = getMuhurtaResults();
+      const geminiRaw = rawResults.filter(r => r.sign === 3).sort((a,b) => a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0);
+      const othersRaw = rawResults.filter(r => r.sign !== 3).sort((a,b) => a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0);
+      // Rebuild flat results with new indices for loadMuhurtaChart compatibility
+      const results = [...geminiRaw, ...othersRaw];
+
       const el = document.getElementById('mResults');
       if (!results.length) {
         el.innerHTML = '<span class="muh-empty">No results yet.</span>';
@@ -2909,28 +3120,36 @@
         if (sc) sc.textContent = '';
         return;
       }
-      // Group consecutive results with same date+sign (same rising-sign window)
-      const groups = [];
-      let gi = 0;
-      while (gi < results.length) {
-        const r0 = results[gi];
-        const d0 = r0.dt.split(' ')[0];
-        let gj = gi + 1;
-        while (gj < results.length) {
-          const rj = results[gj];
-          if (rj.dt.split(' ')[0] === d0 && rj.sign === r0.sign) gj++;
-          else break;
+
+      // Build groups of consecutive same-date+same-sign results
+      function buildGroups(recs, offset) {
+        const groups = [];
+        let gi = 0;
+        while (gi < recs.length) {
+          const r0 = recs[gi];
+          const d0 = r0.dt.split(' ')[0];
+          let gj = gi + 1;
+          while (gj < recs.length && recs[gj].dt.split(' ')[0] === d0 && recs[gj].sign === r0.sign) gj++;
+          groups.push({ date: d0, from: gi + offset, to: gj - 1 + offset });
+          gi = gj;
         }
-        groups.push({ date: d0, from: gi, to: gj - 1 });
-        gi = gj;
+        return groups;
       }
+
+      const geminiGroups = buildGroups(geminiRaw, 0);
+      const othersGroups = buildGroups(othersRaw, geminiRaw.length);
+      const allGroups = [...geminiGroups, ...othersGroups];
+
       const sc = document.getElementById('mSeriesCount');
-      if (sc) sc.textContent = '— ' + groups.length;
+      if (sc) sc.textContent = '— ' + allGroups.length;
 
       const rowHtml = (r, i) => {
         const active = i === currentMuhurtaIdx;
+        const exc = r.exceptionsUsed && r.exceptionsUsed.length > 0;
+        const excTitle = exc ? r.exceptionsUsed.join('; ') : '';
         return `<div style="padding:2px 0 2px 4px;border-left:4px solid ${active ? '#ffd060' : 'transparent'};display:flex;align-items:flex-start;gap:0.4rem;">` +
           `<div style="flex:1;">` +
+          (exc ? `<span style="color:#e09030;font-weight:bold;" title="${excTitle}">! </span>` : '') +
           `<span class="muh-row-time">${r.dt.split(' ')[1]}</span> ` +
           `<span class="muh-row-sign">${r.signName}</span> &nbsp;` +
           `<span class="muh-row-antar">Antardasha: ${r.antarDasha}</span>&nbsp;` +
@@ -2940,25 +3159,39 @@
           `</div>`;
       };
 
+      function renderSection(groups, sectionResults) {
+        let html = '';
+        let lastDate = null;
+        for (const g of groups) {
+          if (g.date !== lastDate) {
+            html += `<div class="muh-row-date" style="margin-top:${lastDate ? '3px' : '0'};">${g.date}<span class="muh-row-loc">${results[g.from].loc}</span></div>`;
+            lastDate = g.date;
+          }
+          html += rowHtml(results[g.from], g.from);
+          if (g.to > g.from) {
+            const t1 = results[g.from + 1].dt.split(' ')[1];
+            const t2 = results[g.to].dt.split(' ')[1];
+            const count = g.to - g.from;
+            const hasActive = currentMuhurtaIdx > g.from && currentMuhurtaIdx <= g.to;
+            html += `<details${hasActive ? ' open' : ''} style="margin:1px 0 2px 4px;">` +
+              `<summary class="muh-row-more">Charts ${t1} – ${t2} (${count} more)</summary>`;
+            for (let i = g.from + 1; i <= g.to; i++) html += rowHtml(results[i], i);
+            html += `</details>`;
+          }
+        }
+        return html;
+      }
+
       let html = '';
-      let lastDate = null;
-      for (const g of groups) {
-        if (g.date !== lastDate) {
-          html += `<div class="muh-row-date" style="margin-top:${lastDate ? '3px' : '0'};">${g.date}<span class="muh-row-loc">${results[g.from].loc}</span></div>`;
-          lastDate = g.date;
-        }
-        html += rowHtml(results[g.from], g.from);
-        if (g.to > g.from) {
-          const t1 = results[g.from + 1].dt.split(' ')[1];
-          const t2 = results[g.to].dt.split(' ')[1];
-          const count = g.to - g.from;
-          const hasActive = currentMuhurtaIdx > g.from && currentMuhurtaIdx <= g.to;
-          html += `<details${hasActive ? ' open' : ''} style="margin:1px 0 2px 4px;">` +
-            `<summary class="muh-row-more">` +
-            `Charts ${t1} – ${t2} (${count} more)</summary>`;
-          for (let i = g.from + 1; i <= g.to; i++) html += rowHtml(results[i], i);
-          html += `</details>`;
-        }
+      const hasGemini = geminiGroups.length > 0;
+      const hasOthers = othersGroups.length > 0;
+      if (hasGemini) {
+        if (hasOthers) html += `<div class="muh-sign-hdr">Gemini</div>`;
+        html += renderSection(geminiGroups, geminiRaw);
+      }
+      if (hasOthers) {
+        if (hasGemini) html += `<div class="muh-sign-hdr" style="margin-top:6px;">Other Signs</div>`;
+        html += renderSection(othersGroups, othersRaw);
       }
       el.innerHTML = html;
     }
@@ -3176,7 +3409,7 @@
         if (fms.has(al))
           return { pass: false, reason: `Active antardasha ${al} is FM` };
         const aa = analysis[al];
-        if (aa && aa.strengthPct < 0.70)
+        if (!cfg.allowWeakAntar && aa && aa.strengthPct < 0.70)
           return { pass: false, reason: `Active antardasha ${al} strength ${Math.round(aa.strengthPct * 100)}% < 70%` };
         if (aa && aa.inDushtana)
           return { pass: false, reason: `Active antardasha ${al} badly placed (h${aa.house})` };
@@ -3243,98 +3476,117 @@
       };
     }
 
+
+    async function _muhurtaPoll() {
+      if (!muhurtaJobId) return;
+      try {
+        const [sR, rR] = await Promise.all([
+          fetch('/api/v1/muhurta/status/'  + muhurtaJobId),
+          fetch('/api/v1/muhurta/results/' + muhurtaJobId)
+        ]);
+        if (!sR.ok || !rR.ok) return;
+        const status  = await sR.json();
+        const resData = await rR.json();
+
+        // Merge new results into localStorage
+        const existing    = getMuhurtaResults();
+        const existingKeys = new Set(existing.map(r => r.dt + '|' + r.loc));
+        const newRecs = (resData.results || []).filter(r => !existingKeys.has(r.dt + '|' + r.loc));
+        if (newRecs.length > 0) {
+          existing.push(...newRecs);
+          setMuhurtaResults(existing);
+          renderMuhurtaResults();
+        }
+
+        // Update progress label
+        const prog = document.getElementById('mProgress');
+        if (prog) {
+          if (status.done || status.error) {
+            const secs  = parseFloat(status.elapsed || 0).toFixed(1);
+            const mins  = Math.floor(secs / 60);
+            const el    = mins > 0 ? `${mins}m ${(secs % 60).toFixed(1)}s` : `${secs}s`;
+            const errs  = status.fetchErrors ? `  ${status.fetchErrors} fetch error(s)` : '';
+            const txt   = status.error
+              ? ('Error: ' + status.error)
+              : `Done. Last: ${status.lastDayStr} (${el})${errs}`;
+            prog.textContent = txt;
+            showMuhurtaStatus('Muhurta · ' + txt);
+          } else {
+            const dayTxt = `Day ${status.dayCurrent}/${status.dayTotal}: ${status.dayCurrentStr}…` +
+              (status.fetchErrors ? ` (${status.fetchErrors} err)` : '');
+            prog.textContent = dayTxt;
+            updateMuhurtaStatus();
+          }
+        }
+
+        if (status.done || status.error) {
+          muhurtaRunning = false;
+          muhurtaAbort   = false;
+          muhurtaJobId   = null;
+          document.getElementById('mStartBtn').disabled = false;
+          document.getElementById('mStopBtn').disabled  = true;
+          _stopMuhurtaPoll();
+        }
+      } catch(e) {
+        console.warn('Muhurta poll error:', e);
+      }
+    }
+
+    function _startMuhurtaPoll() {
+      _stopMuhurtaPoll();
+      _muhurtaPoll();  // immediate
+      muhurtaPollTimer = setInterval(_muhurtaPoll, 500);
+    }
+
+    function _stopMuhurtaPoll() {
+      if (muhurtaPollTimer) { clearInterval(muhurtaPollTimer); muhurtaPollTimer = null; }
+    }
+
     async function startMuhurtaSearch() {
       if (muhurtaRunning) return;
       const loc = getMuhurtaLoc();
       if (!loc) { alert('Select a location from the atlas.'); return; }
       const dateStr = document.getElementById('mDate').value;
       if (!dateStr) { alert('Enter a start date.'); return; }
-      const timeVal  = document.getElementById('mTime').value || '00:00';
-      const days     = Math.min(400, Math.max(1, parseInt(document.getElementById('mDays').value) || 30));
-      const targetSign = parseInt(document.getElementById('mSign').value);
+      const timeVal    = document.getElementById('mTime').value || '00:00';
+      const days       = Math.min(400, Math.max(1, parseInt(document.getElementById('mDays').value) || 30));
+      const targetSigns = getMuhurtaSigns();
+      if (!targetSigns.length) { alert('Select at least one rising sign.'); return; }
+      const cfg        = getMuhurtaCfg();
 
+      // POST search to server
+      let resp;
+      try {
+        const r = await fetch('/api/v1/muhurta/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: loc.lat, lon: loc.lon, tz: loc.tz, tzName: loc.tzName || null,
+            locName: loc.name, date: dateStr, time: timeVal, days, targetSigns, cfg
+          })
+        });
+        if (!r.ok) throw new Error('Server error ' + r.status);
+        resp = await r.json();
+      } catch(e) {
+        alert('Failed to start search: ' + e.message);
+        return;
+      }
 
-      // Start minute for day 0
-      const [sh, sm] = timeVal.split(':').map(Number);
-      const startMin = sh * 60 + (sm || 0);
-
-      muhurtaRunning = true;
-      muhurtaAbort   = false;
+      muhurtaJobId     = resp.job_id;
+      muhurtaRunning   = true;
+      muhurtaAbort     = false;
+      muhurtaStartTime = Date.now();
+      muhurtaDays      = days;
       document.getElementById('mStartBtn').disabled = true;
       document.getElementById('mStopBtn').disabled  = false;
-      muhurtaStartTime = Date.now();
-      muhurtaDays = days;
       document.getElementById('mProgress').textContent = 'Starting…';
-      let fetchErrors = 0;
-
-      try {
-        for (let day = 0; day < days; day++) {
-          if (muhurtaAbort) break;
-          const dayStr = addDays(dateStr, day);
-          document.getElementById('mProgress').textContent = `Day ${day + 1}/${days}: ${dayStr}…` + (fetchErrors ? ` (${fetchErrors} err)` : '');
-          updateMuhurtaStatus();
-
-          let winStart;
-          try { winStart = await findSignWindowStart(dayStr, targetSign, loc); }
-          catch (e) { fetchErrors++; continue; }
-          if (muhurtaAbort) break;
-          if (winStart === null) continue;
-
-          // On day 0 honour the start time; subsequent days scan full window
-          const scanStart = (day === 0) ? Math.max(winStart, startMin) : winStart;
-
-          let m = scanStart;
-          while (m < 1440) {
-            if (muhurtaAbort) break;
-            const { date, time } = minuteOffset(dayStr, m);
-            let data;
-            try { data = await fetchChartAt(date, time, loc); }
-            catch (e) { fetchErrors++; break; }
-            if (data.lagna.rashi !== targetSign) break;
-
-            const analysis = analyzeAllGrahas(data);
-            const result   = screenMuhurta(data, analysis, getMuhurtaCfg());
-
-            if (result.pass) {
-              const rec = {
-                dt: date + ' ' + time.slice(0, 5),
-                loc: loc.name,
-                sign: targetSign,
-                signName: RASHI_NAME[targetSign],
-                antarDasha: result.antarDasha,
-                antarStart: result.antarStart,
-                beneficDays: result.beneficDays,
-                strongPlanets: result.strongPlanets,
-                strongHouses: result.strongHouses
-              };
-              const results = getMuhurtaResults();
-              results.push(rec);
-              setMuhurtaResults(results);
-              renderMuhurtaResults();
-            }
-            m++;
-          }
-          if (muhurtaAbort) break;
-        }
-      } catch (err) {
-        document.getElementById('mProgress').textContent = 'Error: ' + err.message;
-      } finally {
-        muhurtaRunning = false;
-        muhurtaAbort   = false;
-        document.getElementById('mStartBtn').disabled = false;
-        document.getElementById('mStopBtn').disabled  = true;
-        const prog = document.getElementById('mProgress');
-        if (!prog.textContent.startsWith('Error')) {
-          const secs = ((Date.now() - muhurtaStartTime) / 1000).toFixed(1);
-          const mins = Math.floor(secs / 60);
-          const elapsed = mins > 0 ? `${mins}m ${(secs % 60).toFixed(1)}s` : `${secs}s`;
-          prog.textContent = `Done. (${elapsed})` + (fetchErrors ? `  ${fetchErrors} fetch error(s)` : '');
-          showMuhurtaStatus('Muhurta · ' + prog.textContent);
-        }
-      }
+      _startMuhurtaPoll();
     }
 
     function stopMuhurtaSearch() {
+      if (muhurtaJobId) {
+        fetch('/api/v1/muhurta/search/' + muhurtaJobId, { method: 'DELETE' }).catch(() => {});
+      }
       muhurtaAbort = true;
       document.getElementById('mProgress').textContent = 'Stopping…';
     }

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from routers import chart, geocode
+from routers import chart, geocode, muhurta
 
 app = FastAPI(
     title="Vedic Jyotish Chart API",
@@ -15,6 +15,7 @@ app = FastAPI(
 # Include routers
 app.include_router(chart.router)
 app.include_router(geocode.router)
+app.include_router(muhurta.router)
 
 # Serve static frontend files
 app.mount("/static", StaticFiles(directory="static"), name="static")
