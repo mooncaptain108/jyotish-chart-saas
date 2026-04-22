@@ -2414,17 +2414,39 @@
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
       if (MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo) {
         const mScreen = screenMuhurta(data, an, getMuhurtaCfg());
+        const fmtDays = d => fmtBeneficWindow(d);
+        // Benefic window: days from chart date to next FM/node antardasha
+        let _bannerAntarDays = null;
+        {
+          const _cdt = new Date(data.birth_data.date + 'T' + data.birth_data.time);
+          const _fms = FUNC_MALEFICS[lr] || new Set();
+          let _pastCurrent = false;
+          outer_ba: for (const d of (data.dasha || [])) {
+            for (const ad of (d.antardasha || [])) {
+              if (!_pastCurrent) {
+                const s = new Date(ad.start), e = new Date(ad.end);
+                if (s <= _cdt && _cdt < e) { _pastCurrent = true; continue; }
+                if (!_pastCurrent) continue;
+              }
+              if (ad.lord === 'Rahu' || ad.lord === 'Ketu' || _fms.has(ad.lord)) {
+                const chartDay = new Date(data.birth_data.date + 'T00:00:00Z');
+                const maleficDay = new Date(ad.start.slice(0,10) + 'T00:00:00Z');
+                _bannerAntarDays = Math.round((maleficDay - chartDay) / 86400000);
+                break outer_ba;
+              }
+            }
+          }
+        }
+        const _antarStr = _bannerAntarDays != null ? ' · Benefic window: ' + fmtDays(_bannerAntarDays) : '';
         if (mScreen.pass) {
-          const fmtDays = d => d >= 30 ? (d/30.4).toFixed(1)+'mo' : d+'d';
           html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;font-size:0.85rem;">
             ✓ Passes Muhurta screening &nbsp;·&nbsp; ${mScreen.strongPlanets} strong planets &nbsp;·&nbsp; ${mScreen.strongHouses} strong houses
             ${mScreen.antarDasha ? ` &nbsp;&nbsp; Antardasha: ${mScreen.antarDasha}${mScreen.antarDays != null ? ' ('+fmtDays(mScreen.antarDays)+')' : ''}` : ''}
-            ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${mScreen.beneficDays}d` : ''}
+            ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${fmtBeneficWindow(mScreen.beneficDays)}` : ''}
           </div>` + html;
         } else {
-          const fmtDays = d => d >= 30 ? (d/30.4).toFixed(1)+'mo' : d+'d';
           html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#2b0d0d;border:1px solid #7a2a2a;color:#ca6d6d;font-size:0.85rem;">
-            ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}${mScreen.antarDays != null ? ' ('+fmtDays(mScreen.antarDays)+')' : ''}
+            ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}${_antarStr}
           </div>` + html;
         }
       }
