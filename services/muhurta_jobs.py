@@ -19,7 +19,7 @@ from services.chart_service import _ensure_swisseph_initialized
 from services.muhurta_analysis import RASHI_NAME
 
 JOB_DIR     = '/tmp/jyotish_muhurta'
-MAX_WORKERS = 4
+MAX_WORKERS = int(os.environ.get("MUHURTA_WORKERS", os.cpu_count() or 4))
 os.makedirs(JOB_DIR, exist_ok=True)
 
 # ─── File helpers ─────────────────────────────────────────────────────────────

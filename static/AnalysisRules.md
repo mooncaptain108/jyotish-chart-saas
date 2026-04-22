@@ -1,5 +1,3 @@
-# Analysis Rules
-
 These are the rules used by the Analysis feature to evaluate planet and house strength.
 
 ---
@@ -96,14 +94,6 @@ After all states, afflictions, and increases are applied:
 | ≥ 70% | Strong | Green |
 
 A functional malefic planet is always shown in red regardless of its strength percentage.
-
-### Dispositor Effect
-
-A planet's **dispositor** is the lord of the sign it currently occupies. If the dispositor is weak (below 60%), the planet's strength is **capped** at the dispositor's strength level — it cannot be stronger than the planet it depends upon.
-
-This effect cascades: if the dispositor's own dispositor is weak, the cap propagates up the chain until a non-weak dispositor is reached or the chain ends.
-
-The dispositor cap is applied after all afflictions, exaltation, and functional benefic increases have been calculated.
 
 ---
 

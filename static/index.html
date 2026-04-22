@@ -10,6 +10,7 @@
     .md-content li { margin-bottom: 0.25rem; }
     .md-content p  { margin-bottom: 0.75rem; }
     .md-content h1,.md-content h2 { color:#c9a84c; margin-top:1.4rem; margin-bottom:0.7rem; }
+    .md-content > h1:first-child, .md-content > h2:first-child { margin-top:0; }
     .md-content h3,.md-content h4 { color:#c9a84c; margin-top:1.0rem; margin-bottom:0.5rem; }
     .md-content table { margin-left:2rem; margin-bottom:0.75rem; border-collapse:collapse; }
     .md-content th, .md-content td { padding:0.2rem 0.8rem 0.2rem 0; text-align:left; }
@@ -414,8 +415,7 @@
 
   <!-- ════ Help: Muhurta dialog ════ -->
   <dialog id="dlgHelpMuhurta" style="max-width:600px;">
-    <div class="dlg-header">
-      <h2>Muhurta</h2>
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
       <button class="dlg-close-x" onclick="document.getElementById('dlgHelpMuhurta').close()">✕</button>
     </div>
     <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
@@ -428,8 +428,7 @@
 
   <!-- ════ Help: Calculations dialog ════ -->
   <dialog id="dlgHelpCalc" style="max-width:600px;">
-    <div class="dlg-header">
-      <h2>Calculations</h2>
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
       <button class="dlg-close-x" onclick="document.getElementById('dlgHelpCalc').close()">✕</button>
     </div>
     <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
@@ -442,8 +441,7 @@
 
   <!-- ════ Help: Analysis Rules dialog ════ -->
   <dialog id="dlgHelpAnalysis" style="max-width:640px;">
-    <div class="dlg-header">
-      <h2>Analysis Rules</h2>
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
       <button class="dlg-close-x" onclick="document.getElementById('dlgHelpAnalysis').close()">✕</button>
     </div>
     <div class="dlg-body md-content" id="helpAnalysisContent" style="max-height:70vh;overflow-y:auto;line-height:1.55;"></div>
@@ -453,8 +451,7 @@
   </dialog>
   <!-- ════ Help: Data Storage dialog ════ -->
   <dialog id="dlgHelpData" style="max-width:600px;">
-    <div class="dlg-header">
-      <h2>Data Storage</h2>
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
       <button class="dlg-close-x" onclick="document.getElementById('dlgHelpData').close()">✕</button>
     </div>
     <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
@@ -728,6 +725,19 @@
             </label>
             <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
               <input type="checkbox" id="mSign_9" onchange="saveMuhurtaForm()"> Sagittarius
+            </label>
+            <span style="width:1px;height:1.1rem;background:#2a4a70;margin:0 0.2rem;"></span>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_4" onchange="saveMuhurtaForm()"> Cancer
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_8" onchange="saveMuhurtaForm()"> Scorpio
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_10" onchange="saveMuhurtaForm()"> Capricorn
+            </label>
+            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+              <input type="checkbox" id="mSign_11" onchange="saveMuhurtaForm()"> Aquarius
             </label>
           </div>
         </div>
@@ -2046,14 +2056,21 @@
       }
 
       // ── Assign colors ──
-      // <60% weak (brown), 60–69% middling (gold), >=70% strong (green)
+      // FM abbreviation is always red. FM degree text is blue if combust,
+      // strength-based (brown/gold/green) otherwise. Non-FM: single color.
       for (const a of Object.values(analysis)) {
         const _t = getTheme();
-        if      (a.combust)                          a.color = _t.colorCombust;
-        else if (a.isFM)                             a.color = _t.colorFM;
-        else if (a.isWeak)                           a.color = _t.colorWeak;
-        else if (a.strengthPct < 0.70)               a.color = _t.colorMid;
-        else                                         a.color = _t.colorStrong;
+        const strengthColor = a.combust      ? _t.colorCombust
+                            : a.isWeak       ? _t.colorWeak
+                            : a.strengthPct < 0.70 ? _t.colorMid
+                            : _t.colorStrong;
+        if (a.isFM) {
+          a.color    = _t.colorFM;    // abbreviation always red
+          a.degColor = strengthColor; // degrees: blue if combust, else strength
+        } else {
+          a.color    = strengthColor;
+          a.degColor = null;
+        }
       }
 
       // ── House strengths ──
@@ -2393,7 +2410,7 @@
 
       // ── Muhurta screening banner ──
       // Only show for odd rising signs (1,3,5,7,9) and charts < 1 year old or in the future
-      const MUHURTA_LAGNA = new Set([1,3,5,7,9]);
+      const MUHURTA_LAGNA = new Set([1,3,4,5,7,8,9,10,11]);
       const chartDateMs = new Date(data.birth_data.date).getTime();
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
       if (MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo) {
@@ -2694,7 +2711,7 @@
       hp[1].push({label:'As',deg:mepDeg,color:_tc.asColor,retro:false,isAs:true});
       for (const name of PLANET_ORDER) {
         const a = an[name]; if (!a) continue;
-        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,retro:a.retro,isAs:false});
+        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,degColor:a.degColor||null,retro:a.retro,isAs:false});
       }
       for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
 
@@ -2706,10 +2723,22 @@
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
-          const line = p.isAs
-            ? 'As '+fmtDeg(p.deg)
-            : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
-          svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+          if (!p.isAs && p.degColor) {
+            const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
+            tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
+            tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
+            tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
+            const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
+            tEl.appendChild(sp1); tEl.appendChild(sp2); svg.appendChild(tEl);
+          } else {
+            const line = p.isAs
+              ? 'As '+fmtDeg(p.deg)
+              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
+            svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+          }
           y0+=LH;
         }
       }
@@ -2777,8 +2806,8 @@
 
     const MUHURTA_CFG_KEY = 'jyotish_muhurta_cfg';
     const MUHURTA_FORM_KEY = 'jyotish_muhurta_form';
-    const MUHURTA_SIGN_ORDER = [3,1,5,7,9];
-    const MUHURTA_SIGN_NAMES = {1:'Aries',3:'Gemini',5:'Leo',7:'Libra',9:'Sagittarius'};
+    const MUHURTA_SIGN_ORDER = [3,1,5,7,9,4,8,10,11];
+    const MUHURTA_SIGN_NAMES = {1:'Aries',3:'Gemini',4:'Cancer',5:'Leo',7:'Libra',8:'Scorpio',9:'Sagittarius',10:'Capricorn',11:'Aquarius'};
     function getMuhurtaSigns() {
       return MUHURTA_SIGN_ORDER.filter(s => {
         const el = document.getElementById('mSign_' + s);
