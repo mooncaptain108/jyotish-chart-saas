@@ -1,4 +1,5 @@
 # Jyotish Query
+## Data Storage
 
 Jyotish Query starts with no data stored. At the very least you will have to enter in one location. From there click New to enter data to render a chart. Or click Muhurta to search for auspicious elective times.
 

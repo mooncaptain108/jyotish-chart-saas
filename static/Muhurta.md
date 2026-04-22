@@ -1,4 +1,5 @@
-## Search for Auspicious Times
+# Jyotish Query
+## Muhurta
 
 1. For each date, time, location the application shows the Lagna, Navamsa, Rasi data, and the Vimsottari Dashas.
 2. The Muhurta search dialog accepts location, start date and time, number of days to search into the future, which rising signs to explore.

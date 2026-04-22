@@ -1,8 +1,4 @@
-These are the rules used by the Analysis feature to evaluate planet and house strength.
-
----
-
-## Planetary States and Base Strength
+# Jyotish Query
 
 Each planet's strength is calculated as a percentage (0%–100%+). The following states are evaluated in sequence — reductions multiply together, so a combust and debilitated planet is weaker than either condition alone.
 
