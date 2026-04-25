@@ -1,0 +1,1 @@
+<font size="4">These Rising Sign options are not recommended. Why? Too many malefic planets. Everything should be close to perfect and they are not suitable for marriage or starting a business. OK for gems if the user re wares the gem in the future once the malefic planet sub-periods begin. I will ask on the group at some point and see how much heat I get.</font>

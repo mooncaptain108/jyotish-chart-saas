@@ -11,6 +11,8 @@
     .md-content p  { margin-bottom: 0.75rem; }
     .md-content h1,.md-content h2 { color:#c9a84c; margin-top:1.4rem; margin-bottom:0.7rem; }
     .md-content > h1:first-child, .md-content > h2:first-child { margin-top:0; }
+    details#mFmSigns[open] .mFmArrow { transform: rotate(90deg); }
+    details#mFmSigns > summary::-webkit-details-marker { display:none; }
     .md-content h3,.md-content h4 { color:#c9a84c; margin-top:1.0rem; margin-bottom:0.5rem; }
     .md-content table { margin-left:2rem; margin-bottom:0.75rem; border-collapse:collapse; }
     .md-content th, .md-content td { padding:0.2rem 0.8rem 0.2rem 0; text-align:left; }
@@ -227,6 +229,8 @@
     }
     body.light .dlg-header { border-bottom-color: #c0a870; }
     body.light .dlg-header h2 { color: #7a5808; }
+    .fm-q-btn { background:#0d1f4a;border:1px solid #2a4a8e;border-radius:50%;color:#dde8ff;font-size:0.72rem;width:1.15rem;height:1.15rem;line-height:1;padding:0;cursor:pointer;flex-shrink:0; }
+    body.light .fm-q-btn { background:#2244aa;border:1px solid #1133aa;color:#ffffff;font-weight:bold; }
     body.light .dlg-footer { border-top-color: #c0a870; }
     body.light .dlg-close-x { color: #807870; }
     body.light .dlg-close-x:hover { color: #222240; }
@@ -294,7 +298,7 @@
   <header class="toolbar">
     <span class="app-title">Jyotish Query</span>
     <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings" style="padding:0.2rem 0.4rem;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
-    <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Dark Reader">DR</button>
+    <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Toggle light/dark theme"></button>
     <div class="sep"></div>
     <button class="tb-btn" onclick="openNewDialog()">New</button>
     <button class="tb-btn" onclick="openOpenDialog()">Open</button>
@@ -458,6 +462,33 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="document.getElementById('dlgHelpData').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Muhurta Evaluation dialog ════ -->
+  <dialog id="dlgMuhurtaEval" style="max-width:560px;">
+    <div class="dlg-header">
+      <h2>Muhurta Evaluation</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgMuhurtaEval').close()">&#10005;</button>
+    </div>
+    <div class="dlg-body" style="max-height:70vh;overflow-y:auto;">
+      <div id="muhurtaEvalContent"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgMuhurtaEval').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Not Recommended Signs dialog ════ -->
+  <dialog id="dlgNotRecommended" style="max-width:560px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgNotRecommended').close()">&#10005;</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="notRecommendedContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgNotRecommended').close()">Close</button>
     </div>
   </dialog>
 
@@ -725,20 +756,28 @@
             <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
               <input type="checkbox" id="mSign_9" onchange="saveMuhurtaForm()"> Sagittarius
             </label>
-            <span style="width:1px;height:1.1rem;background:#2a4a70;margin:0 0.2rem;"></span>
-            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
-              <input type="checkbox" id="mSign_4" onchange="saveMuhurtaForm()"> Cancer
-            </label>
-            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
-              <input type="checkbox" id="mSign_8" onchange="saveMuhurtaForm()"> Scorpio
-            </label>
-            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
-              <input type="checkbox" id="mSign_10" onchange="saveMuhurtaForm()"> Capricorn
-            </label>
-            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
-              <input type="checkbox" id="mSign_11" onchange="saveMuhurtaForm()"> Aquarius
-            </label>
           </div>
+          <details id="mFmSigns" style="margin-top:0.4rem;">
+            <summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:0.5rem;font-size:0.83rem;color:#c08040;user-select:none;">
+              <span class="mFmArrow" style="font-size:0.7rem;transition:transform 0.15s;display:inline-block;">&#9654;</span>
+              &#9888; Not recommended
+              <button type="button" onclick="event.stopPropagation();openNotRecommended();" class="fm-q-btn" title="Why not recommended">?</button>
+            </summary>
+            <div style="display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:0.35rem;padding-left:0.75rem;">
+              <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+                <input type="checkbox" id="mSign_4" onchange="saveMuhurtaForm()"> Cancer
+              </label>
+              <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+                <input type="checkbox" id="mSign_8" onchange="saveMuhurtaForm()"> Scorpio
+              </label>
+              <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+                <input type="checkbox" id="mSign_10" onchange="saveMuhurtaForm()"> Capricorn
+              </label>
+              <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;color:#a0b0c0;cursor:pointer;">
+                <input type="checkbox" id="mSign_11" onchange="saveMuhurtaForm()"> Aquarius
+              </label>
+            </div>
+          </details>
         </div>
       </div>
       <details id="mFilters" class="muh-filters">
@@ -811,8 +850,20 @@
             </div>
           </div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;">
+            <div>
+              <div class="muh-planet-lbl">MEP Affliction Orb</div>
+              <select id="mMepOrb" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
+                <option value="3">3&#176;</option>
+                <option value="3.5">3.5&#176;</option>
+                <option value="4">4&#176;</option>
+                <option value="4.5">4.5&#176;</option>
+                <option value="5" selected>5&#176;</option>
+              </select>
+            </div>
+          </div>
           <div style="margin-bottom:0.5rem;">
-            <button class="btn-sec" style="font-size:0.8rem;padding:0.18rem 0.7rem;" onclick="setMuhurtaDefaults()">Default</button>
+            <button class="btn-sec" style="font-size:0.8rem;padding:0.18rem 0.7rem;" onclick="setMuhurtaDefaults()">Ideal</button>
           </div>
           <div class="muh-filter-hdr">Planet minimum strength</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
@@ -1033,6 +1084,7 @@
     document.addEventListener('click', function() { closeHelpMenu(); });
 
     let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null;
+    let _notRecommendedMd = null;
 
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
@@ -1050,6 +1102,10 @@
         .catch(() => { content.innerHTML = '<p>Content not available.</p>'; });
     }
     function openHelpMuhurta() { _openHelpDoc('dlgHelpMuhurta', 'helpMuhurtaContent', 'static/Muhurta.md'); }
+    function openNotRecommended() {
+      if (_notRecommendedMd) { document.getElementById('notRecommendedContent').innerHTML = _notRecommendedMd; document.getElementById('dlgNotRecommended').showModal(); return; }
+      fetch('static/NotRecommendedSigns.md').then(r=>r.text()).then(t=>{ _notRecommendedMd = marked.parse(t); document.getElementById('notRecommendedContent').innerHTML = _notRecommendedMd; document.getElementById('dlgNotRecommended').showModal(); }).catch(()=>{ document.getElementById('dlgNotRecommended').showModal(); });
+    }
     function openHelpCalc()    { _openHelpDoc('dlgHelpCalc',    'helpCalcContent',    'static/Calculations.md'); }
     function openHelpData()    { _openHelpDoc('dlgHelpData',    'helpDataContent',    'static/DataStorage.md'); }
     function openHelpAnalysis() { _openHelpDoc('dlgHelpAnalysis', 'helpAnalysisContent', 'static/AnalysisRules.md'); }
@@ -2407,52 +2463,161 @@
         }
       }
 
-      // ── Muhurta screening banner ──
-      // Only show for odd rising signs (1,3,5,7,9) and charts < 1 year old or in the future
+      // ── Muhurta Eval button banner ──
       const MUHURTA_LAGNA = new Set([1,3,4,5,7,8,9,10,11]);
       const chartDateMs = new Date(data.birth_data.date).getTime();
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
       if (MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo) {
-        const mScreen = screenMuhurta(data, an, getMuhurtaCfg());
-        const fmtDays = d => fmtBeneficWindow(d);
-        // Benefic window: days from chart date to next FM/node antardasha
-        let _bannerAntarDays = null;
-        {
-          const _cdt = new Date(data.birth_data.date + 'T' + data.birth_data.time);
-          const _fms = FUNC_MALEFICS[lr] || new Set();
-          let _pastCurrent = false;
-          outer_ba: for (const d of (data.dasha || [])) {
-            for (const ad of (d.antardasha || [])) {
-              if (!_pastCurrent) {
-                const s = new Date(ad.start), e = new Date(ad.end);
-                if (s <= _cdt && _cdt < e) { _pastCurrent = true; continue; }
-                if (!_pastCurrent) continue;
-              }
-              if (ad.lord === 'Rahu' || ad.lord === 'Ketu' || _fms.has(ad.lord)) {
-                const chartDay = new Date(data.birth_data.date + 'T00:00:00Z');
-                const maleficDay = new Date(ad.start.slice(0,10) + 'T00:00:00Z');
-                _bannerAntarDays = Math.round((maleficDay - chartDay) / 86400000);
-                break outer_ba;
-              }
-            }
-          }
-        }
-        const _antarStr = _bannerAntarDays != null ? ' · Benefic window: ' + fmtDays(_bannerAntarDays) : '';
-        if (mScreen.pass) {
-          html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;font-size:0.85rem;">
-            ✓ Passes Muhurta screening &nbsp;·&nbsp; ${mScreen.strongPlanets} strong planets &nbsp;·&nbsp; ${mScreen.strongHouses} strong houses
-            ${mScreen.antarDasha ? ` &nbsp;&nbsp; Antardasha: ${mScreen.antarDasha}${mScreen.antarDays != null ? ' ('+fmtDays(mScreen.antarDays)+')' : ''}` : ''}
-            ${mScreen.beneficDays != null ? ` &nbsp;·&nbsp; Benefic window: ${fmtBeneficWindow(mScreen.beneficDays)}` : ''}
-          </div>` + html;
-        } else {
-          html = `<div style="margin-bottom:0.75rem;padding:0.45rem 0.75rem;border-radius:5px;background:#2b0d0d;border:1px solid #7a2a2a;color:#ca6d6d;font-size:0.85rem;">
-            ✗ Fails Muhurta screening &nbsp;·&nbsp; ${mScreen.reason}${_antarStr}
-          </div>` + html;
-        }
+        const mScreen = screenMuhurta(data, an, IDEAL_CFG);
+        const btnStyle = mScreen.pass
+          ? 'background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;'
+          : 'background:#2b1505;border:1px solid #7a4a10;color:#e09040;';
+        html = `<button onclick="showMuhurtaEval()" style="${btnStyle}padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;">Muhurta Eval</button>` + html;
       }
 
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
+    }
+
+
+    function showMuhurtaEval() {
+      if (!lastData || !lastAnalysis) return;
+      const data = lastData, an = lastAnalysis, cfg = IDEAL_CFG;
+      const lr = data.lagna.rashi;
+      const fms = FUNC_MALEFICS[lr] || new Set();
+      const mepDeg = data.lagna.degree_in_rashi;
+      const lagnaRuler = LAGNA_RULER[lr];
+      const fmData = data.grahas
+        .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
+        .map(g => ({ graha: g.graha, house: ((g.rashi - lr + 12) % 12) + 1, deg: g.degree_in_rashi, rashi: g.rashi }));
+      const planetEntries = Object.values(an).filter(a => a && a.graha);
+      const rows = [];
+
+      // Lagna ruler strength
+      const lra = an[lagnaRuler];
+      if (lra && lra.strengthPct < cfg.lagnaLordMin)
+        rows.push({ c: `Lagna Lord (${lagnaRuler})`, i: `≥${Math.round(cfg.lagnaLordMin*100)}%`, v: Math.round(lra.strengthPct*100)+'%' });
+
+      // Badly placed planets
+      const badly = planetEntries.filter(a => a.inDushtana);
+      if (badly.length)
+        rows.push({ c: 'Badly Placed', i: 'None', v: badly.map(a => `${a.graha} h${a.house}`).join(', ') });
+
+      // Special afflictions
+      const specials = [];
+      for (const a of planetEntries)
+        for (const asp of a.allFmAspects)
+          if ((asp.special || asp.chainSpecial) && asp.isDamaging)
+            specials.push(`${asp.isRaKe ? 'Ra-Ke' : asp.fm}→${a.graha}`);
+      if (specials.length)
+        rows.push({ c: 'Special Affliction', i: 'None', v: specials.join(', ') });
+
+      // 2+ FMs on MT house MEP
+      for (let h = 1; h <= 12; h++) {
+        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
+        if (!MOOLA_LORD[hRashi]) continue;
+        const seen = new Set();
+        for (const fm of fmData)
+          if (fmAspectedHouses(fm.graha, fm.house).has(h) && Math.abs(fm.deg - mepDeg) < cfg.mepOrb)
+            seen.add(fm.graha);
+        if (seen.size >= 2)
+          rows.push({ c: `2+ FMs on h${h} MEP`, i: 'None within 5°', v: [...seen].join('+') });
+      }
+
+      // FM on MT MEP + lord afflicted
+      for (let h = 1; h <= 12; h++) {
+        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
+        const hLord = MOOLA_LORD[hRashi];
+        if (!hLord) continue;
+        let affFm = null;
+        for (const fm of fmData)
+          if (fmAspectedHouses(fm.graha, fm.house).has(h) && Math.abs(fm.deg - mepDeg) < cfg.mepOrb)
+            { affFm = fm.graha; break; }
+        if (affFm && pAff(hLord, an))
+          rows.push({ c: `FM+Lord h${h}`, i: 'Clean', v: `${affFm} on MEP, ${hLord} afflicted` });
+      }
+
+      // Active antardasha
+      const chartDt = new Date(data.birth_data.date + 'T' + data.birth_data.time);
+      let activeAntar = null;
+      outer_ae: for (const d of (data.dasha || []))
+        for (const ad of (d.antardasha || [])) {
+          const s = new Date(ad.start), e = new Date(ad.end);
+          if (s <= chartDt && chartDt < e) { activeAntar = { dasha: d.lord, antar: ad.lord, start: ad.start, end: ad.end }; break outer_ae; }
+        }
+      if (activeAntar) {
+        const al = activeAntar.antar;
+        const lbl = `Antardasha (${activeAntar.dasha}/${al})`;
+        if (al === 'Rahu' || al === 'Ketu')
+          rows.push({ c: lbl, i: 'Not a node', v: al });
+        else if (fms.has(al))
+          rows.push({ c: lbl, i: 'Not FM', v: `${al} is FM` });
+        else {
+          const aa = an[al];
+          if (aa && aa.strengthPct < (cfg.antarMin || 0.70))
+            rows.push({ c: lbl + ' strength', i: `≥${Math.round((cfg.antarMin||0.70)*100)}%`, v: Math.round(aa.strengthPct*100)+'%' });
+          if (aa && aa.inDushtana)
+            rows.push({ c: lbl + ' placement', i: 'Not dushtana', v: `h${aa.house}` });
+        }
+      }
+
+      // Moon nak lord
+      const moonG = data.grahas.find(g => g.graha === 'Moon');
+      if (moonG) {
+        const moonLon = (moonG.rashi - 1) * 30 + moonG.degree_in_rashi;
+        const nakLord = NAK_LORDS_27[Math.min(Math.floor(moonLon / (360/27)), 26)];
+        if (nakLord === 'Rahu' || nakLord === 'Ketu' || fms.has(nakLord))
+          rows.push({ c: 'Moon Nak Lord', i: 'Not FM/Node', v: nakLord });
+      }
+
+      // Strong planets
+      const MAIN_7 = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
+      const sp = MAIN_7.filter(p => an[p] && an[p].strengthPct >= 0.70).length;
+      if (sp < cfg.minStrongPlanets)
+        rows.push({ c: 'Strong Planets', i: `≥${cfg.minStrongPlanets}`, v: String(sp) });
+
+      // Strong houses
+      const houseMap = an._houses;
+      let sh = 0;
+      for (let h = 1; h <= 12; h++) {
+        const hs = houseMap[h]; if (!hs) continue;
+        const s = hs.mt ? (an[hs.lord] ? an[hs.lord].strengthPct : 0) : hs.sp;
+        if (s >= 0.70) sh++;
+      }
+      if (sh < cfg.minStrongHouses)
+        rows.push({ c: 'Strong Houses', i: `≥${cfg.minStrongHouses}`, v: String(sh) });
+
+      // Benefic window
+      let bDays = null;
+      if (activeAntar) {
+        let past = false;
+        outerBE: for (const d of (data.dasha || []))
+          for (const ad of (d.antardasha || [])) {
+            if (!past) { const s=new Date(ad.start),e=new Date(ad.end); if(s<=chartDt&&chartDt<e){past=true;continue;} if(!past)continue; }
+            if (ad.lord==='Rahu'||ad.lord==='Ketu'||fms.has(ad.lord)) {
+              bDays = Math.round((new Date(ad.start.slice(0,10)+'T00:00:00Z')-new Date(data.birth_data.date+'T00:00:00Z'))/86400000);
+              break outerBE;
+            }
+          }
+      }
+      if (bDays !== null && bDays < cfg.minBeneficDays)
+        rows.push({ c: 'Benefic Window', i: `≥${cfg.minBeneficDays}d`, v: fmtBeneficWindow(bDays) });
+
+      // Render
+      let out = `<div style="margin-bottom:0.65rem;font-size:0.83rem;">`;
+      out += rows.length === 0
+        ? `<span style="color:#6dca8a;">✓ All criteria meet Ideal standard.</span>`
+        : `<span style="color:#ca6d6d;">${rows.length} criterion${rows.length>1?'a':''} less than Ideal</span>`;
+      out += `</div>`;
+      if (rows.length) {
+        out += `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;line-height:1.5;">`;
+        out += `<tr style="color:#606880;font-size:0.78rem;border-bottom:1px solid #1a2a40;"><th style="text-align:left;padding:0 0.5rem 0.2rem 0;font-weight:normal;">Criterion</th><th style="text-align:left;padding:0 0.5rem 0.2rem;font-weight:normal;">Ideal</th><th style="text-align:left;padding:0 0 0.2rem;font-weight:normal;">Chart</th></tr>`;
+        for (const r of rows)
+          out += `<tr style="border-bottom:1px solid #111a28;"><td style="padding:0.22rem 0.5rem 0.22rem 0;color:#c0c0d0;">${r.c}</td><td style="padding:0.22rem 0.5rem;color:#7080a0;">${r.i}</td><td style="padding:0.22rem 0;color:#ca6d6d;">${r.v}</td></tr>`;
+        out += `</table>`;
+      }
+      document.getElementById('muhurtaEvalContent').innerHTML = out;
+      document.getElementById('dlgMuhurtaEval').showModal();
     }
 
     // ═══════════════════════════════════════════════════
@@ -2828,6 +2993,11 @@
     ];
 
     const MUHURTA_CFG_KEY = 'jyotish_muhurta_cfg';
+    const IDEAL_CFG = {
+      minBeneficDays: 30, antarMin: 0.70, lagnaLordMin: 0.70,
+      minStrongPlanets: 4, minStrongHouses: 7, mepOrb: 5,
+      planetMins: {}, allowWeakAntar: false, lowerStrongThreshold: false
+    };
     const MUHURTA_FORM_KEY = 'jyotish_muhurta_form';
     const MUHURTA_SIGN_ORDER = [3,1,5,7,9,4,8,10,11];
     const MUHURTA_SIGN_NAMES = {1:'Aries',3:'Gemini',4:'Cancer',5:'Leo',7:'Libra',8:'Scorpio',9:'Sagittarius',10:'Capricorn',11:'Aquarius'};
@@ -2857,6 +3027,7 @@
         allowAffCond5:       cfg.allowAffCond5 || false,
         allowRule5b:         cfg.allowRule5b   || false,
         allowRule5c:         cfg.allowRule5c   || false,
+        mepOrb:              cfg.mepOrb != null ? cfg.mepOrb : 5,
         planetMins
       };
     }
@@ -2881,6 +3052,7 @@
         allowAffCond5:        g('mAllowAffCond5').checked,
         allowRule5b:          g('mAllowRule5b').checked,
         allowRule5c:          g('mAllowRule5c').checked,
+        mepOrb:               parseFloat(g('mMepOrb').value) || 5,
         planetMins
       };
       localStorage.setItem(MUHURTA_CFG_KEY, JSON.stringify(cfg));
@@ -2908,6 +3080,7 @@
       chkCfg('mAllowAffCond5', cfg.allowAffCond5);
       chkCfg('mAllowRule5b',   cfg.allowRule5b);
       chkCfg('mAllowRule5c',   cfg.allowRule5c);
+      selCfg('mMepOrb', cfg.mepOrb != null ? String(cfg.mepOrb) : '5');
       for (const p of MUHURTA_PLANETS) {
         const v = cfg.planetMins[p] || 0;
         sel('mPlanet_' + p, v > 0 ? parseFloat(v).toFixed(2) : '0');
@@ -2921,9 +3094,10 @@
       const s = (id, v) => { const e = document.getElementById(id); if (e) { e.value = String(v); } };
       s('mMinBenefic', 30);
       s('mAntarMin', '0.70');
-      s('mLagnaLordMin', '0.60');
-      s('mMinStrongPlanets', 2);
-      s('mMinStrongHouses', 5);
+      s('mLagnaLordMin', '0.70');
+      s('mMinStrongPlanets', 4);
+      s('mMinStrongHouses', 7);
+      s('mMepOrb', '5');
       for (const p of MUHURTA_PLANETS) s('mPlanet_' + p, 0);
       saveMuhurtaCfg();
     }
@@ -2962,8 +3136,9 @@
       const cfg = getMuhurtaCfg();
       if (cfg.minBeneficDays !== 30) return true;
       if (cfg.antarMin !== 0.70) return true;
-      if (cfg.lagnaLordMin !== 0.60) return true;
-      if (cfg.minStrongPlanets !== 2 || cfg.minStrongHouses !== 5) return true;
+      if (cfg.lagnaLordMin !== 0.70) return true;
+      if (cfg.minStrongPlanets !== 4 || cfg.minStrongHouses !== 7) return true;
+      if ((cfg.mepOrb || 5) !== 5) return true;
       for (const p of MUHURTA_PLANETS) {
         if ((cfg.planetMins[p] || 0) > 0) return true;
       }
@@ -3412,7 +3587,7 @@
       const planetMins = cfg.planetMins || {};
       for (const p of MUHURTA_PLANETS) {
         let minStr = planetMins[p] || 0;
-        if (p === lagnaRuler) minStr = Math.max(0.60, minStr);
+        if (p === lagnaRuler) minStr = Math.max(cfg.lagnaLordMin || 0.60, minStr);
         if (minStr > 0) {
           const pa = analysis[p];
           if (pa && pa.strengthPct < minStr)
@@ -3443,7 +3618,7 @@
         const seen = new Set();
         for (const fm of fmData) {
           if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
-          if (Math.abs(fm.deg - mepDeg) < 5) seen.add(fm.graha);
+          if (Math.abs(fm.deg - mepDeg) < (cfg.mepOrb || 5)) seen.add(fm.graha);
         }
         if (seen.size >= 2)
           return { pass: false, reason: `2+ FMs afflict MT house ${h} MEP` };
@@ -3457,7 +3632,7 @@
         let hAff = false;
         for (const fm of fmData) {
           if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
-          if (Math.abs(fm.deg - mepDeg) < 5) { hAff = true; break; }
+          if (Math.abs(fm.deg - mepDeg) < (cfg.mepOrb || 5)) { hAff = true; break; }
         }
         if (hAff && pAff(hLord, analysis))
           return { pass: false, reason: `FM afflicts h${h} MEP and ${hLord} is afflicted` };
@@ -3479,7 +3654,7 @@
         if (fms.has(al))
           return { pass: false, reason: `Active antardasha ${al} is FM`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
         const aa = analysis[al];
-        if (!cfg.allowWeakAntar && aa && aa.strengthPct < 0.70)
+        if (!cfg.allowWeakAntar && aa && aa.strengthPct < (cfg.antarMin || 0.70))
           return { pass: false, reason: `Active antardasha ${al} strength ${Math.round(aa.strengthPct * 100)}% < 70%`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
         if (aa && aa.inDushtana)
           return { pass: false, reason: `Active antardasha ${al} badly placed (h${aa.house})`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
@@ -3663,7 +3838,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgMuhurtaEval','dlgNotRecommended'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
