@@ -1,4 +1,14 @@
 # Jyotish Query
+
+<div style=" border: 2px solid #ffffffff; padding: 10px; border-radius: 5px;">
+There are a lot of filters that allow the user to reduce or increase the strict rules laid out below.
+<ul>
+  <li>This is for the purpose of finding more possible charts but once relaxed the failing charts will be marked in the results with a caution icon. </li>
+  <li>The Muhurta Eval button in the Analyze header lists all the failed tests. </li>
+</ul>
+</div>
+
+
 ## Muhurta
 
 1. For each date, time, location the application shows the Lagna, Navamsa, Rasi data, and the Vimsottari Dashas.
@@ -12,8 +22,11 @@
       - Libra (lagna lord Venus)
       - Sagittarius (lagna lord Jupiter)
 
+  - For research only: Cancer Scorpio Capricorn Aquarius
+    - click the ? icon in the Muhurta dialog.
+
 - Dismiss if there are any badly placed planets.
-- Dismiss if the starting antardasha planet is not a well placed, benefic planet.
+- Dismiss if the starting antardasha planet is not a benefic planet.
 - Dismiss if there is a concentration of malefic influence.
   Any of the following qualifies as a concentration:
     - Any special affliction.
@@ -28,12 +41,9 @@
     To qualify after the above tests are passed:
 
     - The Moon (Malefic or Benefic) is in the Nakshatra of a benefic planet.
-    - Two or more strong planets. Not counting Rahu or Ketu but could include Mercury and the Moon if either is Malefic. 
-    - Five or more strong houses.
-    
-4. Users may also enter in additional filters:
-   - The minimum length of the benefic Antardasha.
-   - The minimum strength of any planet.
-   - The minimum strength of Lagna ruler.
-5. The results are displayed in a list and any result can be displayed in a chart - which includes Lagna, Navamsa, Vimsottari Dashas, Rasi list - with Nakshatras.
-6. A report can be saved locally.
+    - These can be modified.
+      - No afflictions to Lagna lord, its MT sign, or its house of occupation. This is modifiable so everyone can see that it is a bad idea.
+      - Four or more strong planets. Not counting Rahu or Ketu but could include Mercury and the Moon if either is Malefic. 
+      - Seven or more strong houses.    
+1. The results are displayed in a list and any result can be displayed in a chart - which includes Lagna, Navamsa, Vimsottari Dashas, Rasi list - with Nakshatras.
+2. A report can be saved locally.
