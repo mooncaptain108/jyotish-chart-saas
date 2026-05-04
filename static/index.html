@@ -1804,6 +1804,7 @@
         const inOwnMT        = !isNode && MOOLA_RASHI[g.graha] === g.rashi;
         const inSunLikeHouse = !isNode && (house === 2 || house === 3 || house === 9);
         const inLeo          = !isNode && g.rashi === 5;
+        const isSunLikePlanet = !isNode && g.graha !== 'Sun' && sunLikePlanets.has(g.graha);
         const d9Exalted   = d9RashiMap[g.graha] !== undefined && EXALT_RASHI[g.graha] === d9RashiMap[g.graha];
         const d9House     = d9LagnaRashi !== null && d9RashiMap[g.graha] !== undefined
                             ? ((d9RashiMap[g.graha] - d9LagnaRashi + 12) % 12) + 1 : null;
@@ -2055,6 +2056,7 @@
           return occAfflictions.some(a => a.orb < 1);
         })();
         let sunLikeBoost = false;
+        if (isSunLikePlanet)                      { strengthPct *= 1.25; sunLikeBoost = true; }
         if (inOwnMT        && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
         if (inSunLikeHouse && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
         if (inLeo          && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
@@ -2067,7 +2069,7 @@
           house, deg:g.degree_in_rashi, retro:g.retrograde,
           isFM, isMMP, isNode, combust, weakByDeg, debilitated, d9Debilitated, exalted, inOwnMT, d9Exalted, d9House, d9InDushtana, inDushtana,
           afflictions, allFmAspects, mtAfflictions, occAfflictions, cond5, dispositor,
-          degPct, strengthPct, planetIsStrong, sunLikeBoost, inOwnMT, inSunLikeHouse, inLeo, mepHouseAfflicted, fbAspects, fbBoostItems:[],
+          degPct, strengthPct, planetIsStrong, sunLikeBoost, isSunLikePlanet, inOwnMT, inSunLikeHouse, inLeo, mepHouseAfflicted, fbAspects, fbBoostItems:[],
           baseWeak, dispositorWeak:false, isWeak:baseWeak, dispCapChain:[], color:null
         };
       }
@@ -2392,6 +2394,10 @@
         }
 
         // Step 9: Sun-like boosts (suppressed if FM within 1° of MEP; FM in own MT exempt)
+        if (a.isSunLikePlanet) {
+          cur *= 1.25;
+          html += `<div class="an-item c-green">Sun-like planet: +25% ${run()}</div>`;
+        }
         if (a.inOwnMT && !a.mepHouseAfflicted) {
           cur *= 1.25;
           html += `<div class="an-item c-green">Own MT sign (${a.rashiName}): +25% ${run()}</div>`;
