@@ -1801,7 +1801,9 @@
         const debilitated   = DEBI_RASHI[g.graha] === g.rashi;
         const d9Debilitated = d9RashiMap[g.graha] !== undefined && DEBI_RASHI[g.graha] === d9RashiMap[g.graha];
         const exalted     = EXALT_RASHI[g.graha] === g.rashi;
-        const inOwnMT     = !isNode && MOOLA_RASHI[g.graha] === g.rashi;
+        const inOwnMT        = !isNode && MOOLA_RASHI[g.graha] === g.rashi;
+        const inSunLikeHouse = !isNode && (house === 2 || house === 3 || house === 9);
+        const inLeo          = !isNode && g.rashi === 5;
         const d9Exalted   = d9RashiMap[g.graha] !== undefined && EXALT_RASHI[g.graha] === d9RashiMap[g.graha];
         const d9House     = d9LagnaRashi !== null && d9RashiMap[g.graha] !== undefined
                             ? ((d9RashiMap[g.graha] - d9LagnaRashi + 12) % 12) + 1 : null;
@@ -2026,7 +2028,7 @@
           } else {
             for (const aff of afflictions) {
               const effSpec  = aff.special || aff.chainSpecial;
-              const baseLoss = effSpec ? 0.75 : 0.5;
+              const baseLoss = planetIsStrong ? 0.5 : 0.75;
               if (planetIsStrong) {
                 // Strong planet: flat full baseLoss within orb, nothing beyond
                 strengthPct *= (1 - baseLoss);
@@ -2041,10 +2043,21 @@
         // Positive state boosts — stacking, no cap; apply to FM planets too
         // 1. Exaltation +25% (non-nodes only; nodes handled in node strength pass)
         if (!isNode && exalted) strengthPct *= 1.25;
-        // 2. Own MT sign +25% — generalises sunLikeBoost to all planets
-        //    Exception: Sun FM within 1° of MEP does not get this boost
+        // 2. Sun-like boosts — all three stack independently
+        //    own MT sign: +25% any house
+        //    h2/h3/h9: +25% any sign
+        //    Leo: +25% any house
+        //    Suppressed if any FM within 1° of occupied house MEP
+        //    Exception: FM in own MT sign keeps all boosts regardless
+        const mepHouseAfflicted = (() => {
+          if (isFM && inOwnMT) return false;
+          if (inOwnMT) return mtAfflictions.some(a => a.orb < 1);
+          return occAfflictions.some(a => a.orb < 1);
+        })();
         let sunLikeBoost = false;
-        if (inOwnMT) { strengthPct *= 1.25; sunLikeBoost = true; }
+        if (inOwnMT        && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
+        if (inSunLikeHouse && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
+        if (inLeo          && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
         // 3. D9 exaltation +25% — skip if planet is in dushtana in D9
         if (d9Exalted && !d9InDushtana) strengthPct *= 1.25;
 
@@ -2054,7 +2067,7 @@
           house, deg:g.degree_in_rashi, retro:g.retrograde,
           isFM, isMMP, isNode, combust, weakByDeg, debilitated, d9Debilitated, exalted, inOwnMT, d9Exalted, d9House, d9InDushtana, inDushtana,
           afflictions, allFmAspects, mtAfflictions, occAfflictions, cond5, dispositor,
-          degPct, strengthPct, planetIsStrong, sunLikeBoost, fbAspects, fbBoostItems:[],
+          degPct, strengthPct, planetIsStrong, sunLikeBoost, inOwnMT, inSunLikeHouse, inLeo, mepHouseAfflicted, fbAspects, fbBoostItems:[],
           baseWeak, dispositorWeak:false, isWeak:baseWeak, dispCapChain:[], color:null
         };
       }
@@ -2354,7 +2367,7 @@
             const chainTag = asp.chainSpecial ? ` [chain: ${asp.chainSource}→${asp.fm}]` : '';
             if (asp.isDamaging) {
               const effSpec  = asp.special || asp.chainSpecial;
-              const baseLoss = effSpec ? 0.75 : 0.5;
+              const baseLoss = a.planetIsStrong ? 0.5 : 0.75;
               let loss, lossDesc;
               if (a.planetIsStrong) {
                 loss     = baseLoss;
@@ -2378,10 +2391,21 @@
           html += `<div class="an-item c-brown">Strength from ${a.rashiName} (house ${a.house}) ${run()}</div>`;
         }
 
-        // Step 9: Own MT sign boost
-        if (a.sunLikeBoost) {
+        // Step 9: Sun-like boosts (suppressed if FM within 1° of MEP; FM in own MT exempt)
+        if (a.inOwnMT && !a.mepHouseAfflicted) {
           cur *= 1.25;
-          html += `<div class="an-item c-green">Occupies MT sign ${a.rashiName}: +25% ${run()}</div>`;
+          html += `<div class="an-item c-green">Own MT sign (${a.rashiName}): +25% ${run()}</div>`;
+        }
+        if (a.inSunLikeHouse && !a.mepHouseAfflicted) {
+          cur *= 1.25;
+          html += `<div class="an-item c-green">Sun-like house (h${a.house}): +25% ${run()}</div>`;
+        }
+        if (a.inLeo && !a.mepHouseAfflicted) {
+          cur *= 1.25;
+          html += `<div class="an-item c-green">In Leo: +25% ${run()}</div>`;
+        }
+        if (a.mepHouseAfflicted && (a.inOwnMT || a.inSunLikeHouse || a.inLeo)) {
+          html += `<div class="an-item c-muted">Sun-like boost suppressed — FM within 1° of MEP</div>`;
         }
         // Step 9b: D9 exaltation boost (nodes: informational only)
         if (a.d9Exalted) {

@@ -95,19 +95,25 @@ A functional malefic planet is always shown in red regardless of its strength pe
 
 ## Sun-Like Planet Rules
 
-Sun-like planets are the lords of the **2nd, 3rd, and 9th houses** that contain a Moolatrikona sign for the current rising sign. Leo (sign 5) is always a sun-like sign, and Sun is always a sun-like planet.
+The 2nd, 3rd, and 9th houses are **sun-like houses**. Leo (sign 5) is always sun-like regardless of which house it occupies.
 
-**An increase of (+25%)** is applied when:
-- A sun-like planet is placed in its own Moolatrikona sign
-- A sun-like planet is placed in Leo
-- A sun-like planet is placed in another sun-like sign
-- Sun is placed in Leo
+Three boosts apply independently and **stack**:
 
-The increase stacks with exaltation and D9 exaltation increases.
+| Condition | Boost |
+|---|---|
+| Planet in its own Moolatrikona sign (any house) | +25% |
+| Planet in house 2, 3, or 9 (any sign) | +25% |
+| Planet in Leo (any house) | +25% |
 
-**Exception:** A functional malefic Sun within 1° of the house MEP does not receive this increase.
+All three conditions are evaluated independently — a planet that satisfies more than one receives multiple boosts stacked together.
 
-**Weak-planet recovery:** A sun-like planet placed in a sun-like sign or Leo can recover from weakness due to infancy or old age, up to a maximum of 100%.
+These increases stack with exaltation and D9 exaltation increases.
+
+**Suppression:** If any functional malefic is within **1° of the MEP** of the planet's occupied house, all sun-like boosts for that planet are suppressed.
+
+**Exception to suppression:** A functional malefic planet placed in its **own Moolatrikona sign** retains all sun-like boosts regardless of MEP proximity. It is still dignified by occupying its own sign, and it still casts its normal aspects to other houses.
+
+**Weak-planet recovery:** A planet receiving a sun-like boost can recover from weakness due to infancy or old age, up to a maximum of 100%.
 
 ---
 
@@ -143,7 +149,7 @@ Every planet casts a **7th house (180°) aspect**. Additionally:
 
 **Strength loss:**
 - Strong planet: flat **−50%** loss (within 1°)
-- Weak planet: graduated **−50% × (1 − orb / 5)** — full loss at 0°, tapering to 0 at 5°
+- Weak planet: graduated **−75% × (1 − orb / 5)** — full loss at 0°, tapering to 0 at 5°
 
 ---
 
@@ -162,7 +168,7 @@ An affliction is **special** when any of the following conditions apply:
 - **Weak planet:** special affliction within **5°** is weakening
 
 **Strength loss from special affliction:**
-- Strong planet: flat **−75%** loss (within 2°)
+- Strong planet: flat **−50%** loss (within 2°)
 - Weak planet: graduated **−75% × (1 − orb / 5)** — full loss at 0°, tapering to 0 at 5°
 
 ---
