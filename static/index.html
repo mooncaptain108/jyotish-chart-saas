@@ -2186,27 +2186,33 @@
           }
           // FM afflictions (including Rahu/Ketu 5th and 9th aspects)
           // Use fmData (not fms) — fms excludes Rahu/Ketu which are always FM
+          // Nodes are special only when conjunct (in the house); a pure 5th/9th aspect is regular.
           for (const fm of fmData) {
             if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
             const orb = Math.abs(fm.deg - mepDeg);
             if (orb >= 5) continue;
-            const isSpecial = fm.graha === 'Rahu' || fm.graha === 'Ketu' || fm.graha === mmp;
+            const isFMconj  = fm.house === h;
+            const isFMnode  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
+            const isSpecial = fm.graha === mmp || (isFMnode && isFMconj);
             const loss = (isSpecial ? 0.75 : 0.5) * (1 - orb / 5);
             if (loss <= 0) continue;
             sp -= loss;
-            afflictions.push({ planet:fm.graha, orb, loss, isSpecial });
+            afflictions.push({ planet:fm.graha, orb, loss, isSpecial, isFMconj });
           }
-          // If all afflictions are nodes (Rahu+Ketu), it is the Ra-Ke axis — one -75% loss, not two
+          // If all afflictions are nodes (Rahu+Ketu), consolidate into one graduated loss.
+          // Special only when one node is conjunct (length===2, one conjunct + 7th aspect).
+          // A lone node 5th/9th aspect (length===1) is regular.
           const onlyNodes = afflictions.length > 0 && afflictions.every(a => a.planet === 'Rahu' || a.planet === 'Ketu');
+          let rkLoss = null;
           if (onlyNodes) {
-            // Undo the two separate node losses, apply a single -75%
             for (const a of afflictions) sp += a.loss;
-            const rkOrb = Math.min(...afflictions.map(a => a.orb));
-            const rkLoss = 0.75 * (1 - rkOrb / 5);
+            const rkOrb     = Math.min(...afflictions.map(a => a.orb));
+            const rkSpecial = afflictions.some(a => a.isFMconj);
+            rkLoss = (rkSpecial ? 0.75 : 0.5) * (1 - rkOrb / 5);
             sp -= rkLoss;
           }
           sp = Math.max(sp, 0);
-          houses[h] = { mt:false, rashi:hRashi, sp, boosts, afflictions, onlyNodes };
+          houses[h] = { mt:false, rashi:hRashi, sp, boosts, afflictions, onlyNodes, rkLoss };
         }
       }
       analysis._houses = houses;
@@ -2481,20 +2487,39 @@
             const cls  = (!sp || sp < 0.6) ? 'c-brown' : (sp < 0.7 ? 'c-gold' : 'c-green');
             html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}) — MT lord ${hs.lord}: ${sp !== null ? pct(sp) : '?'}</div>`;
           } else {
-            const hasAff = hs.afflictions && hs.afflictions.length > 0;
-            const cls = hasAff ? 'c-brown' : (hs.sp > 1.0 ? 'c-green' : 'c-gray');
-            let houseNote = '';
-            if (hs.boosts && hs.boosts.length)
-              houseNote += ' — ' + hs.boosts.map(b => `${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}°)`).join(', ');
-            if (hs.afflictions && hs.afflictions.length) {
-              if (hs.onlyNodes) {
-                const orbStr = hs.afflictions.map(a => `${a.planet} ${a.orb.toFixed(2)}°`).join(', ');
-                houseNote += ` — Ra-Ke axis (${orbStr}) → −75%`;
-              } else {
-                houseNote += ' — ' + hs.afflictions.map(a => `${a.planet}${a.isSpecial ? '* ' : ' '}−${pct(a.loss)} (${a.orb.toFixed(2)}°)`).join(', ');
+            const hasAff   = hs.afflictions && hs.afflictions.length > 0;
+            const hasBoost = hs.boosts && hs.boosts.length > 0;
+            const cls = (!hasAff && hs.sp > 1.0) ? 'c-green' : (hasAff && hs.sp < 0.6) ? 'c-brown' : 'c-gray';
+            html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}): ${pct(hs.sp)}</div>`;
+            if (hasBoost || hasAff) {
+              let hcur = 1.0;
+              const hrun = () => `<span class="an-run">= ${pct(Math.min(Math.max(hcur, 0), 1))}</span>`;
+              if (hs.boosts) {
+                for (const b of hs.boosts) {
+                  hcur += b.boost;
+                  html += `<div class="an-item c-green" style="padding-left:1.5rem;">${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}°) ${hrun()}</div>`;
+                }
+              }
+              if (hasAff) {
+                if (hs.onlyNodes) {
+                  const rkL = hs.rkLoss != null ? hs.rkLoss : 0.75;
+                  hcur -= rkL;
+                  if (hs.afflictions.length === 1) {
+                    const a = hs.afflictions[0];
+                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet} — ${a.orb.toFixed(2)}° → −${Math.round(rkL * 100)}% ${hrun()}</div>`;
+                  } else {
+                    const orbStr = hs.afflictions.map(a => `${a.planet} ${a.orb.toFixed(2)}°`).join(', ');
+                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">Ra-Ke axis — ${orbStr} → −${Math.round(rkL * 100)}% ${hrun()}</div>`;
+                  }
+                } else {
+                  for (const a of hs.afflictions) {
+                    hcur -= a.loss;
+                    const specTag = a.isSpecial ? '*' : '';
+                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet}${specTag} — ${a.orb.toFixed(2)}° → −${Math.round(a.loss * 100)}% ${hrun()}</div>`;
+                  }
+                }
               }
             }
-            html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}): ${pct(hs.sp)}${houseNote}</div>`;
           }
         }
       }
