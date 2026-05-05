@@ -856,7 +856,11 @@
             </div>
           </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#c8a860;margin-bottom:0.4rem;">
+            <input type="checkbox" id="mNoFmLagna" onchange="onNoFmLagnaChange()">
+            No FM aspect to Lagna Lord, MT sign, House occ sign
+          </label>
+          <div id="mMepOrbRow" style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem 0.6rem;margin-bottom:0.6rem;visibility:hidden;">
             <div>
               <div class="muh-planet-lbl">Lagna Lord Orb</div>
               <select id="mMepOrb" class="muh-select" style="width:100%;border-radius:3px;padding:0.2rem 0.3rem;font-size:0.88rem;" onchange="saveMuhurtaCfg()">
@@ -868,10 +872,6 @@
               </select>
             </div>
           </div>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;color:#c8a860;margin-bottom:0.4rem;">
-            <input type="checkbox" id="mNoFmLagna" onchange="onNoFmLagnaChange()">
-            No FM aspect to Lagna Lord, MT sign, House occ sign
-          </label>
           <div class="muh-filter-hdr">Planet minimum strength</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.35rem 0.5rem;">
             <div><div class="muh-planet-lbl">Sun</div>
@@ -3070,11 +3070,17 @@
       };
     }
     function onNoFmLagnaChange() {
-      const cb = document.getElementById('mNoFmLagna');
-      const d  = document.getElementById('mMepOrb');
+      const cb  = document.getElementById('mNoFmLagna');
+      const d   = document.getElementById('mMepOrb');
+      const row = document.getElementById('mMepOrbRow');
       if (cb && d) {
-        if (cb.checked) { d.value = '5'; d.disabled = true; }
-        else { d.disabled = false; }
+        if (cb.checked) {
+          d.value = '5'; d.disabled = true;
+          if (row) row.style.visibility = 'hidden';
+        } else {
+          d.disabled = false;
+          if (row) row.style.visibility = 'visible';
+        }
       }
       saveMuhurtaCfg();
     }
@@ -3131,8 +3137,10 @@
       selCfg('mMepOrb', cfg.mepOrb != null ? String(cfg.mepOrb) : '5');
       chkCfg('mNoFmLagna', cfg.noFmLagna != null ? cfg.noFmLagna : true);
       { const isStrict = cfg.noFmLagna != null ? cfg.noFmLagna : true;
-        const d = document.getElementById('mMepOrb');
-        if (d) d.disabled = isStrict; }
+        const d   = document.getElementById('mMepOrb');
+        const row = document.getElementById('mMepOrbRow');
+        if (d) d.disabled = isStrict;
+        if (row) row.style.visibility = isStrict ? 'hidden' : 'visible'; }
       for (const p of MUHURTA_PLANETS) {
         const v = cfg.planetMins[p] || 0;
         sel('mPlanet_' + p, v > 0 ? parseFloat(v).toFixed(2) : '0');
@@ -3162,6 +3170,7 @@
       s('mMepOrb', '5');
       { const e = document.getElementById('mNoFmLagna'); if (e) e.checked = true; }
       { const d = document.getElementById('mMepOrb'); if (d) { d.value = '5'; d.disabled = true; } }
+      { const row = document.getElementById('mMepOrbRow'); if (row) row.style.visibility = 'hidden'; }
       for (const p of MUHURTA_PLANETS) s('mPlanet_' + p, 0);
       saveMuhurtaCfg();
     }
