@@ -97,7 +97,7 @@ A functional malefic planet is always shown in red regardless of its strength pe
 
 The 2nd, 3rd, and 9th houses are **sun-like houses**. Leo (sign 5) is always sun-like regardless of which house it occupies.
 
-A planet is a **sun-like planet** for a given chart if its Moolatrikona sign falls in house 2, 3, or 9. The Sun is excluded — Sun in Leo is already covered by the Leo placement boost below.
+A planet is a **sun-like planet** for a given chart if its Moolatrikona sign falls in house 2, 3, or 9. The Sun is excluded — Sun in Leo is covered by the own MT sign boost, not a separate Leo boost.
 
 Four boosts apply independently and **stack**:
 
@@ -106,7 +106,9 @@ Four boosts apply independently and **stack**:
 | Planet is a sun-like planet for this chart | +25% | No — inherent to the planet's nature |
 | Planet in its own Moolatrikona sign (any house) | +25% | Yes |
 | Planet in house 2, 3, or 9 (any sign) | +25% | Yes |
-| Planet in Leo (any house) | +25% | Yes |
+| Planet in Leo (any house, excluding Sun) | +25% | Yes |
+
+The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — applying both would double-count the same condition. Sun in Leo receives only the own MT sign boost (and the sun-like house boost if applicable).
 
 All four conditions are evaluated independently — a planet satisfying more than one receives multiple boosts stacked together.
 

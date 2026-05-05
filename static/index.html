@@ -1803,7 +1803,7 @@
         const exalted     = EXALT_RASHI[g.graha] === g.rashi;
         const inOwnMT        = !isNode && MOOLA_RASHI[g.graha] === g.rashi;
         const inSunLikeHouse = !isNode && (house === 2 || house === 3 || house === 9);
-        const inLeo          = !isNode && g.rashi === 5;
+        const inLeo          = !isNode && g.rashi === 5 && g.graha !== 'Sun';
         const isSunLikePlanet = !isNode && g.graha !== 'Sun' && sunLikePlanets.has(g.graha);
         const d9Exalted   = d9RashiMap[g.graha] !== undefined && EXALT_RASHI[g.graha] === d9RashiMap[g.graha];
         const d9House     = d9LagnaRashi !== null && d9RashiMap[g.graha] !== undefined
