@@ -5,12 +5,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from routers import chart, geocode, muhurta
+from activity import ActivityLogger
 
 app = FastAPI(
     title="Vedic Jyotish Chart API",
     description="Vedic astrology (Jyotish) birth chart calculation engine using Swiss Ephemeris.",
     version="1.0.0",
 )
+
+app.add_middleware(ActivityLogger)
 
 # Include routers
 app.include_router(chart.router)

@@ -1,0 +1,10 @@
+services:
+  jyotish:
+    image: mooncaptain/jyotishquery:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MUHURTA_WORKERS=8
+    restart: unless-stopped

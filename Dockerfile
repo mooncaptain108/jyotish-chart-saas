@@ -5,6 +5,7 @@ RUN python -m venv /opt/venv
 WORKDIR /build
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+RUN apt-get update && apt-get install -y libsqlite3-dev
 
 # depending on .dockerignore
 COPY . .
@@ -23,9 +24,11 @@ COPY --from=builder /build/services ./services
 COPY --from=builder /build/static ./static
 COPY --from=builder /build/config.py .
 COPY --from=builder /build/main.py .
+COPY --from=builder /build/activity.py .
 
 ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 8000
+RUN mkdir -p /app/data
 # Use a JSON array to ensure correct execution
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "5"]
