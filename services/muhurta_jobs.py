@@ -290,3 +290,15 @@ def cancel_job(job_id: str) -> bool:
     job['abort'] = True
     _write_job(job)
     return True
+
+def get_job_meta(job_id: str) -> dict | None:
+    job = _read_job(job_id)
+    if not job:
+        return None
+    return {'done': job.get('done', False), 'logged': job.get('logged', False), 'elapsed': job.get('elapsed', 0.0)}
+
+def mark_logged(job_id: str) -> None:
+    job = _read_job(job_id)
+    if job:
+        job['logged'] = True
+        _write_job(job)

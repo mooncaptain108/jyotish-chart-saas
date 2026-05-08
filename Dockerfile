@@ -5,7 +5,6 @@ RUN python -m venv /opt/venv
 WORKDIR /build
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-RUN apt-get update && apt-get install -y libsqlite3-dev
 
 # depending on .dockerignore
 COPY . .

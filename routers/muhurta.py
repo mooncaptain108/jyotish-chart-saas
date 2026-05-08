@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from services.muhurta_jobs import start_search, get_status, get_results, cancel_job
+from services.muhurta_jobs import start_search, get_status, get_results, cancel_job, get_job_meta, mark_logged
+from activity import log_request
 
 router = APIRouter(prefix="/api/v1/muhurta", tags=["muhurta"])
 
@@ -48,11 +49,15 @@ def muhurta_status(job_id: str):
 
 
 @router.get("/results/{job_id}")
-def muhurta_get_results(job_id: str):
+def muhurta_get_results(job_id: str, request: Request):
     """Get accumulated results list."""
     results = get_results(job_id)
     if results is None:
         raise HTTPException(status_code=404, detail="Job not found")
+    meta = get_job_meta(job_id)
+    if meta and meta["done"] and not meta["logged"]:
+        log_request(request, "POST", "/api/v1/muhurta/search", meta["elapsed"])
+        mark_logged(job_id)
     return {"results": results}
 
 
