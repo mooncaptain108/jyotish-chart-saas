@@ -12,7 +12,7 @@ import os
 import threading
 import time
 import uuid
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timedelta
 
 from services.chart_service import _ensure_swisseph_initialized
@@ -194,40 +194,48 @@ def _run_search(job_id: str) -> None:
     try:
         with ProcessPoolExecutor(max_workers=MAX_WORKERS) as pool:
             batch_start = 0
-            while batch_start < days:
-                # Check abort between batches
-                fresh = _read_job(job_id)
-                if fresh and fresh.get('abort'):
-                    break
-
+            aborted = False
+            while batch_start < days and not aborted:
                 batch_end = min(batch_start + MAX_WORKERS, days)
-                batch_args = []
+                futures = {}
                 for day in range(batch_start, batch_end):
                     day_str = _add_days(start_date, day)
-                    batch_args.append((
+                    args = (
                         day_str, target_signs, lat, lon,
                         tz_name, fixed_tz, cfg, loc_name,
                         start_min, day == 0,
-                    ))
+                    )
+                    futures[pool.submit(_process_day, args)] = day
 
-                # Run batch in parallel; map preserves order
-                batch_results = list(pool.map(_process_day, batch_args))
+                days_in_batch = 0
+                for future in as_completed(futures):
+                    days_in_batch += 1
+                    try:
+                        day_results, day_errs = future.result()
+                        all_results.extend(day_results)
+                        fetch_errors += day_errs
+                        last_day_str = _add_days(start_date, futures[future])
+                    except Exception:
+                        fetch_errors += 1
 
-                for i, (day_results, day_errs) in enumerate(batch_results):
-                    all_results.extend(day_results)
-                    fetch_errors += day_errs
-                    last_day_str = _add_days(start_date, batch_start + i)
+                    elapsed = time.time() - start_time
+                    # Read abort flag before writing so we never overwrite a cancel
+                    fresh = _read_job(job_id)
+                    job['abort']        = fresh.get('abort', False) if fresh else False
+                    job['dayCurrent']    = batch_start + days_in_batch
+                    job['dayCurrentStr'] = last_day_str
+                    job['lastDayStr']    = last_day_str
+                    job['fetchErrors']   = fetch_errors
+                    job['elapsed']       = elapsed
+                    job['results']       = all_results
+                    job['resultCount']   = len(all_results)
+                    _write_job(job)
+
+                    if job['abort']:
+                        aborted = True
+                        break
 
                 batch_start = batch_end
-                elapsed = time.time() - start_time
-                job['dayCurrent']    = batch_end
-                job['dayCurrentStr'] = last_day_str
-                job['lastDayStr']    = last_day_str
-                job['fetchErrors']   = fetch_errors
-                job['elapsed']       = elapsed
-                job['results']       = all_results
-                job['resultCount']   = len(all_results)
-                _write_job(job)
 
     except Exception as e:
         job['error'] = str(e)
