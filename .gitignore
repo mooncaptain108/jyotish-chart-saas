@@ -49,3 +49,4 @@ bld
 psh
 *.bak*activity.db
 data/activity.db
+q.sql
