@@ -506,56 +506,18 @@
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="nLat">Latitude</label>
-          <input type="text" id="nLat" placeholder="47.4833 or 47 N 29">
+          <input type="text" id="nLat" placeholder="47.4833 or 47:29" onblur="convertDegMin(this)">
         </div>
         <div class="f-group">
           <label class="f-label" for="nLon">Longitude</label>
-          <input type="text" id="nLon" placeholder="-122.2166 or 122 W 20">
+          <input type="text" id="nLon" placeholder="-122.2166 or -122:13" onblur="convertDegMin(this)">
         </div>
       </div>
-      <p class="f-hint" style="margin-top:-0.6rem;margin-bottom:0.8rem;">Decimal or deg-dir-min, e.g. 47 N 29 / 122 W 20</p>
+      <p class="f-hint" style="margin-top:-0.6rem;margin-bottom:0.8rem;">Decimal or deg:min — e.g. 47:29 / -122:13. Tab out to convert.</p>
       <div class="f-group">
         <label class="f-label" for="nTz">UTC offset (hours)</label>
         <div style="display:flex;align-items:center;gap:0.75rem;">
-          <select id="nTz" style="width:8rem;">
-            <option value="-12">UTC-12:00</option>
-            <option value="-11">UTC-11:00</option>
-            <option value="-10">UTC-10:00</option>
-            <option value="-9.5">UTC-09:30</option>
-            <option value="-9">UTC-09:00</option>
-            <option value="-8">UTC-08:00</option>
-            <option value="-7">UTC-07:00</option>
-            <option value="-6">UTC-06:00</option>
-            <option value="-5">UTC-05:00</option>
-            <option value="-4">UTC-04:00</option>
-            <option value="-3.5">UTC-03:30</option>
-            <option value="-3">UTC-03:00</option>
-            <option value="-2">UTC-02:00</option>
-            <option value="-1">UTC-01:00</option>
-            <option value="0">UTC+00:00</option>
-            <option value="1">UTC+01:00</option>
-            <option value="2">UTC+02:00</option>
-            <option value="3">UTC+03:00</option>
-            <option value="3.5">UTC+03:30</option>
-            <option value="4">UTC+04:00</option>
-            <option value="5">UTC+05:00</option>
-            <option value="5.5">UTC+05:30</option>
-            <option value="5.75">UTC+05:45</option>
-            <option value="6">UTC+06:00</option>
-            <option value="6.5">UTC+06:30</option>
-            <option value="7">UTC+07:00</option>
-            <option value="8">UTC+08:00</option>
-            <option value="8.75">UTC+08:45</option>
-            <option value="9">UTC+09:00</option>
-            <option value="9.5">UTC+09:30</option>
-            <option value="10">UTC+10:00</option>
-            <option value="10.5">UTC+10:30</option>
-            <option value="11">UTC+11:00</option>
-            <option value="12">UTC+12:00</option>
-            <option value="12.75">UTC+12:45</option>
-            <option value="13">UTC+13:00</option>
-            <option value="14">UTC+14:00</option>
-          </select>
+          <select id="nTz" style="width:8rem;"></select>
           <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:#a0a0b0;cursor:default;">
             <input type="checkbox" id="nDst" style="pointer-events:none;" tabindex="-1">
             Daylight Saving
@@ -632,16 +594,16 @@
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="aLat">Latitude</label>
-          <input type="text" id="aLat" placeholder="47.4833 or 47 N 29">
+          <input type="text" id="aLat" placeholder="47.4833 or 47:29" onblur="convertDegMin(this)">
         </div>
         <div class="f-group">
           <label class="f-label" for="aLon">Longitude</label>
-          <input type="text" id="aLon" placeholder="-122.2166 or 122 W 20">
+          <input type="text" id="aLon" placeholder="-122.2166 or -122:13" onblur="convertDegMin(this)">
         </div>
       </div>
       <div class="f-group">
-        <label class="f-label" for="aTz">UTC offset (hours) — auto-filled by Lookup</label>
-        <input type="number" id="aTz" step="0.5" placeholder="-8">
+        <label class="f-label" for="aTz">UTC offset — auto-filled by Lookup</label>
+        <select id="aTz" style="width:8rem;"></select>
       </div>
     </div>
     <div class="dlg-footer">
@@ -1270,15 +1232,43 @@
     // ═══════════════════════════════════════════════════
     // DMS parser
     // ═══════════════════════════════════════════════════
+    const TZ_OPTIONS = [
+      [-12,'UTC-12:00'],[-11,'UTC-11:00'],[-10,'UTC-10:00'],[-9.5,'UTC-09:30'],
+      [-9,'UTC-09:00'],[-8,'UTC-08:00'],[-7,'UTC-07:00'],[-6,'UTC-06:00'],
+      [-5,'UTC-05:00'],[-4,'UTC-04:00'],[-3.5,'UTC-03:30'],[-3,'UTC-03:00'],
+      [-2,'UTC-02:00'],[-1,'UTC-01:00'],[0,'UTC+00:00'],[1,'UTC+01:00'],
+      [2,'UTC+02:00'],[3,'UTC+03:00'],[3.5,'UTC+03:30'],[4,'UTC+04:00'],
+      [5,'UTC+05:00'],[5.5,'UTC+05:30'],[5.75,'UTC+05:45'],[6,'UTC+06:00'],
+      [6.5,'UTC+06:30'],[7,'UTC+07:00'],[8,'UTC+08:00'],[8.75,'UTC+08:45'],
+      [9,'UTC+09:00'],[9.5,'UTC+09:30'],[10,'UTC+10:00'],[10.5,'UTC+10:30'],
+      [11,'UTC+11:00'],[12,'UTC+12:00'],[12.75,'UTC+12:45'],[13,'UTC+13:00'],
+      [14,'UTC+14:00']
+    ];
+    function buildTzSelect(el) {
+      el.innerHTML = TZ_OPTIONS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+    }
+
     function parseDMS(raw) {
       raw = (raw || '').trim();
       if (/^-?\d+(\.\d+)?$/.test(raw)) return parseFloat(raw);
+      // Colon format: 47:29  or  -122:13  or  47:29.5
+      const c = raw.match(/^(-?)(\d+):(\d+(?:\.\d+)?)$/);
+      if (c) {
+        const dec = parseInt(c[2]) + parseFloat(c[3]) / 60;
+        return c[1] === '-' ? -dec : dec;
+      }
       const m = raw.toUpperCase().match(/(\d+(?:\.\d+)?)\s*([NSEW])\s*(\d+(?:\.\d+)?)?/);
       if (m) {
         const dec = parseFloat(m[1]) + (m[3] ? parseFloat(m[3]) : 0) / 60;
         return (m[2] === 'S' || m[2] === 'W') ? -dec : dec;
       }
       return NaN;
+    }
+    function convertDegMin(input) {
+      const raw = input.value.trim();
+      if (!raw || /^-?\d+(\.\d+)?$/.test(raw)) return;
+      const v = parseDMS(raw);
+      if (!isNaN(v)) input.value = v.toFixed(4);
     }
 
     // ═══════════════════════════════════════════════════
@@ -1288,7 +1278,7 @@
 
     function rebuildAtlasList() {
       const atlas = getAtlas();
-      const names = Object.keys(atlas).sort();
+      const names = Object.keys(atlas).sort((a,b) => { const ca=a.split(',')[0].toUpperCase(),cb=b.split(',')[0].toUpperCase(); return ca<cb?-1:ca>cb?1:0; });
       const wrap = document.getElementById('atlasListWrap');
       if (!names.length) { wrap.innerHTML = '<p class="no-records">No locations saved yet.</p>'; return; }
       let html = '<table class="atlas-list"><thead><tr><th>Name</th><th>Lat</th><th>Lon</th><th>TZ</th><th></th></tr></thead><tbody>';
@@ -1401,7 +1391,7 @@
 
     function rebuildNewAtlasSelect() {
       const sel = document.getElementById('nAtlas');
-      const names = Object.keys(getAtlas()).sort();
+      const names = Object.keys(getAtlas()).sort((a,b) => { const ca=a.split(',')[0].toUpperCase(),cb=b.split(',')[0].toUpperCase(); return ca<cb?-1:ca>cb?1:0; });
       sel.innerHTML = '<option value="">— pick a saved location —</option>';
       for (const n of names) { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); }
     }
@@ -1829,7 +1819,7 @@
         let prelimStrengthPct = isNode ? 1.0 : degPct;
         if (combust)    prelimStrengthPct *= sunIsFM ? 0.25 : 0.5;
         if (debilitated) prelimStrengthPct *= d9Debilitated ? 0.25 : 0.5;
-        if (inDushtana)  prelimStrengthPct *= d9Debilitated ? 0.4 : 0.5;
+        if (inDushtana)  prelimStrengthPct *= (!debilitated && d9Debilitated) ? 0.4 : 0.5;
         else if (d9Debilitated && !debilitated) prelimStrengthPct *= 0.75;
         const planetIsStrong = !isNode && prelimStrengthPct >= 0.70;
 
@@ -2017,10 +2007,11 @@
         if (!isNode && combust) strengthPct *= sunIsFM ? 0.25 : 0.5;
         // Debilitation — rule h: debi in both rasi+D9 = -75%; else rasi only = -50%
         if (!isNode && debilitated) strengthPct *= d9Debilitated ? 0.25 : 0.5;
-        // Dushtana — rule i: dushtana + D9 debi = -60%; rasi only = -50%
+        // Dushtana — rule g: -50% independently; rule i: dushtana + D9 debi (no rasi debi) = -60%
         // rule k: D9 debi only (no rasi debi, no dushtana) = -25%
+        // Rule i does NOT apply when planet is also rasi-debilitated — dushtana is plain -50% then.
         if (!isNode) {
-          if (inDushtana)       strengthPct *= d9Debilitated ? 0.4 : 0.5;
+          if (inDushtana)       strengthPct *= (!debilitated && d9Debilitated) ? 0.4 : 0.5;
           else if (d9Debilitated && !debilitated) strengthPct *= 0.75;
         }
         // MT house MEP afflictions (flat+graduated, per FM) — nodes have no MT sign, already empty
@@ -2132,6 +2123,14 @@
       // ── Update isWeak from final strengthPct (FB boost may have lifted a planet above threshold) ──
       for (const a of Object.values(analysis)) {
         if (a.strengthPct >= 0.60) a.isWeak = false;
+      }
+
+      // ── Degree cap — planet that started below 100% (old age or infancy) cannot exceed 100% ──
+      for (const a of Object.values(analysis)) {
+        if (!a.isNode && a.degPct < 1.0 && a.strengthPct > 1.0) {
+          a.strengthPct = 1.0;
+          a.degCapApplied = true;
+        }
       }
 
       // ── Assign colors ──
@@ -2469,6 +2468,12 @@
           }
         }
 
+        // Step 12: Degree cap
+        if (a.degCapApplied) {
+          cur = 1.0;
+          html += `<div class="an-item c-brown">Degree cap (started &lt;100%) — limited to 100% ${run()}</div>`;
+        }
+
         // Overall summary — <60% Weak, 60–69% no label, >=70% Strong
         const oLabel = a.isWeak ? 'Weak' : (a.strengthPct >= 0.70 ? 'Strong' : '');
         const oClass = a.combust ? 'c-blue' : (a.isWeak ? 'c-brown' : (a.strengthPct < 0.70 ? 'c-gold' : 'c-green'));
@@ -2496,7 +2501,7 @@
             html += `<div class="an-item ${cls}">House ${h} (${rashiLabel}): ${pct(hs.sp)}</div>`;
             if (hasBoost || hasAff) {
               let hcur = 1.0;
-              const hrun = () => `<span class="an-run">= ${pct(Math.min(Math.max(hcur, 0), 1))}</span>`;
+              const hrun = () => `<span class="an-run">= ${pct(Math.max(hcur, 0))}</span>`;
               if (hs.boosts) {
                 for (const b of hs.boosts) {
                   hcur += b.boost;
@@ -3331,7 +3336,7 @@
     function rebuildMuhurtaAtlasSelect() {
       const sel = document.getElementById('mAtlas');
       const prev = sel.value;
-      const names = Object.keys(getAtlas()).sort();
+      const names = Object.keys(getAtlas()).sort((a,b) => { const ca=a.split(',')[0].toUpperCase(),cb=b.split(',')[0].toUpperCase(); return ca<cb?-1:ca>cb?1:0; });
       sel.innerHTML = '<option value="">&#8212; pick a saved location &#8212;</option>';
       for (const n of names) {
         const o = document.createElement('option');
@@ -4404,7 +4409,12 @@
     }
 
     // Populate user tests on page load
-    document.addEventListener('DOMContentLoaded', () => { tcbRefreshDropdown(); tcbExpRender(); });
+    document.addEventListener('DOMContentLoaded', () => {
+      buildTzSelect(document.getElementById('nTz'));
+      buildTzSelect(document.getElementById('aTz'));
+      tcbRefreshDropdown();
+      tcbExpRender();
+    });
 
     // ── Theme toggle (DR button = light mode) ──
     const DR_KEY = 'jyotish_darkreader';
