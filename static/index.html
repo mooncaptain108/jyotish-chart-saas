@@ -112,7 +112,6 @@
     .tcb-exp-input { width:38px; background:#101e30; border:1px solid #1a4a80; color:#c0c0d0; border-radius:3px; padding:1px 3px; font-size:0.84rem; -moz-appearance:textfield; }
     .tcb-exp-input::-webkit-outer-spin-button, .tcb-exp-input::-webkit-inner-spin-button { -webkit-appearance:none; }
     .f-divider { border-top:1px solid #0f3460; margin:0.75rem 0; }
-    .f-save-status { font-size:0.8rem; color:#70c070; margin-left:auto; align-self:center; }
 
     /* ── Buttons ── */
     .btn-primary { padding:0.45rem 1.1rem; background:#c9a84c; color:#222240; border:none; border-radius:4px; font-size:0.9rem; font-weight:bold; cursor:pointer; }
@@ -551,9 +550,7 @@
       <p id="newErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
     </div>
     <div class="dlg-footer">
-      <span class="f-save-status" id="saveStatus"></span>
       <button class="btn-primary" id="newSubmitBtn" onclick="newSubmit()">Submit</button>
-      <button class="btn-sec" onclick="newSave()">Save</button>
       <button class="btn-sec" onclick="document.getElementById('dlgNew').close()">Close</button>
     </div>
   </dialog>
@@ -1368,7 +1365,6 @@
         document.getElementById('nTime').value = now.toTimeString().slice(0,5);
       }
       document.getElementById('newErrMsg').textContent = '';
-      document.getElementById('saveStatus').textContent = '';
       const _nd = document.getElementById('nDate').value;
       document.getElementById('nTzWarn').style.display = _nd && _nd < '1966-01-01' ? '' : 'none';
       document.getElementById('nTzOverride').checked = false;
@@ -1444,7 +1440,6 @@
       const errEl = document.getElementById('newErrMsg');
       const btn   = document.getElementById('newSubmitBtn');
       errEl.textContent = '';
-      document.getElementById('saveStatus').textContent = '';
 
       const lat  = parseDMS(document.getElementById('nLat').value);
       const lon  = parseDMS(document.getElementById('nLon').value);
@@ -1473,35 +1468,23 @@
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
         document.getElementById('errorMsg').textContent = '';
+        const name = document.getElementById('nName').value.trim();
+        if (name) {
+          const charts = getCharts();
+          const rec = { name, date, time, lat: lat.toFixed(4), lon: lon.toFixed(4), tz,
+                        locationName: document.getElementById('nAtlas').value || '',
+                        tzOverride: document.getElementById('nTzOverride').checked,
+                        dst: document.getElementById('nDst').checked };
+          const idx = charts.findIndex(c => c.name === name);
+          if (idx >= 0) charts[idx] = rec; else charts.push(rec);
+          charts.sort((a,b) => a.name.localeCompare(b.name));
+          setCharts(charts);
+        }
       } catch (err) {
         errEl.textContent = 'Error: ' + err.message;
       } finally {
         btn.disabled = false; btn.textContent = 'Submit';
       }
-    }
-
-    function newSave() {
-      const name = document.getElementById('nName').value.trim();
-      if (!name) { document.getElementById('newErrMsg').textContent = 'Enter a chart name to save.'; return; }
-      const lat  = parseDMS(document.getElementById('nLat').value);
-      const lon  = parseDMS(document.getElementById('nLon').value);
-      const tz   = parseFloat(document.getElementById('nTz').value);
-      const date = document.getElementById('nDate').value;
-      const time = document.getElementById('nTime').value;
-      if (isNaN(lat) || isNaN(lon) || !date || !time) { document.getElementById('newErrMsg').textContent = 'Fill in all fields before saving.'; return; }
-      saveNewFormState();
-      const charts = getCharts();
-      const rec = { name, date, time, lat: lat.toFixed(4), lon: lon.toFixed(4), tz,
-                    locationName: document.getElementById('nAtlas').value || '',
-                    tzOverride: document.getElementById('nTzOverride').checked,
-                    dst: document.getElementById('nDst').checked };
-      const idx = charts.findIndex(c => c.name === name);
-      if (idx >= 0) charts[idx] = rec; else charts.push(rec);
-      charts.sort((a,b) => a.name.localeCompare(b.name));
-      setCharts(charts);
-      document.getElementById('saveStatus').textContent = 'Saved ✓';
-      document.getElementById('newErrMsg').textContent = '';
-      setTimeout(() => { document.getElementById('saveStatus').textContent = ''; }, 2500);
     }
 
     // ═══════════════════════════════════════════════════
@@ -1593,7 +1576,6 @@
       document.getElementById('nTime').value  = c.time;
       document.getElementById('nAtlas').value = c.locationName || '';
       document.getElementById('newErrMsg').textContent = '';
-      document.getElementById('saveStatus').textContent = '';
       document.getElementById('dlgNewTitle').textContent = 'Edit Chart';
       document.getElementById('nTzOverride').checked = c.tzOverride || false;
       nTzSetEditable(c.tzOverride || false);
