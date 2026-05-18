@@ -34,6 +34,8 @@
     .tb-btn:hover { background:#1e2a48; color:#e0e0e0; border-color:#1a4a80; }
     .tb-btn.active { background:#1e2a48; color:#c9a84c; border-color:#c9a84c; }
     .tb-btn:disabled { opacity:0.35; cursor:not-allowed; }
+    #drBtn { background:#1a3060; color:#ffffff; border-color:#3a5a90; font-weight:600; }
+    #drBtn:hover { background:#22407a; border-color:#5a7ab0; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
     .tb-select:hover { background:#1e2a48; border-color:#1a4a80; }
     #testsWrapper { display:contents; }
@@ -193,6 +195,8 @@
     body.light .tb-btn { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-btn:hover { background: #d8d0bc; color: #222240; border-color: #a09060; }
     body.light .tb-btn.active { background: #d8d0bc; color: #7a5808; border-color: #7a5808; }
+    body.light #drBtn { background:#ede8dc; color:#1a1a2e; border-color:#9a8a60; }
+    body.light #drBtn:hover { background:#d8d0bc; border-color:#7a6a40; }
     body.light .tb-select { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-select:hover { background: #d8d0bc; border-color: #a09060; }
     body.light #chartTitle { color: #5a5860; }
@@ -297,7 +301,7 @@
   <header class="toolbar">
     <span class="app-title">Jyotish Query</span>
     <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings" style="padding:0.2rem 0.4rem;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
-    <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Toggle light/dark theme"></button>
+    <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Toggle light/dark theme">Lite</button>
     <div class="sep"></div>
     <button class="tb-btn" onclick="openNewDialog()">New</button>
     <button class="tb-btn" onclick="openOpenDialog()">Open</button>
@@ -4402,13 +4406,8 @@
     const DR_KEY = 'jyotish_darkreader';
 
     function applyDarkReader(light) {
-      if (light) {
-        document.body.classList.add('light');
-        document.getElementById('drBtn').classList.remove('active');
-      } else {
-        document.body.classList.remove('light');
-        document.getElementById('drBtn').classList.add('active');
-      }
+      document.body.classList.toggle('light', light);
+      document.getElementById('drBtn').textContent = light ? 'Dark' : 'Lite';
       localStorage.setItem(DR_KEY, light ? '1' : '0');
       // Re-render charts with new palette
       if (lastData) renderChart(lastData);
