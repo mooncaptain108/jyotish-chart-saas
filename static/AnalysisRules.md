@@ -166,7 +166,7 @@ An affliction is **special** when any of the following conditions apply:
 2. **Ra-Ke axis conjunction:** Rahu or Ketu is conjunct (same house as) the planet.
 3. **FM in dushtana:** The FM is placed in house 6, 8, or 12 and aspects the planet from there.
 4. **Chain:** The afflicting FM is itself conjunct or aspected within 5° by another FM.
-5. **Multiple FMs:** Two or more FMs (not Ra-Ke see rule 1.) aspect or conjunct within 5° of the planet. For example an aspect of Rahu or Ketu and and aspect or conjuction of another malefic each within 5°.
+5. **Multiple FMs:** Two or more FMs (not Ra-Ke see rule 2.) aspect or conjunct within 5° of the planet. For example an aspect of Rahu or Ketu and and aspect or conjuction of another malefic each within 5°.
 
 **Orb of special affliction:**
 - **Strong planet:** special affliction within **2°** is weakening
