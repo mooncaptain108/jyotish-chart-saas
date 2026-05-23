@@ -9,9 +9,9 @@ Internals
 - True Node
 - Nutation
 - Sidereal Year 365.256
-- Geo-location is through queries to https://nominatim.org
+- Geo-location is through queries to https://nominatim.org using the OpenStreetMap database
 - Timezone lookup is through a local IANA database
-- with cautions for pre 1966 birthdates to use astro.com.
+- with cautions for pre 1966 birth dates to use astro.com.
 
 Verified by comparing output against 
 - https://www.prokerala.com/astrology/birth-chart

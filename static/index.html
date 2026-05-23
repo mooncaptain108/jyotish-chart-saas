@@ -303,12 +303,25 @@
     <button class="tb-btn" id="gearBtn" onclick="openSettings()" title="Settings" style="padding:0.2rem 0.4rem;line-height:1;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></button>
     <button class="tb-btn" id="drBtn" onclick="toggleDarkReader()" title="Toggle light/dark theme">Lite</button>
     <div class="sep"></div>
-    <button class="tb-btn" onclick="openNewDialog()">New</button>
-    <button class="tb-btn" onclick="openOpenDialog()">Open</button>
-    <button class="tb-btn" onclick="openAtlasDialog()">Atlas</button>
+    <div class="tb-dropdown" id="chartsDropdown">
+      <button class="tb-btn" id="chartsBtn" onclick="toggleChartsMenu(event)" disabled>Charts &#9662;</button>
+      <ul class="tb-menu" id="chartsMenu">
+        <li><button onclick="openNewDialog(); closeChartsMenu();">New Chart</button></li>
+        <li><button onclick="openOpenDialog(); closeChartsMenu();">Charts</button></li>
+      </ul>
+    </div>
+    <div class="tb-dropdown" id="atlasDropdown">
+      <button class="tb-btn" onclick="toggleAtlasMenu(event)">Atlas &#9662;</button>
+      <ul class="tb-menu" id="atlasMenu">
+        <li><button onclick="openAtlasNewDialog(); closeAtlasMenu();">New Location</button></li>
+        <li><button onclick="openAtlasLocationsDialog(); closeAtlasMenu();">Locations</button></li>
+        <li><hr></li>
+        <li><button onclick="openHelpCustomLoc(); closeAtlasMenu();">Custom Location</button></li>
+      </ul>
+    </div>
     <div class="sep"></div>
     <button class="tb-btn" id="analysisBtn" onclick="openAnalysisDialog()" disabled>Analysis</button>
-    <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()">Muhurta</button>
+    <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()" disabled>Muhurta</button>
     <span id="muhurtaStatus" style="display:none;font-size:0.82rem;color:#a0c870;white-space:nowrap;margin-left:0.3rem;font-family:monospace;"></span>
     <div class="sep"></div>
     <div class="tb-dropdown" id="helpDropdown">
@@ -336,7 +349,7 @@
   </header>
 
   <!-- ── Chart area ── -->
-  <p id="chartTitle" style="padding:0.5rem 1.5rem 0">Use <strong style="color:#c9a84c">New</strong> to enter a chart or <strong style="color:#c9a84c">Open</strong> to load a saved one.</p>
+  <p id="chartTitle" style="padding:0.5rem 1.5rem 0">Enter New Location to get started. See <strong style="color:#c9a84c">Atlas/New Location</strong>.</p>
   <p id="errorMsg" style="padding:0 1.5rem; color:#e08080; font-size:0.9rem"></p>
   <div id="mainRow">
   <div id="chartArea">
@@ -468,6 +481,19 @@
     </div>
   </dialog>
 
+  <!-- ════ Help: Custom Locations dialog ════ -->
+  <dialog id="dlgHelpCustomLoc" style="max-width:600px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpCustomLoc').close()">✕</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="helpCustomLocContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpCustomLoc').close()">Close</button>
+    </div>
+  </dialog>
+
   <!-- ════ Muhurta Evaluation dialog ════ -->
   <dialog id="dlgMuhurtaEval" style="max-width:560px;">
     <div class="dlg-header">
@@ -509,14 +535,13 @@
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="nLat">Latitude</label>
-          <input type="text" id="nLat" placeholder="47.4833 or 47:29" onblur="convertDegMin(this)">
+          <input type="text" id="nLat" readonly tabindex="-1" style="background:#0a1428;color:#606080;cursor:default;">
         </div>
         <div class="f-group">
           <label class="f-label" for="nLon">Longitude</label>
-          <input type="text" id="nLon" placeholder="-122.2166 or -122:13" onblur="convertDegMin(this)">
+          <input type="text" id="nLon" readonly tabindex="-1" style="background:#0a1428;color:#606080;cursor:default;">
         </div>
       </div>
-      <p class="f-hint" style="margin-top:-0.6rem;margin-bottom:0.8rem;">Decimal or deg:min — e.g. 47:29 / -122:13. Tab out to convert.</p>
       <div class="f-group">
         <label class="f-label" for="nTz">UTC offset (hours)</label>
         <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -573,16 +598,13 @@
     </div>
   </dialog>
 
-  <!-- ════ Atlas dialog ════ -->
-  <dialog id="dlgAtlas">
+  <!-- ════ Atlas › New Location dialog ════ -->
+  <dialog id="dlgAtlasNew">
     <div class="dlg-header">
-      <h2>Location Atlas</h2>
-      <button class="dlg-close-x" onclick="document.getElementById('dlgAtlas').close()">✕</button>
+      <h2>New Location</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgAtlasNew').close()">✕</button>
     </div>
     <div class="dlg-body">
-      <div id="atlasListWrap" style="max-height:40vh;overflow-y:auto;margin-bottom:1rem;"></div>
-      <div class="f-divider"></div>
-      <p class="f-label" style="margin-bottom:0.6rem;">Add / update location</p>
       <input type="hidden" id="aTzName" value="">
       <div class="f-group">
         <label class="f-label" for="aName">Name / City</label>
@@ -595,13 +617,14 @@
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="aLat">Latitude</label>
-          <input type="text" id="aLat" placeholder="47.4833 or 47:29" onblur="convertDegMin(this)">
+          <input type="text" id="aLat" placeholder="47.4833 · 47:29 · 47N29" onblur="convertDegMin(this)">
         </div>
         <div class="f-group">
           <label class="f-label" for="aLon">Longitude</label>
-          <input type="text" id="aLon" placeholder="-122.2166 or -122:13" onblur="convertDegMin(this)">
+          <input type="text" id="aLon" placeholder="-122.2166 · -122:13 · 122W13" onblur="convertDegMin(this)">
         </div>
       </div>
+      <p class="f-hint" style="margin-top:-0.4rem;margin-bottom:0.6rem;">Decimal, deg:min (47:29), or compass (47N29 / 122W13) — Tab out to convert.</p>
       <div class="f-group">
         <label class="f-label" for="aTz">UTC offset — auto-filled by Lookup</label>
         <select id="aTz" style="width:8rem;"></select>
@@ -609,7 +632,21 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-primary" onclick="atlasSave()">Save Location</button>
-      <button class="btn-sec" onclick="document.getElementById('dlgAtlas').close()">Close</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgAtlasNew').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Atlas › Locations list dialog ════ -->
+  <dialog id="dlgAtlasLocations" style="min-width:500px;">
+    <div class="dlg-header">
+      <h2>Locations</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgAtlasLocations').close()">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div id="atlasListWrap" style="max-height:55vh;overflow-y:auto;"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgAtlasLocations').close()">Close</button>
     </div>
   </dialog>
 
@@ -1054,15 +1091,15 @@
     function closeHelpMenu() {
       document.getElementById('helpMenu').classList.remove('open');
     }
-    document.addEventListener('click', function() { closeHelpMenu(); });
+    document.addEventListener('click', function() { closeHelpMenu(); closeAtlasMenu(); closeChartsMenu(); });
 
-    let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null;
+    let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null, _helpCustomLocMd = null;
     let _notRecommendedMd = null;
 
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd' }[dlgId];
+      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1078,9 +1115,10 @@
     function openNotRecommended() {
       fetch('static/NotRecommendedSigns.md?v=' + Date.now()).then(r=>r.text()).then(t=>{ _notRecommendedMd = marked.parse(t); document.getElementById('notRecommendedContent').innerHTML = _notRecommendedMd; document.getElementById('dlgNotRecommended').showModal(); }).catch(()=>{ document.getElementById('dlgNotRecommended').showModal(); });
     }
-    function openHelpCalc()    { _openHelpDoc('dlgHelpCalc',    'helpCalcContent',    'static/Calculations.md'); }
-    function openHelpData()    { _openHelpDoc('dlgHelpData',    'helpDataContent',    'static/DataStorage.md'); }
-    function openHelpAnalysis() { _openHelpDoc('dlgHelpAnalysis', 'helpAnalysisContent', 'static/AnalysisRules.md'); }
+    function openHelpCalc()       { _openHelpDoc('dlgHelpCalc',       'helpCalcContent',       'static/Calculations.md'); }
+    function openHelpData()       { _openHelpDoc('dlgHelpData',       'helpDataContent',       'static/DataStorage.md'); }
+    function openHelpAnalysis()   { _openHelpDoc('dlgHelpAnalysis',   'helpAnalysisContent',   'static/AnalysisRules.md'); }
+    function openHelpCustomLoc()  { _openHelpDoc('dlgHelpCustomLoc',  'helpCustomLocContent',  'static/CustomLocations.md'); }
 
     function openWelcome() {
       document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
@@ -1211,17 +1249,22 @@
       reader.onload = function(e) {
         try {
           const obj = JSON.parse(e.target.result);
+          let imported = 0;
           for (const [k, v] of Object.entries(obj)) {
-            if (k.startsWith('jyotish_'))
+            if (k.startsWith('jyotish_')) {
               localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+              imported++;
+            }
           }
           event.target.value = '';
+          if (imported === 0) { alert('No Jyotish data found in the file — nothing imported.'); return; }
           rawVisible   = localStorage.getItem(RAW_KEY) === '1';
           testsVisible = localStorage.getItem(TESTS_KEY) !== '0';
           document.getElementById('chkEphemeris').checked = rawVisible;
           document.getElementById('chkTests').checked     = testsVisible;
           applyRawState();
           applyTestsState();
+          updateMenuState();
           alert('Import complete. Reload the page to restore saved charts and atlas.');
         } catch(err) {
           alert('Import failed: ' + err.message);
@@ -1273,9 +1316,35 @@
     }
 
     // ═══════════════════════════════════════════════════
-    // Atlas dialog
+    // Charts dropdown menu
+    function toggleChartsMenu(e) {
+      e.stopPropagation();
+      document.getElementById('chartsMenu').classList.toggle('open');
+    }
+    function closeChartsMenu() {
+      document.getElementById('chartsMenu').classList.remove('open');
+    }
+
+    // Atlas dropdown menu
+    function toggleAtlasMenu(e) {
+      e.stopPropagation();
+      document.getElementById('atlasMenu').classList.toggle('open');
+    }
+    function closeAtlasMenu() {
+      document.getElementById('atlasMenu').classList.remove('open');
+    }
+
+    // Atlas dialogs
     // ═══════════════════════════════════════════════════
-    function openAtlasDialog() { rebuildAtlasList(); document.getElementById('dlgAtlas').showModal(); }
+    function openAtlasNewDialog() {
+      document.getElementById('aName').value = '';
+      document.getElementById('aLat').value = '';
+      document.getElementById('aLon').value = '';
+      document.getElementById('aTzName').value = '';
+      document.getElementById('aGeoStatus').textContent = '';
+      document.getElementById('dlgAtlasNew').showModal();
+    }
+    function openAtlasLocationsDialog() { rebuildAtlasList(); document.getElementById('dlgAtlasLocations').showModal(); }
 
     function rebuildAtlasList() {
       const atlas = getAtlas();
@@ -1292,6 +1361,12 @@
       wrap.innerHTML = html + '</tbody></table>';
     }
 
+    function updateMenuState() {
+      const hasLocs = Object.keys(getAtlas()).length > 0;
+      document.getElementById('chartsBtn').disabled  = !hasLocs;
+      document.getElementById('muhurtaBtn').disabled = !hasLocs;
+    }
+
     function atlasSave() {
       const name = document.getElementById('aName').value.trim();
       if (!name) { alert('Enter a location name.'); return; }
@@ -1305,6 +1380,7 @@
       setAtlas(atlas);
       rebuildAtlasList();
       rebuildNewAtlasSelect();
+      updateMenuState();
       document.getElementById('aName').value = '';
     }
 
@@ -1312,6 +1388,7 @@
       if (!confirm('Delete "' + name + '"?')) return;
       const atlas = getAtlas(); delete atlas[name]; setAtlas(atlas);
       rebuildAtlasList(); rebuildNewAtlasSelect();
+      updateMenuState();
     }
 
     function atlasEdit(name) {
@@ -1322,6 +1399,7 @@
       document.getElementById('aTz').value     = loc.tz;
       document.getElementById('aTzName').value = loc.tzName || '';
       document.getElementById('aGeoStatus').textContent = loc.tzName ? 'tz: ' + loc.tzName : '';
+      document.getElementById('dlgAtlasNew').showModal();
     }
 
     async function atlasGeocode() {
@@ -2878,6 +2956,52 @@
       return lastAnalysis[graha].color || '#c0c0d0';
     }
 
+    function buildVimshottariDashas(birthDateStr, moonRashi, moonDegInRashi) {
+      const LORDS = ['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+      const YEARS = [7, 20, 6, 10, 7, 18, 16, 19, 17];
+      const NAK   = 360 / 27;
+      const YRMS  = 365.25 * 86400000;
+
+      const moonLon = (moonRashi - 1) * 30 + moonDegInRashi;
+      const nakIdx  = Math.floor(moonLon / NAK);
+      const fracRem = 1 - (moonLon % NAK) / NAK;
+      const li0     = nakIdx % 9;
+
+      // Date.UTC handles pre-1970 dates correctly as negative ms values
+      const [yr, mo, dy] = birthDateStr.split('-').map(Number);
+      const birthMs = Date.UTC(yr, mo - 1, dy);
+
+      const isoOf = ms => new Date(ms).toISOString().slice(0, 10);
+      const addYr = (ms, y) => ms + y * YRMS;
+
+      // Build mahadasha sequence: first dasha started before birth — compute its real start
+      const mahas = [];
+      const maha0StartMs = addYr(birthMs, -YEARS[li0] * (1 - fracRem));
+      mahas.push({ li: li0, lord: LORDS[li0], years: YEARS[li0], startMs: maha0StartMs });
+      let ms = addYr(maha0StartMs, YEARS[li0]);
+      const limit = birthMs + 300 * YRMS;
+      let li = (li0 + 1) % 9;
+      while (ms < limit) {
+        mahas.push({ li, lord: LORDS[li], years: YEARS[li], startMs: ms });
+        ms = addYr(ms, YEARS[li]);
+        li = (li + 1) % 9;
+      }
+
+      // Expand each mahadasha into 9 antardashas starting from the mahadasha lord
+      return mahas.map(maha => {
+        let adMs = maha.startMs;
+        const antardasha = [];
+        for (let i = 0; i < 9; i++) {
+          const ai    = (maha.li + i) % 9;
+          const adYrs = maha.years * YEARS[ai] / 120;
+          const adEnd = addYr(adMs, adYrs);
+          antardasha.push({ lord: LORDS[ai], start: isoOf(adMs), end: isoOf(adEnd) });
+          adMs = adEnd;
+        }
+        return { lord: maha.lord, start: isoOf(maha.startMs), end: isoOf(addYr(maha.startMs, maha.years)), antardasha };
+      });
+    }
+
     function populateDashaPanel(data) {
       const list = document.getElementById('dashaList');
       if (!data.dasha || !data.dasha.length) { list.innerHTML = '<div class="dr">No dasha data</div>'; return; }
@@ -3018,6 +3142,9 @@
       currentUserTestKey = null;
       renderD9Chart(data, lastAnalysis);
       renderRashiData(data, lastAnalysis);
+      const _moonG = data.grahas && data.grahas.find(g => g.graha === 'Moon');
+      if (_moonG && data.birth_data && data.birth_data.date)
+        data.dasha = buildVimshottariDashas(data.birth_data.date, _moonG.rashi, _moonG.degree_in_rashi);
       populateDashaPanel(data);
       requestAnimationFrame(() => {
         const d9Svg = document.getElementById('d9Chart');
@@ -3990,7 +4117,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlas','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgMuhurtaEval','dlgNotRecommended'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgMuhurtaEval','dlgNotRecommended'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
@@ -4400,6 +4527,7 @@
       buildTzSelect(document.getElementById('aTz'));
       tcbRefreshDropdown();
       tcbExpRender();
+      updateMenuState();
     });
 
     // ── Theme toggle (DR button = light mode) ──
