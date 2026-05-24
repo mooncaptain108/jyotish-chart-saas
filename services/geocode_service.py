@@ -9,7 +9,7 @@ from timezonefinder import TimezoneFinder
 import pytz
 
 
-_geolocator = Nominatim(user_agent="vedic-jyotish-api")
+_geolocator = Nominatim(user_agent="jyotish-chart-saas/1.0 (brook.paul@live.com)")
 _tf = TimezoneFinder()
 
 
