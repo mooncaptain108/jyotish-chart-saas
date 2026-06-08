@@ -1,5 +1,18 @@
 # Jyotish Query
 
+Review the Principles: https://yournetastrologer.com/muhurata_astrology.htm
+
+- There is a <b>Chart</b> button next to each candidate time sequence in the list that is generated.
+- When the <b>Chart</b> button is clicked the Muhurta dialog will close and the chart will be displayed.
+- Note the new item in the menu <b>< 1/10 ></b> for instance. Use this to review each chart in the sequence.
+- Click the Muhurta button again to review other candidates. The application will not forget the generated charts until the <b>Clear Results</b> button is clicked.
+<br>
+<br>
+<fieldset style="border: 2px solid white; padding: 20px;">
+  <legend style="line-height: 0; padding: 0 5px;"><b>Really important</b></legend>
+  This Dialog will create a list of candidates. It is important to remember that each item in the list is really a sub-list of a sequence of times one minute apart that starts with the very first time in the sequence that qualifies. <b>That means that if the native initiates the Muhurta before this time it will be weak.</b> Once a time is selected be sure to give the native a range of options that will all be acceptable start times. <br><br><b>The earliest time to offer is the first time in the list - nothing before that.</b>
+</fieldset> 
+<br>
 <div style=" border: 2px solid #ffffffff; padding: 10px; border-radius: 5px;">
 There are a lot of filters that allow the user to reduce or increase the strict rules laid out below.
 <ul>
