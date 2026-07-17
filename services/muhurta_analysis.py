@@ -56,6 +56,36 @@ def fm_aspected_houses(graha: str, from_house: int) -> set[int]:
     return houses
 
 
+def abs_diff_deg(rashi_a: int, deg_a: float, rashi_b: int, deg_b: float) -> float:
+    """Circular distance in degrees between two (rashi 1-12, degree 0-30) points,
+    so a planet at rashi 2 ~29.97 deg reads as ~0.4 deg from rashi 3 ~0.37 deg
+    instead of the bogus ~29.6 deg a same-rashi subtraction would give."""
+    a = (rashi_a - 1) * 30 + deg_a
+    b = (rashi_b - 1) * 30 + deg_b
+    d = abs(a - b)
+    return min(d, 360.0 - d)
+
+
+def mep_rashi(lagna_rashi: int, house: int) -> int:
+    """The rashi (1-12) that house N's MEP (ascendant degree replicated into
+    house N) falls in."""
+    return ((lagna_rashi - 1 + (house - 1)) % 12) + 1
+
+
+def mep_orb(graha: str, from_house: int, deg: float, rashi: int,
+            target_house: int, mep_deg: float, lagna_rashi: int) -> float:
+    """Effective orb between a planet and target_house's MEP: the smaller of
+    (a) its aspect-projected degree distance if it classically aspects
+    target_house (drishti preserves degree-in-sign across the projection,
+    so no rashi is involved), and (b) its raw circular distance to the
+    MEP's absolute position (only ever small for conjunction or physical
+    boundary adjacency, independent of classical drishti)."""
+    candidates = [abs_diff_deg(rashi, deg, mep_rashi(lagna_rashi, target_house), mep_deg)]
+    if target_house in fm_aspected_houses(graha, from_house):
+        candidates.append(abs(deg - mep_deg))
+    return min(candidates)
+
+
 def aspect_label(graha: str, from_house: int, to_house: int) -> str:
     if from_house == to_house:
         return 'conjunct'
@@ -273,9 +303,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             for fm in fm_data:
                 if fm['graha'] == name:
                     continue
-                if mt_house not in fm_aspected_houses(fm['graha'], fm['house']):
-                    continue
-                orb = abs(fm['deg'] - mep_deg)
+                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], mt_house, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_fn  = fm['graha'] in ('Rahu', 'Ketu')
@@ -310,11 +338,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             is_mt = bool(MOOLA_LORD.get(g['rashi']))
             occ_raw = []
             for fm in fm_data:
-                if fm['graha'] == name:
-                    continue
-                if house not in fm_aspected_houses(fm['graha'], fm['house']):
-                    continue
-                orb = abs(fm['deg'] - mep_deg)
+                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], house, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_fn2 = fm['graha'] in ('Rahu', 'Ketu')
@@ -458,10 +482,8 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             for g in data['grahas']:
                 if g['graha'] in ('Rahu', 'Ketu') or g['graha'] in fms:
                     continue
-                gh = ((g['rashi'] - lr + 12) % 12) + 1
-                if h not in fm_aspected_houses(g['graha'], gh):
-                    continue
-                orb = abs(g['degree_in_rashi'] - mep_deg)
+                gh  = ((g['rashi'] - lr + 12) % 12) + 1
+                orb = mep_orb(g['graha'], gh, g['degree_in_rashi'], g['rashi'], h, mep_deg, lr)
                 an  = analysis.get(g['graha'])
                 ps  = isinstance(an, dict) and an.get('strengthPct', 0) >= 0.70
                 boost = 0.0
@@ -474,9 +496,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                     boosts_h.append({'planet': g['graha'], 'orb': orb, 'boost': boost})
             # FM afflictions to house
             for fm in fm_data:
-                if h not in fm_aspected_houses(fm['graha'], fm['house']):
-                    continue
-                orb = abs(fm['deg'] - mep_deg)
+                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_sp = fm['graha'] in ('Rahu', 'Ketu') or fm['graha'] == mmp
@@ -588,9 +608,7 @@ def screen_muhurta(data: dict, analysis: dict, cfg: dict) -> dict:
             continue
         seen: set[str] = set()
         for fm in fm_data:
-            if h not in fm_aspected_houses(fm['graha'], fm['house']):
-                continue
-            if abs(fm['deg'] - mep_deg) < 5:
+            if mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr) < 5:
                 seen.add(fm['graha'])
         if len(seen) >= 2:
             if cfg.get('allowRule5b'):
@@ -610,9 +628,7 @@ def screen_muhurta(data: dict, analysis: dict, cfg: dict) -> dict:
             continue
         h_aff = False
         for fm in fm_data:
-            if h not in fm_aspected_houses(fm['graha'], fm['house']):
-                continue
-            if abs(fm['deg'] - mep_deg) < 5:
+            if mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr) < 5:
                 h_aff = True; break
         if h_aff and p_aff(hlord):
             if cfg.get('allowRule5c'):

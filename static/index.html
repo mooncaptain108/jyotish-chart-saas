@@ -1726,6 +1726,35 @@
       return houses;
     }
 
+    // Circular distance in degrees between two (rashi 1-12, degree 0-30) points,
+    // so a planet at rashi 2 ~29.97 deg reads as ~0.4 deg from rashi 3 ~0.37 deg
+    // instead of the bogus ~29.6 deg a same-rashi subtraction would give.
+    function absDiffDeg(rashiA, degA, rashiB, degB) {
+      const a = (rashiA - 1) * 30 + degA;
+      const b = (rashiB - 1) * 30 + degB;
+      const d = Math.abs(a - b);
+      return Math.min(d, 360 - d);
+    }
+
+    // The rashi (1-12) that house N's MEP (ascendant degree replicated into
+    // house N) falls in.
+    function mepRashi(lagnaRashi, house) {
+      return ((lagnaRashi - 1 + (house - 1)) % 12) + 1;
+    }
+
+    // Effective orb between a planet and targetHouse's MEP: the smaller of
+    // (a) its aspect-projected degree distance if it classically aspects
+    // targetHouse (drishti preserves degree-in-sign across the projection,
+    // so no rashi is involved), and (b) its raw circular distance to the
+    // MEP's absolute position (only ever small for conjunction or physical
+    // boundary adjacency, independent of classical drishti).
+    function mepOrb(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
+      let orb = absDiffDeg(rashi, deg, mepRashi(lagnaRashi, targetHouse), mepDeg);
+      if (fmAspectedHouses(grahaName, fromHouse).has(targetHouse))
+        orb = Math.min(orb, Math.abs(deg - mepDeg));
+      return orb;
+    }
+
     function ordinal(n) {
       if (n === 1) return '1st'; if (n === 2) return '2nd'; if (n === 3) return '3rd';
       return n + 'th';
@@ -1982,8 +2011,7 @@
           const mtRaw = [];
           for (const fm of fmData) {
             if (fm.graha === g.graha) continue;
-            if (!fmAspectedHouses(fm.graha, fm.house).has(mtHouse)) continue;
-            const orb = Math.abs(fm.deg - mepDeg);
+            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, mtHouse, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMnode  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
             const isFMconj  = fm.house === mtHouse;
@@ -2024,9 +2052,7 @@
           const isMtSign  = !!occMtLord;
           const occRaw    = [];
           for (const fm of fmData) {
-            if (fm.graha === g.graha) continue;
-            if (!fmAspectedHouses(fm.graha, fm.house).has(house)) continue;
-            const orb = Math.abs(fm.deg - mepDeg);
+            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, house, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMnode2  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
             const isFMconj2  = fm.house === house;
@@ -2236,8 +2262,7 @@
           for (const g of data.grahas) {
             if (g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha)) continue;
             const gHouse = ((g.rashi - lr + 12) % 12) + 1;
-            if (!fmAspectedHouses(g.graha, gHouse).has(h)) continue;
-            const orb = Math.abs(g.degree_in_rashi - mepDeg);
+            const orb = mepOrb(g.graha, gHouse, g.degree_in_rashi, g.rashi, h, mepDeg, lr);
             const an = analysis[g.graha];
             const planetStrong = an && an.strengthPct >= 0.70;
             let boost = 0;
@@ -2254,8 +2279,7 @@
           // Use fmData (not fms) — fms excludes Rahu/Ketu which are always FM
           // Nodes are special only when conjunct (in the house); a pure 5th/9th aspect is regular.
           for (const fm of fmData) {
-            if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
-            const orb = Math.abs(fm.deg - mepDeg);
+            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMconj  = fm.house === h;
             const isFMnode  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
@@ -2652,7 +2676,7 @@
         if (!MOOLA_LORD[hRashi]) continue;
         const seen = new Set();
         for (const fm of fmData)
-          if (fmAspectedHouses(fm.graha, fm.house).has(h) && Math.abs(fm.deg - mepDeg) < cfg.mepOrb)
+          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < cfg.mepOrb)
             seen.add(fm.graha);
         if (seen.size >= 2)
           rows.push({ c: `2+ FMs on h${h} MEP`, i: 'None within 5°', v: [...seen].join('+') });
@@ -2665,7 +2689,7 @@
         if (!hLord) continue;
         let affFm = null;
         for (const fm of fmData)
-          if (fmAspectedHouses(fm.graha, fm.house).has(h) && Math.abs(fm.deg - mepDeg) < cfg.mepOrb)
+          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < cfg.mepOrb)
             { affFm = fm.graha; break; }
         if (affFm && pAff(hLord, an))
           rows.push({ c: `FM+Lord h${h}`, i: 'Clean', v: `${affFm} on MEP, ${hLord} afflicted` });
@@ -3799,11 +3823,10 @@
       return hi; // first minute where rashi == targetSign
     }
 
-    // Flat 5° check: does any FM aspect targetHouse MEP within 5°?
-    function mepAff(targetHouse, fmData, mepDeg) {
+    // Flat 5° check: is any FM within 5° of targetHouse's MEP?
+    function mepAff(targetHouse, fmData, mepDeg, lagnaRashi) {
       for (const fm of fmData) {
-        if (!fmAspectedHouses(fm.graha, fm.house).has(targetHouse)) continue;
-        if (Math.abs(fm.deg - mepDeg) < 5) return true;
+        if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, targetHouse, mepDeg, lagnaRashi) < 5) return true;
       }
       return false;
     }
@@ -3861,8 +3884,7 @@
         if (!MOOLA_LORD[hRashi]) continue;
         const seen = new Set();
         for (const fm of fmData) {
-          if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
-          if (Math.abs(fm.deg - mepDeg) < 5) seen.add(fm.graha);
+          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < 5) seen.add(fm.graha);
         }
         if (seen.size >= 2)
           return { pass: false, reason: `2+ FMs afflict MT house ${h} MEP` };
@@ -3875,8 +3897,7 @@
         if (!hLord) continue;
         let hAff = false;
         for (const fm of fmData) {
-          if (!fmAspectedHouses(fm.graha, fm.house).has(h)) continue;
-          if (Math.abs(fm.deg - mepDeg) < 5) { hAff = true; break; }
+          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < 5) { hAff = true; break; }
         }
         if (hAff && pAff(hLord, analysis))
           return { pass: false, reason: `FM afflicts h${h} MEP and ${hLord} is afflicted` };
@@ -3901,8 +3922,9 @@
         }
         if (llMtHouse) {
           for (const fm of fmData) {
-            if (fmAspectedHouses(fm.graha, fm.house).has(llMtHouse) && Math.abs(fm.deg - mepDeg) < orb5d)
-              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord MT sign (h${llMtHouse}) MEP within ${Math.abs(fm.deg - mepDeg).toFixed(1)}°` };
+            const d = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, llMtHouse, mepDeg, lr);
+            if (d < orb5d)
+              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord MT sign (h${llMtHouse}) MEP within ${d.toFixed(1)}°` };
           }
         }
 
@@ -3911,8 +3933,9 @@
         if (llGraha) {
           const llHouse = ((llGraha.rashi - lr + 12) % 12) + 1;
           for (const fm of fmData) {
-            if (fmAspectedHouses(fm.graha, fm.house).has(llHouse) && Math.abs(fm.deg - mepDeg) < orb5d)
-              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord house (h${llHouse}) MEP within ${Math.abs(fm.deg - mepDeg).toFixed(1)}°` };
+            const d = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, llHouse, mepDeg, lr);
+            if (d < orb5d)
+              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord house (h${llHouse}) MEP within ${d.toFixed(1)}°` };
           }
         }
       }

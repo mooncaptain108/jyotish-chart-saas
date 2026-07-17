@@ -12,6 +12,7 @@ lib64/
 *.py[cod]
 .venv/
 venv/
+scripts/
 *.egg-info/
 =0.104.0
 DATA_LICENSE

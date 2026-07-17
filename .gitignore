@@ -39,10 +39,11 @@ lib64/
 =0.104.0
 lib64
 static/chart.html
-
+scripts/
 # ephemeris/ decided to add 25mb
 #*.se1
 *.bak
+*.bak.*
 pushJyotish
 dive_0.13.1_linux_amd64.deb
 bld
