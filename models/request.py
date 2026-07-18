@@ -18,6 +18,9 @@ class BirthDataRequest(BaseModel):
         ..., ge=-12, le=14,
         description="Timezone offset from UTC in hours (e.g. 5.5 for IST)"
     )
+    include_analysis: bool = Field(
+        False, description="Also compute and include strength analysis in the response"
+    )
 
     model_config = {
         "json_schema_extra": {

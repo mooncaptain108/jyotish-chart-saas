@@ -5,7 +5,9 @@ from fastapi import APIRouter, HTTPException
 from models.request import BirthDataRequest, DivisionalChartRequest, DashaRequest
 from services.chart_service import (
     compute_full_chart, compute_single_divisional, compute_dasha_only,
+    compute_transit_positions,
 )
+from services.muhurta_analysis import analyze_all_grahas
 
 router = APIRouter(prefix="/api/v1/chart", tags=["chart"])
 
@@ -22,7 +24,26 @@ def get_full_chart(req: BirthDataRequest):
             longitude=req.longitude,
             tz_offset=req.timezone_offset,
         )
+        if req.include_analysis:
+            result["analysis"] = analyze_all_grahas(result)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/transit")
+def get_transit_positions(req: BirthDataRequest):
+    """Compute current graha positions for a moment/location (Transit Views).
+    Cheap by design — no divisional charts, dasha, or panchanga — since the
+    frontend calls this on every popover control change."""
+    try:
+        return compute_transit_positions(
+            date_str=req.date,
+            time_str=req.time,
+            latitude=req.latitude,
+            longitude=req.longitude,
+            tz_offset=req.timezone_offset,
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

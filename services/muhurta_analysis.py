@@ -47,6 +47,15 @@ NAK_LORDS_27    = [
     'Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury',
 ]
 
+# Canonical "Ideal" muhurta screening config — single source of truth (was
+# previously duplicated as a JS-only object literal in static/index.html).
+IDEAL_CFG: dict = {
+    'minBeneficDays': 30, 'antarMin': 0.70, 'lagnaLordMin': 0.70,
+    'minStrongPlanets': 4, 'minStrongHouses': 7, 'mepOrb': 5,
+    'planetMins': {}, 'allowWeakAntar': False, 'lowerStrongThreshold': False,
+    'noFmLagna': True,
+}
+
 # ─── Helpers ───────────────────────────────────────────────────────────────
 
 def fm_aspected_houses(graha: str, from_house: int) -> set[int]:
@@ -132,13 +141,15 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 d9_lagna = dc['lagna']['rashi']
             break
 
-    # Sun-like planets
+    # Sun-like planets: lords of 2nd, 3rd, 9th houses that contain a mooltrikona sign
     sun_like_signs = {5}
+    sun_like_planets: set[str] = set()
     for h in [2, 3, 9]:
         hr = ((lr - 1 + h - 1) % 12) + 1
         lord = MOOLA_LORD.get(hr)
         if lord:
             sun_like_signs.add(hr)
+            sun_like_planets.add(lord)
 
     # Combustion
     sun_g   = next((g for g in data['grahas'] if g['graha'] == 'Sun'), None)
@@ -195,6 +206,9 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
         d9_debi      = (name in d9_rashi and DEBI_RASHI.get(name) == d9_rashi[name])
         exalted      = EXALT_RASHI.get(name) == g['rashi']
         in_own_mt    = not is_node and MOOLA_RASHI.get(name) == g['rashi']
+        in_sun_like_house  = not is_node and house in (2, 3, 9)
+        in_leo             = not is_node and g['rashi'] == 5 and name != 'Sun'
+        is_sun_like_planet = not is_node and name != 'Sun' and name in sun_like_planets
         d9_exalted   = (name in d9_rashi and EXALT_RASHI.get(name) == d9_rashi[name])
         d9_house     = (((d9_rashi[name] - d9_lagna + 12) % 12) + 1
                         if d9_lagna is not None and name in d9_rashi else None)
@@ -387,17 +401,28 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 sp *= 0.25
             else:
                 for aff in afflictions:
-                    eff = aff['special'] or aff['chainSpecial']
-                    bl  = 0.75 if eff else 0.5
+                    base_loss = 0.5 if planet_is_strong else 0.75
                     if planet_is_strong:
-                        sp *= (1 - bl)
+                        sp *= (1 - base_loss)
                     else:
-                        sp *= (1 - bl * (1 - aff['orb'] / 5))
+                        sp *= (1 - base_loss * (1 - aff['orb'] / 5))
 
         # Positive boosts
         if not is_node and exalted:    sp *= 1.25
+        # Sun-like boosts — all three stack independently; suppressed if any FM
+        # is within 1° of the occupied house MEP, except an FM in its own MT
+        # sign keeps all boosts regardless.
+        if is_fm and in_own_mt:
+            mep_house_afflicted = False
+        elif in_own_mt:
+            mep_house_afflicted = any(a['orb'] < 1 for a in mt_aff)
+        else:
+            mep_house_afflicted = any(a['orb'] < 1 for a in occ_aff)
         sun_like_boost = False
-        if in_own_mt: sp *= 1.25; sun_like_boost = True
+        if is_sun_like_planet:                          sp *= 1.25; sun_like_boost = True
+        if in_own_mt        and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
+        if in_sun_like_house and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
+        if in_leo           and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
         if d9_exalted and not d9_in_dust: sp *= 1.25
 
         analysis[name] = {
@@ -414,9 +439,11 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             'cond5': cond5, 'dispositor': dispositor,
             'degPct': deg_pct, 'strengthPct': sp,
             'planetIsStrong': planet_is_strong, 'sunLikeBoost': sun_like_boost,
+            'isSunLikePlanet': is_sun_like_planet, 'inSunLikeHouse': in_sun_like_house,
+            'inLeo': in_leo, 'mepHouseAfflicted': mep_house_afflicted,
             'fbAspects': fb_aspects, 'fbBoostItems': [],
             'baseWeak': base_weak, 'dispositorWeak': False,
-            'isWeak': base_weak, 'dispCapChain': [],
+            'isWeak': base_weak, 'dispCapChain': [], 'degCapApplied': False,
         }
 
     # ── FB boost pass (snapshot pre-boost so order doesn't matter) ──
@@ -468,6 +495,12 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
         if isinstance(a, dict) and 'graha' in a and a['strengthPct'] >= 0.60:
             a['isWeak'] = False
 
+    # ── Degree cap — planet that started below 100% (old age or infancy) cannot exceed 100% ──
+    for a in analysis.values():
+        if isinstance(a, dict) and 'graha' in a and not a['isNode'] and a['degPct'] < 1.0 and a['strengthPct'] > 1.0:
+            a['strengthPct'] = 1.0
+            a['degCapApplied'] = True
+
     # ── House strengths ──
     houses: dict[int, dict] = {}
     for h in range(1, 13):
@@ -494,26 +527,33 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 if boost > 0:
                     sp += boost
                     boosts_h.append({'planet': g['graha'], 'orb': orb, 'boost': boost})
-            # FM afflictions to house
+            # FM afflictions to house (nodes special only when conjunct; a
+            # pure 5th/9th aspect is regular)
             for fm in fm_data:
                 orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr)
                 if orb >= 5:
                     continue
-                is_sp = fm['graha'] in ('Rahu', 'Ketu') or fm['graha'] == mmp
+                is_fm_conj = fm['house'] == h
+                is_fm_node = fm['graha'] in ('Rahu', 'Ketu')
+                is_sp = fm['graha'] == mmp or (is_fm_node and is_fm_conj)
                 loss  = (0.75 if is_sp else 0.5) * (1 - orb / 5)
                 if loss <= 0:
                     continue
                 sp -= loss
-                aff_h.append({'planet': fm['graha'], 'orb': orb, 'loss': loss, 'isSpecial': is_sp})
-            # Ra-Ke axis: single −75%
+                aff_h.append({'planet': fm['graha'], 'orb': orb, 'loss': loss,
+                              'isSpecial': is_sp, 'isFMconj': is_fm_conj})
+            # Ra-Ke axis: single consolidated loss (special only if one node is conjunct)
             only_nodes = bool(aff_h) and all(a['planet'] in ('Rahu', 'Ketu') for a in aff_h)
+            rk_loss = None
             if only_nodes:
                 for a in aff_h: sp += a['loss']
                 rk_orb = min(a['orb'] for a in aff_h)
-                sp -= 0.75 * (1 - rk_orb / 5)
+                rk_special = any(a['isFMconj'] for a in aff_h)
+                rk_loss = (0.75 if rk_special else 0.5) * (1 - rk_orb / 5)
+                sp -= rk_loss
             sp = max(sp, 0.0)
-            houses[h] = {'mt': False, 'rashi': hr, 'sp': sp,
-                         'boosts': boosts_h, 'afflictions': aff_h, 'onlyNodes': only_nodes}
+            houses[h] = {'mt': False, 'rashi': hr, 'sp': sp, 'boosts': boosts_h,
+                         'afflictions': aff_h, 'onlyNodes': only_nodes, 'rkLoss': rk_loss}
 
     analysis['_houses']  = houses
     analysis['_mepDeg']  = mep_deg
@@ -635,6 +675,41 @@ def screen_muhurta(data: dict, analysis: dict, cfg: dict) -> dict:
                 exceptions_used.append(f'FM on h{h} MEP + {hlord} afflicted')
             else:
                 return {'pass': False, 'reason': f'FM afflicts h{h} MEP and {hlord} is afflicted'}
+
+    # Rule 5d: No FM within orb of Lagna Lord, its MT sign MEP, or house of occupation MEP
+    if cfg.get('noFmLagna'):
+        orb5d = 5  # matches JS: cfg.noFmLagna ? 5 : (cfg.mepOrb || 5) is always 5 in this branch
+
+        # Point 1: FM within orb of Lagna Lord's own degree
+        ll_an = analysis.get(lagna_ruler)
+        if isinstance(ll_an, dict):
+            for asp in (ll_an.get('allFmAspects') or []):
+                if asp['orb'] < orb5d:
+                    return {'pass': False,
+                            'reason': f"FM {asp['fm']} within {asp['orb']:.1f}° of Lagna Lord {lagna_ruler}"}
+
+        # Point 2: FM within orb of Lagna Lord's MT sign house MEP
+        ll_mt_house = None
+        for rashi, lord in MOOLA_LORD.items():
+            if lord == lagna_ruler:
+                ll_mt_house = ((rashi - lr + 12) % 12) + 1
+                break
+        if ll_mt_house:
+            for fm in fm_data:
+                d = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], ll_mt_house, mep_deg, lr)
+                if d < orb5d:
+                    return {'pass': False,
+                            'reason': f"FM {fm['graha']} aspects Lagna Lord MT sign (h{ll_mt_house}) MEP within {d:.1f}°"}
+
+        # Point 3: FM within orb of house occupied by Lagna Lord
+        ll_graha = next((g for g in data['grahas'] if g['graha'] == lagna_ruler), None)
+        if ll_graha:
+            ll_house = ((ll_graha['rashi'] - lr + 12) % 12) + 1
+            for fm in fm_data:
+                d = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], ll_house, mep_deg, lr)
+                if d < orb5d:
+                    return {'pass': False,
+                            'reason': f"FM {fm['graha']} aspects Lagna Lord house (h{ll_house}) MEP within {d:.1f}°"}
 
     # Rule 6: active antardasha
     chart_dt = datetime.fromisoformat(data['birth_data']['date'] + 'T' + data['birth_data']['time'])

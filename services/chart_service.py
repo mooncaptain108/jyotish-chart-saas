@@ -133,6 +133,44 @@ def compute_full_chart(name: str | None, date_str: str, time_str: str,
     }
 
 
+def compute_transit_positions(date_str: str, time_str: str,
+                              latitude: float, longitude: float,
+                              tz_offset: float) -> dict:
+    """Compute current graha positions for a moment/location, for overlaying
+    onto a separately-loaded natal chart's houses (Transit Views feature).
+
+    Skips divisional charts, dasha, and panchanga/ashtakavarga — those are
+    natal-chart concerns and this endpoint is called on every popover control
+    change, so keeping it cheap matters. `grahas[i].house` is computed
+    against THIS moment's own ascendant for completeness, but the frontend
+    places transit planets using the natal chart's lagna instead (see
+    static/index.html renderChart / analyzeAllGrahas), not this field.
+    """
+    _ensure_swisseph_initialized()
+
+    jd, _ = _parse_birth_input(date_str, time_str, tz_offset, latitude, longitude)
+
+    ayanamsa = get_ayanamsa(jd)
+    planet_positions = compute_all_planets(jd)
+    cusps, ascmc = compute_houses(jd, latitude, longitude, DEFAULT_HOUSE_SYSTEM)
+    ascendant_longitude = ascmc[0]
+    lagna = compute_lagna(ascendant_longitude)
+    grahas = compute_graha_positions(planet_positions, cusps)
+
+    return {
+        "birth_data": {
+            "date": date_str,
+            "time": time_str,
+            "latitude": latitude,
+            "longitude": longitude,
+            "timezone_offset": tz_offset,
+        },
+        "ayanamsa": round(ayanamsa, 6),
+        "lagna": lagna,
+        "grahas": grahas,
+    }
+
+
 def compute_single_divisional(date_str: str, time_str: str,
                                latitude: float, longitude: float,
                                tz_offset: float,

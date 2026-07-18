@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from services.muhurta_jobs import start_search, get_status, get_results, cancel_job, get_job_meta, mark_logged
+from services.muhurta_analysis import IDEAL_CFG, analyze_all_grahas, screen_muhurta
 from activity import log_request
 
 router = APIRouter(prefix="/api/v1/muhurta", tags=["muhurta"])
@@ -24,6 +25,28 @@ class MuhurtaSearchRequest(BaseModel):
     targetSigns: Optional[List[int]] = None
     targetSign:  Optional[int] = None   # backward compat — single sign
     cfg:         dict
+
+
+class MuhurtaScreenRequest(BaseModel):
+    chart: dict
+    cfg:   dict
+
+
+@router.get("/ideal-cfg")
+def muhurta_ideal_cfg():
+    """Canonical 'Ideal' muhurta screening config — single source of truth."""
+    return IDEAL_CFG
+
+
+@router.post("/screen")
+def muhurta_screen(req: MuhurtaScreenRequest):
+    """Run analysis + muhurta screening against an already-fetched chart dict."""
+    try:
+        analysis = analyze_all_grahas(req.chart)
+        result = screen_muhurta(req.chart, analysis, req.cfg)
+        return {"analysis": analysis, "screen": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/search")

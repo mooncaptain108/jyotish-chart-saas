@@ -106,6 +106,11 @@
     input:focus, select:focus { outline:none; border-color:#c9a84c; }
     .f-row2 { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
     .f-hint { font-size:0.72rem; color:#505070; margin-top:0.2rem; }
+    .stepper-row { display:flex; gap:0.5rem; justify-content:flex-start; }
+    .stepper-col { display:flex; flex-direction:column; align-items:center; gap:0.1rem; }
+    .stepper-lbl { font-size:0.65rem; color:#a0a0b0; }
+    .stepper-btn { font-size:0.7rem; padding:0.05rem 0.5rem; line-height:1.2; min-width:1.8rem; }
+    body.light .stepper-lbl { color:#5a5860; }
     .tcb-exp-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
     .tcb-exp-table th { color:#606080; font-weight:normal; text-align:center; padding:2px 2px 4px; white-space:nowrap; }
     .tcb-exp-table th:first-child { text-align:left; width:24px; }
@@ -286,10 +291,10 @@
     body.light .tcb-exp-input { background: #faf8f0; border-color: #a09060; color: #2a2a3e; }
     body.light #tcb-status { background: #f8f4e8; }
     body.light .tcbs-lbl { color: #5a5860; }
-    body.light .an-item.c-red   { color: #c02020; }
-    body.light .an-item.c-blue  { color: #2040c0; }
-    body.light .an-item.c-brown { color: #7a5010; }
-    body.light .an-item.c-green { color: #206020; }
+    body.light .c-red   { color: #c02020; }
+    body.light .c-blue  { color: #2040c0; }
+    body.light .c-brown { color: #7a5010; }
+    body.light .c-green { color: #206020; }
     body.light .an-item.c-gray  { color: #606070; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -317,6 +322,14 @@
         <li><button onclick="openAtlasLocationsDialog(); closeAtlasMenu();">Locations</button></li>
         <li><hr></li>
         <li><button onclick="openHelpCustomLoc(); closeAtlasMenu();">Custom Location</button></li>
+      </ul>
+    </div>
+    <div class="tb-dropdown" id="viewDropdown" style="display:none">
+      <button class="tb-btn" onclick="toggleViewMenu(event)">View &#9662;</button>
+      <ul class="tb-menu" id="viewMenu">
+        <li><button onclick="setChartViewMode('chart'); closeViewMenu();">Chart</button></li>
+        <li><button onclick="setChartViewMode('transits'); closeViewMenu();">Transits</button></li>
+        <li><button onclick="setChartViewMode('both'); closeViewMenu();">Chart &amp; Transits</button></li>
       </ul>
     </div>
     <div class="sep"></div>
@@ -535,11 +548,11 @@
       <div class="f-row2">
         <div class="f-group">
           <label class="f-label" for="nLat">Latitude</label>
-          <input type="text" id="nLat" readonly tabindex="-1" style="background:#0a1428;color:#606080;cursor:default;">
+          <input type="text" id="nLat" readonly tabindex="-1" style="cursor:default;">
         </div>
         <div class="f-group">
           <label class="f-label" for="nLon">Longitude</label>
-          <input type="text" id="nLon" readonly tabindex="-1" style="background:#0a1428;color:#606080;cursor:default;">
+          <input type="text" id="nLon" readonly tabindex="-1" style="cursor:default;">
         </div>
       </div>
       <div class="f-group">
@@ -566,7 +579,7 @@
         <div class="f-group">
           <label class="f-label" for="nTime">Time</label>
           <div style="display:flex;gap:0.4rem;align-items:center;">
-            <input type="time" id="nTime" step="60">
+            <input type="time" id="nTime" step="1">
             <button type="button" class="btn-sec" style="font-size:0.8rem;padding:0.18rem 0.7rem;white-space:nowrap;" onclick="setNewChartNow()">Now</button>
           </div>
         </div>
@@ -581,6 +594,72 @@
     <div class="dlg-footer">
       <button class="btn-primary" id="newSubmitBtn" onclick="newSubmit()">Submit</button>
       <button class="btn-sec" onclick="document.getElementById('dlgNew').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Transits popover (Transit Views feature) ════ -->
+  <dialog id="dlgTransits">
+    <div class="dlg-header">
+      <h2>Transits</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgTransits').close(); setChartViewMode('chart');">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-group">
+        <label class="f-label" for="tAtlas">Location (atlas)</label>
+        <select id="tAtlas" onchange="transitAtlasLoad()"><option value="">— pick a saved location —</option></select>
+      </div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="tLat">Latitude</label>
+          <input type="text" id="tLat" readonly tabindex="-1" style="cursor:default;">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="tLon">Longitude</label>
+          <input type="text" id="tLon" readonly tabindex="-1" style="cursor:default;">
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="tTz">UTC offset (hours)</label>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="text" id="tTz" readonly tabindex="-1" style="width:6rem;cursor:default;">
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:#a0a0b0;cursor:default;">
+            <input type="checkbox" id="tDst" style="pointer-events:none;" tabindex="-1">
+            Daylight Saving
+          </label>
+        </div>
+      </div>
+      <div class="f-divider"></div>
+      <div class="f-row2">
+        <div class="f-group">
+          <label class="f-label" for="tDate">Date</label>
+          <input type="date" id="tDate" oninput="transitUpdateTz(); fetchAndRenderTransit();" onchange="transitUpdateTz(); fetchAndRenderTransit();">
+        </div>
+        <div class="f-group">
+          <label class="f-label" for="tTime">Time</label>
+          <div style="display:flex;gap:0.4rem;align-items:center;">
+            <input type="time" id="tTime" step="1" oninput="fetchAndRenderTransit();" onchange="fetchAndRenderTransit();">
+            <button type="button" class="btn-sec" style="font-size:0.8rem;padding:0.18rem 0.7rem;white-space:nowrap;" onclick="setTransitNow()">Now</button>
+          </div>
+        </div>
+      </div>
+      <div class="f-row2" style="margin-top:-0.4rem;">
+        <div class="f-group stepper-row" style="margin-bottom:0;">
+          <div class="stepper-col"><span class="stepper-lbl">Mo</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('month',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('month',-1)">▼</button></div>
+          <div class="stepper-col"><span class="stepper-lbl">Day</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('day',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('day',-1)">▼</button></div>
+          <div class="stepper-col"><span class="stepper-lbl">Year</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('year',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('year',-1)">▼</button></div>
+        </div>
+        <div class="f-group stepper-row" style="margin-bottom:0;">
+          <div class="stepper-col"><span class="stepper-lbl">Hr</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('hour',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('hour',-1)">▼</button></div>
+          <div class="stepper-col"><span class="stepper-lbl">Min</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('minute',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('minute',-1)">▼</button></div>
+          <div class="stepper-col"><span class="stepper-lbl">Sec</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('second',1)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('second',-1)">▼</button></div>
+          <div class="stepper-col"><span class="stepper-lbl">AM/PM</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('ampm',12)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('ampm',-12)">▼</button></div>
+        </div>
+      </div>
+      <p id="transitErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-primary" id="transitsAnalysisBtn" onclick="openAnalysisDialog()">Analyze</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgTransits').close(); setChartViewMode('chart');">Close</button>
     </div>
   </dialog>
 
@@ -1091,7 +1170,7 @@
     function closeHelpMenu() {
       document.getElementById('helpMenu').classList.remove('open');
     }
-    document.addEventListener('click', function() { closeHelpMenu(); closeAtlasMenu(); closeChartsMenu(); });
+    document.addEventListener('click', function() { closeHelpMenu(); closeAtlasMenu(); closeChartsMenu(); closeViewMenu(); });
 
     let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null, _helpCustomLocMd = null;
     let _notRecommendedMd = null;
@@ -1212,7 +1291,7 @@
       if (this.checked) {
         document.getElementById('chkDecimal').checked = false;
         localStorage.setItem('jyotish_deg_fmt', 'degmin');
-        if (lastData) renderChart(lastData);
+        if (lastData) renderChart(lastData, currentMuhurtaIdx >= 0);
       } else {
         this.checked = true;
       }
@@ -1221,7 +1300,7 @@
       if (this.checked) {
         document.getElementById('chkDegMin').checked = false;
         localStorage.setItem('jyotish_deg_fmt', 'decimal');
-        if (lastData) renderChart(lastData);
+        if (lastData) renderChart(lastData, currentMuhurtaIdx >= 0);
       } else {
         this.checked = true;
       }
@@ -1323,6 +1402,15 @@
     }
     function closeChartsMenu() {
       document.getElementById('chartsMenu').classList.remove('open');
+    }
+
+    // View dropdown menu (Transit Views feature)
+    function toggleViewMenu(e) {
+      e.stopPropagation();
+      document.getElementById('viewMenu').classList.toggle('open');
+    }
+    function closeViewMenu() {
+      document.getElementById('viewMenu').classList.remove('open');
     }
 
     // Atlas dropdown menu
@@ -1438,13 +1526,13 @@
         document.getElementById('nLon').value   = saved.lon  || '';
         document.getElementById('nTz').value    = saved.tz   !== undefined ? saved.tz : '';
         document.getElementById('nDate').value  = saved.date || new Date().toISOString().split('T')[0];
-        document.getElementById('nTime').value  = saved.time || new Date().toTimeString().slice(0,5);
+        document.getElementById('nTime').value  = saved.time || new Date().toTimeString().slice(0,8);
         document.getElementById('nName').value  = saved.name || '';
         document.getElementById('nAtlas').value = saved.atlasName || '';
       } else {
         const now = new Date();
         document.getElementById('nDate').value = now.toISOString().split('T')[0];
-        document.getElementById('nTime').value = now.toTimeString().slice(0,5);
+        document.getElementById('nTime').value = now.toTimeString().slice(0,8);
       }
       document.getElementById('newErrMsg').textContent = '';
       const _nd = document.getElementById('nDate').value;
@@ -1518,6 +1606,12 @@
       document.getElementById('nTz').value = getOffsetForDate(loc.tzName || 'UTC', date);
     }
 
+    // Normalizes an "HH:MM" or "HH:MM:SS" string to always include seconds —
+    // needed because nTime/tTime now support seconds (step=1) but charts
+    // saved before that change (or the atlas/library records) may still be
+    // plain "HH:MM".
+    function ensureSeconds(t) { return t.split(':').length === 3 ? t : t + ':00'; }
+
     async function newSubmit() {
       const errEl = document.getElementById('newErrMsg');
       const btn   = document.getElementById('newSubmitBtn');
@@ -1537,7 +1631,7 @@
       try {
         const res = await fetch('/api/v1/chart', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ date, time: time+':00', latitude:lat, longitude:lon, timezone_offset:tz })
+          body: JSON.stringify({ date, time: ensureSeconds(time), latitude:lat, longitude:lon, timezone_offset:tz, include_analysis:true })
         });
         if (!res.ok) throw new Error('Server error ' + res.status);
         const data = await res.json();
@@ -1598,7 +1692,7 @@
       try {
         const res = await fetch('/api/v1/chart', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ date:c.date, time:c.time+':00', latitude:parseFloat(c.lat), longitude:parseFloat(c.lon), timezone_offset:parseFloat(c.tz) })
+          body: JSON.stringify({ date:c.date, time:ensureSeconds(c.time), latitude:parseFloat(c.lat), longitude:parseFloat(c.lon), timezone_offset:parseFloat(c.tz), include_analysis:true })
         });
         if (!res.ok) throw new Error('Server error ' + res.status);
         const data = await res.json();
@@ -1687,6 +1781,28 @@
           // Set after renderChart — renderChart clears it
           currentUserTestKey = key;
           document.getElementById('editTestBtn').style.display = '';
+          // Test-builder fixtures never touch the network, so the tripwire
+          // in renderChart never fires for them (no data.analysis). These
+          // are curated edge cases -- fire a background re-fetch just for
+          // comparison; never touches the render path. See
+          // followup_js_python_dup memory note.
+          if (chartData.birth_data) {
+            const bd = chartData.birth_data;
+            const jsAn = lastAnalysis;
+            fetch('/api/v1/chart', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                date: bd.date, time: bd.time, latitude: bd.latitude,
+                longitude: bd.longitude, timezone_offset: bd.timezone_offset,
+                include_analysis: true,
+              }),
+            }).then(r => r.ok ? r.json() : null)
+              .then(serverData => {
+                if (serverData && serverData.analysis)
+                  _tripwireCompareAnalysis(jsAn, serverData.analysis, 'test-fixture:' + key);
+              })
+              .catch(e => console.warn('[analysis tripwire] background fetch failed:', e));
+          }
         }
         return;
       }
@@ -2332,10 +2448,47 @@
     // ═══════════════════════════════════════════════════
     const PLANET_ORDER = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
 
+    // Server-computed analysis carries no presentation fields (abbr/rashiName/
+    // color/degColor are theme-dependent and stay client-side by design — see
+    // house_boundary_mep_fix memory note). This adds them on top so display
+    // code can consume either the local JS analysis or data.analysis uniformly.
+    function decorateAnalysisForDisplay(rawAnalysis) {
+      const _t = getTheme();
+      const out = {};
+      for (const [name, a] of Object.entries(rawAnalysis)) {
+        if (!a || typeof a !== 'object' || !a.graha) { out[name] = a; continue; }
+        const strengthColor = a.combust      ? _t.colorCombust
+                            : a.isWeak       ? _t.colorWeak
+                            : a.strengthPct < 0.70 ? _t.colorMid
+                            : _t.colorStrong;
+        out[name] = {
+          ...a,
+          abbr: a.abbr || GRAHA_ABBR[a.graha] || a.graha.slice(0, 2),
+          rashiName: a.rashiName || RASHI_NAME[a.rashi],
+          color: a.isFM ? _t.colorFM : strengthColor,
+          degColor: a.isFM ? strengthColor : null,
+        };
+      }
+      return out;
+    }
+
     function openAnalysisDialog() {
-      if (!lastData || !lastAnalysis) return;
-      const data = lastData;
-      const an   = lastAnalysis;
+      if (chartViewMode === 'both') return openTransitCrossAnalysisDialog();
+      let data, an;
+      if (chartViewMode === 'transits') {
+        // Transits view: analyze transit planet positions against the
+        // NATAL ascendant (same lagna, per the Transit Views spec) — "Analyze"
+        // works the same way it does for the Chart view.
+        if (!lastData || !transitData || !transitAnalysis) return;
+        data = { lagna: lastData.lagna, grahas: transitData.grahas, birth_data: transitData.birth_data };
+        an   = transitAnalysis;
+      } else {
+        if (!lastData || !lastAnalysis) return;
+        data = lastData;
+        // Prefer server-computed analysis (present when the chart fetch requested
+        // include_analysis:true) over the local JS copy — see followup_js_python_dup.
+        an   = decorateAnalysisForDisplay(lastData.analysis || lastAnalysis);
+      }
       const lr   = data.lagna.rashi;
       const sunIsFM = an._sunIsFM;
       const bd   = data.birth_data;
@@ -2354,7 +2507,7 @@
         html += `<div class="an-planet">
           <div class="an-phead">
             <span class="an-abbr" style="color:${a.color}">${a.abbr}${retroStr}</span>
-            <span class="an-name">${a.graha}</span>
+            <span class="an-name ${a.isFM ? 'c-red' : 'c-green'}">${a.graha}</span>
             <span class="an-loc">${a.rashiName} &bull; House ${a.house} &bull; ${fmtDeg(a.deg)}°</span>
           </div><div>`;
 
@@ -2621,17 +2774,94 @@
       }
 
       // ── Muhurta Eval button banner ──
+      // Breakdown body above renders synchronously from cached data; the
+      // pass/fail banner itself now comes from POST /api/v1/muhurta/screen
+      // (server source of truth) and is patched in once it resolves —
+      // click-triggered, so the brief neutral-styled button is imperceptible.
       const MUHURTA_LAGNA = new Set([1,3,4,5,7,8,9,10,11]);
       const chartDateMs = new Date(data.birth_data.date).getTime();
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
-      if (MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo) {
-        const mScreen = screenMuhurta(data, an, IDEAL_CFG);
-        const notRecommended = new Set([4,8,10,11]).has(lr);
-        const btnStyle = (mScreen.pass && !notRecommended)
-          ? 'background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;'
-          : 'background:#2b1505;border:1px solid #7a4a10;color:#e09040;';
-        html = `<button onclick="showMuhurtaEval()" style="${btnStyle}padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;">Muhurta Eval</button>` + html;
+      const showBanner = MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo;
+      if (showBanner) {
+        html = `<button id="muhurtaEvalBtn" onclick="showMuhurtaEval()" style="background:#222;border:1px solid #444;color:#999;padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;">Muhurta Eval…</button>` + html;
       }
+
+      document.getElementById('analysisContent').innerHTML = html;
+      document.getElementById('dlgAnalysis').showModal();
+
+      if (showBanner) {
+        fetch('/api/v1/muhurta/screen', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chart: data, cfg: IDEAL_CFG }),
+        }).then(r => r.ok ? r.json() : null)
+          .then(result => {
+            const btn = document.getElementById('muhurtaEvalBtn');
+            if (!btn || !result) return;
+            const mScreen = result.screen;
+            const notRecommended = new Set([4,8,10,11]).has(lr);
+            const btnStyle = (mScreen.pass && !notRecommended)
+              ? 'background:#0d2b1a;border:1px solid #2a7a4a;color:#6dca8a;'
+              : 'background:#2b1505;border:1px solid #7a4a10;color:#e09040;';
+            btn.setAttribute('style', btnStyle + 'padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;');
+            btn.textContent = 'Muhurta Eval';
+          })
+          .catch(e => console.warn('[muhurta screen] fetch failed:', e));
+      }
+    }
+
+    // For each planet in `targets`, find every planet in `sources` that
+    // aspects/conjuncts it within 5deg (degree-preserving aspect projection,
+    // same convention used throughout — see mep_orb/mepOrb notes). No FM/
+    // strength distinction here, this is a plain conjunction+aspect scan.
+    function computeCrossAspects(sources, targets) {
+      const result = {};
+      for (const tName of PLANET_ORDER) {
+        const t = targets[tName]; if (!t || !t.graha) continue;
+        const hits = [];
+        for (const sName of PLANET_ORDER) {
+          const s = sources[sName]; if (!s || !s.graha) continue;
+          if (!fmAspectedHouses(s.graha, s.house).has(t.house)) continue;
+          const orb = Math.abs(s.deg - t.deg);
+          if (orb >= 5) continue;
+          hits.push({ source: s.graha, orb, via: aspectLabel(s.graha, s.house, t.house) });
+        }
+        hits.sort((a,b) => a.orb - b.orb);
+        if (hits.length) result[tName] = hits;
+      }
+      return result;
+    }
+
+    // Chart & Transits analysis: no house/planet strength — just conjunctions
+    // and aspects within 5deg between natal and transit positions, in two
+    // sections (transit-over-natal, natal-over-transit). Per Transit Views spec.
+    function openTransitCrossAnalysisDialog() {
+      if (!lastData || !lastAnalysis || !transitData || !transitAnalysis) return;
+      const an = lastAnalysis, tAn = transitAnalysis;
+      const transitOverNatal = computeCrossAspects(tAn, an);   // targets = natal planets
+      const natalOverTransit = computeCrossAspects(an, tAn);   // targets = transit planets
+
+      const fmCls = n => (an[n] && an[n].isFM) ? 'c-red' : 'c-green';
+      const section = (title, byTarget, srcLabel) => {
+        let html = `<div class="an-section-head">${title}</div>`;
+        let any = false;
+        for (const name of PLANET_ORDER) {
+          const hits = byTarget[name]; if (!hits) continue;
+          any = true;
+          html += `<div class="an-planet"><div class="an-phead"><span class="an-name ${fmCls(name)}">${name}</span></div><div>`;
+          for (const h of hits) {
+            html += `<div class="an-item c-brown">${srcLabel} <span class="${fmCls(h.source)}">${h.source}</span> — ${h.via} — ${h.orb.toFixed(2)}°</div>`;
+          }
+          html += `</div></div>`;
+        }
+        if (!any) html += `<div class="an-item">None within 5°</div>`;
+        return html;
+      };
+
+      let html = `<div class="an-lagna">
+        <strong style="color:#c9a84c">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna
+      </div>`;
+      html += section('Transit over Natal', transitOverNatal, 'Transit');
+      html += section('Natal over Transit', natalOverTransit, 'Natal');
 
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
@@ -2640,7 +2870,9 @@
 
     function showMuhurtaEval() {
       if (!lastData || !lastAnalysis) return;
-      const data = lastData, an = lastAnalysis, cfg = IDEAL_CFG;
+      // Prefer server-computed analysis (present when the chart fetch requested
+      // include_analysis:true) over the local JS copy — see followup_js_python_dup.
+      const data = lastData, an = lastData.analysis || lastAnalysis, cfg = IDEAL_CFG;
       const lr = data.lagna.rashi;
       const fms = FUNC_MALEFICS[lr] || new Set();
       const mepDeg = data.lagna.degree_in_rashi;
@@ -3068,9 +3300,77 @@
       document.getElementById('dashaList').scrollTop = 0;
     }
 
-    function renderChart(data) {
+    // Consolidation-transition tripwire (temporary, delete once JS analysis
+    // is retired — see followup_js_python_dup / house_boundary_mep_fix notes).
+    // Compares the local JS-computed analysis against the server's analysis
+    // (only present when the chart fetch requested include_analysis:true).
+    // Non-blocking: never affects rendering, only console.warn on mismatch.
+    function _tripwireCompareAnalysis(jsAn, serverAn, label) {
+      try {
+        const PLANET_FIELDS = ['strengthPct','isWeak','inDushtana','combust','debilitated',
+          'exalted','cond5','dispositorWeak','degCapApplied','isSunLikePlanet',
+          'inSunLikeHouse','inLeo','mepHouseAfflicted'];
+        const LIST_FIELDS = ['afflictions','mtAfflictions','occAfflictions'];
+        for (const name of Object.keys(jsAn)) {
+          const j = jsAn[name], s = serverAn[name];
+          if (!j || !j.graha || !s) continue;
+          for (const f of PLANET_FIELDS) {
+            const jv = j[f], sv = s[f];
+            const mismatch = (typeof jv === 'number')
+              ? Math.abs(jv - (sv || 0)) > 0.001
+              : jv !== sv;
+            if (mismatch) console.warn(`[analysis tripwire] ${label} ${name}.${f}: js=${jv} server=${sv}`);
+          }
+          for (const f of LIST_FIELDS) {
+            const jl = (j[f] || []).length, sl = (s[f] || []).length;
+            if (jl !== sl) console.warn(`[analysis tripwire] ${label} ${name}.${f}.length: js=${jl} server=${sl}`);
+          }
+        }
+        const jh = jsAn._houses || {}, sh = serverAn._houses || {};
+        for (let h = 1; h <= 12; h++) {
+          const jhi = jh[h], shi = sh[h];
+          if (!jhi || !shi) continue;
+          if (jhi.mt !== shi.mt || jhi.lord !== shi.lord)
+            console.warn(`[analysis tripwire] ${label} house${h} mt/lord: js=${jhi.mt}/${jhi.lord} server=${shi.mt}/${shi.lord}`);
+          if (!jhi.mt && Math.abs((jhi.sp || 0) - (shi.sp || 0)) > 0.001)
+            console.warn(`[analysis tripwire] ${label} house${h}.sp: js=${jhi.sp} server=${shi.sp}`);
+        }
+      } catch (e) {
+        console.warn('[analysis tripwire] comparison failed:', e);
+      }
+    }
+
+    // Natal title line(s) for a chart's birth_data — shared by renderChart,
+    // renderTransitsView and renderBothView so those two always show natal
+    // info (the Transits popover, kept open in those modes, already shows
+    // the transit date/time/location — no need to duplicate/overwrite it here).
+    function natalTitleLines(data) {
+      const bd = data.birth_data;
+      if (bd._isTest) return { line1: data.name || 'Test Chart', line2: null };
+      const timeShort = (bd.time || '').slice(0, 5);
+      const namePart  = data.name ? data.name + ' · ' : '';
+      const locPart   = data._locName ? ' · ' + data._locName : '';
+      const line1 = namePart + bd.date + ' ' + timeShort + locPart;
+      const off = bd.timezone_offset, sign = off >= 0 ? '+' : '-', abs = Math.abs(off);
+      const hh = String(Math.floor(abs)).padStart(2, '0');
+      const mm = String(Math.round((abs % 1) * 60)).padStart(2, '0');
+      const tzPart  = data._tzName ? data._tzName + ' · ' : '';
+      const dstPart = data._dst    ? ' · Daylight Saving' : '';
+      const line2 = tzPart + 'UTC' + sign + hh + ':' + mm + dstPart;
+      return { line1, line2 };
+    }
+
+    function renderChart(data, isMuhurtaResult) {
       lastData     = data;
-      lastAnalysis = analyzeAllGrahas(data);
+      // Server analysis (present when the chart fetch requested
+      // include_analysis:true) is now the paint source of truth; local JS
+      // computation is only a fallback for charts fetched without it (e.g.
+      // test-builder fixtures, muhurta binary-search preview charts) — see
+      // followup_js_python_dup / house_boundary_mep_fix memory notes.
+      // lastAnalysis is kept DECORATED (color/abbr/rashiName/degColor) since
+      // other consumers (dashaColor, etc.) read lastAnalysis[graha].color
+      // directly, not just this function's local `an`.
+      lastAnalysis = decorateAnalysisForDisplay(data.analysis || analyzeAllGrahas(data));
       const an = lastAnalysis;
       const lr = data.lagna.rashi;
       const mepDeg = data.lagna.degree_in_rashi;
@@ -3136,26 +3436,12 @@
       }
 
       // Title — two lines inside the SVG header (y=0..50 space)
-      const bd = data.birth_data;
       const _tAttr = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
       document.getElementById('chartTitle').textContent = '';
-      if (bd._isTest) {
-        svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'33'}), data.name || 'Test Chart'));
+      const {line1, line2} = natalTitleLines(data);
+      if (line2 === null) {
+        svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'33'}), line1));
       } else {
-        // Line 1: Name · Date Time · Location
-        const timeShort = (bd.time || '').slice(0, 5);
-        const namePart  = data.name ? data.name + ' · ' : '';
-        const locPart   = data._locName ? ' · ' + data._locName : '';
-        const line1 = namePart + bd.date + ' ' + timeShort + locPart;
-        // Line 2: TZName · UTC±HH:MM [ · Daylight Saving]
-        const off    = bd.timezone_offset;
-        const sign   = off >= 0 ? '+' : '-';
-        const abs    = Math.abs(off);
-        const hh     = String(Math.floor(abs)).padStart(2, '0');
-        const mm     = String(Math.round((abs % 1) * 60)).padStart(2, '0');
-        const tzPart  = data._tzName ? data._tzName + ' · ' : '';
-        const dstPart = data._dst    ? ' · Daylight Saving' : '';
-        const line2  = tzPart + 'UTC' + sign + hh + ':' + mm + dstPart;
         svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'26'}), line1));
         svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'40'}), line2));
       }
@@ -3164,6 +3450,10 @@
       document.getElementById('analysisBtn').disabled = false;
       document.getElementById('editTestBtn').style.display = 'none';
       currentUserTestKey = null;
+      // View menu (Transit Views feature): never shown for muhurta result charts
+      const viewDropdown = document.getElementById('viewDropdown');
+      if (viewDropdown) viewDropdown.style.display = isMuhurtaResult ? 'none' : '';
+      if (isMuhurtaResult) setChartViewMode('chart');
       renderD9Chart(data, lastAnalysis);
       renderRashiData(data, lastAnalysis);
       const _moonG = data.grahas && data.grahas.find(g => g.graha === 'Moon');
@@ -3325,13 +3615,336 @@
       const pad = n => String(n).padStart(2, '0');
       const dateVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
       document.getElementById('nDate').value = dateVal;
-      document.getElementById('nTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      document.getElementById('nTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
       // trigger timezone update same as manual date entry
       const tzWarn = document.getElementById('nTzWarn');
       if (tzWarn) tzWarn.style.display = 'none';
       const tzOvr = document.getElementById('nTzOverride');
       if (tzOvr) tzOvr.checked = false;
       newUpdateTz();
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Transit Views (Transits / Chart & Transits)
+    // ═══════════════════════════════════════════════════
+    let chartViewMode  = 'chart';  // 'chart' | 'transits' | 'both'
+    let transitData    = null;     // last-fetched /api/v1/chart/transit response
+    let transitAnalysis = null;    // analyzeAllGrahas({lagna: natal, grahas: transit}), decorated
+
+    function rebuildTransitAtlasSelect() {
+      const sel = document.getElementById('tAtlas');
+      const names = Object.keys(getAtlas()).sort((a,b) => { const ca=a.split(',')[0].toUpperCase(),cb=b.split(',')[0].toUpperCase(); return ca<cb?-1:ca>cb?1:0; });
+      sel.innerHTML = '<option value="">— pick a saved location —</option>';
+      for (const n of names) { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); }
+    }
+
+    function transitAtlasLoad() {
+      const loc = getAtlas()[document.getElementById('tAtlas').value]; if (!loc) return;
+      document.getElementById('tLat').value = loc.lat;
+      document.getElementById('tLon').value = loc.lon;
+      transitUpdateTz();
+    }
+
+    async function transitUpdateTz() {
+      const dstEl = document.getElementById('tDst'); if (dstEl) dstEl.checked = false;
+      const atlasName = document.getElementById('tAtlas').value;
+      const loc = getAtlas()[atlasName];
+      const date = document.getElementById('tDate').value;
+      if (!loc) return;
+      if (!date) { document.getElementById('tTz').value = parseFloat(loc.tz) || ''; return; }
+      if (loc.tzName) {
+        try {
+          const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
+          if (res.ok) {
+            const tzData = await res.json();
+            document.getElementById('tTz').value = tzData.offset;
+            if (dstEl) dstEl.checked = !!tzData.dst;
+            fetchAndRenderTransit();
+            return;
+          }
+        } catch {}
+      }
+      document.getElementById('tTz').value = parseFloat(loc.tz) || '';
+      fetchAndRenderTransit();
+    }
+
+    function setTransitNow() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('tDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+      document.getElementById('tTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      transitUpdateTz();
+    }
+
+    function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); } // m: 0-11
+
+    // Stepper buttons below the Date/Time row. 'month'/'year' clamp the day
+    // to the target month's length (e.g. Jan 31 + 1mo -> Feb 28) instead of
+    // JS Date's native roll-over behavior; 'day'/'hour'/'minute' roll over
+    // into neighboring days naturally via Date arithmetic. 'ampm' flips
+    // 12 hours (up: +12, down: -12 — numerically identical mod 24, but the
+    // sign is kept so the button's direction matches the delta passed in).
+    // Seconds (tTime now supports them) are carried through untouched except
+    // by the day/hour/minute/ampm branch's own Date arithmetic.
+    function stepTransitField(field, delta) {
+      const dateEl = document.getElementById('tDate');
+      const timeEl = document.getElementById('tTime');
+      if (!dateEl.value || !timeEl.value) return;
+      let [y, mo, d] = dateEl.value.split('-').map(Number);
+      let [h, mi, se] = timeEl.value.split(':').map(Number);
+      se = se || 0;
+      mo -= 1; // 0-indexed for Date math below
+      if (field === 'month') {
+        mo += delta;
+        const y2 = y + Math.floor(mo / 12);
+        const mo2 = ((mo % 12) + 12) % 12;
+        d = Math.min(d, daysInMonth(y2, mo2));
+        y = y2; mo = mo2;
+      } else if (field === 'year') {
+        y += delta;
+        d = Math.min(d, daysInMonth(y, mo));
+      } else {
+        const dt = new Date(
+          y, mo, d + (field === 'day' ? delta : 0),
+          h + (field === 'hour' ? delta : 0) + (field === 'ampm' ? delta : 0),
+          mi + (field === 'minute' ? delta : 0),
+          se + (field === 'second' ? delta : 0)
+        );
+        y = dt.getFullYear(); mo = dt.getMonth(); d = dt.getDate();
+        h = dt.getHours(); mi = dt.getMinutes(); se = dt.getSeconds();
+      }
+      const pad = n => String(n).padStart(2, '0');
+      dateEl.value = `${y}-${pad(mo + 1)}-${pad(d)}`;
+      timeEl.value = `${pad(h)}:${pad(mi)}:${pad(se)}`;
+      transitUpdateTz();
+      fetchAndRenderTransit();
+    }
+
+    // Called by setChartViewMode('transits'|'both'). Opens the popover (with
+    // defaults: current date/time, natal chart's own location) the first
+    // time; if already open, just re-renders in the newly-selected mode.
+    function openTransitsPopover() {
+      const dlg = document.getElementById('dlgTransits');
+      if (!dlg.open) {
+        rebuildTransitAtlasSelect();
+        const locName = lastData._locName || '';
+        const atlasSel = document.getElementById('tAtlas');
+        if (locName && getAtlas()[locName]) {
+          atlasSel.value = locName;
+          const loc = getAtlas()[locName];
+          document.getElementById('tLat').value = loc.lat;
+          document.getElementById('tLon').value = loc.lon;
+        } else {
+          atlasSel.value = '';
+          document.getElementById('tLat').value = lastData.birth_data.latitude;
+          document.getElementById('tLon').value = lastData.birth_data.longitude;
+          document.getElementById('tTz').value  = lastData.birth_data.timezone_offset;
+        }
+        setTransitNow();  // sets date/time to now and triggers transitUpdateTz -> fetch
+        dlg.showModal();
+      } else if (transitData) {
+        if (chartViewMode === 'transits') renderTransitsView();
+        else if (chartViewMode === 'both') renderBothView();
+      }
+    }
+
+    async function fetchAndRenderTransit() {
+      if (!lastData) return;
+      const date = document.getElementById('tDate').value;
+      const time = document.getElementById('tTime').value;
+      const lat  = parseFloat(document.getElementById('tLat').value);
+      const lon  = parseFloat(document.getElementById('tLon').value);
+      const tz   = parseFloat(document.getElementById('tTz').value);
+      const errEl = document.getElementById('transitErrMsg');
+      if (!date || !time || isNaN(lat) || isNaN(lon) || isNaN(tz)) return;
+      try {
+        const res = await fetch('/api/v1/chart/transit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, time: ensureSeconds(time), latitude: lat, longitude: lon, timezone_offset: tz }),
+        });
+        if (!res.ok) throw new Error('Server error ' + res.status);
+        transitData = await res.json();
+        // Transit planets analyzed against the NATAL lagna (same ascendant),
+        // so afflictions/combustion/colors reflect the transit-time positions
+        // relative to the natal houses — per the Transit Views spec.
+        const synthetic = { lagna: lastData.lagna, grahas: transitData.grahas, birth_data: transitData.birth_data };
+        transitAnalysis = decorateAnalysisForDisplay(analyzeAllGrahas(synthetic));
+        if (errEl) errEl.textContent = '';
+        if (chartViewMode === 'transits') renderTransitsView();
+        else if (chartViewMode === 'both') renderBothView();
+      } catch (err) {
+        if (errEl) errEl.textContent = 'Error: ' + err.message;
+        console.warn('[transit] fetch failed:', err);
+      }
+    }
+
+    function setChartViewMode(mode) {
+      if (!lastData) return;
+      chartViewMode = mode;
+      if (mode === 'chart') {
+        const dlg = document.getElementById('dlgTransits');
+        if (dlg.open) dlg.close();
+        renderChart(lastData, currentMuhurtaIdx >= 0);
+        return;
+      }
+      openTransitsPopover();
+    }
+
+    // Paints the SAME ascendant/houses as the natal chart, but with transit
+    // planet positions/colors — replaces the main wheel (not an overlay).
+    function renderTransitsView() {
+      if (!lastData || !transitData || !transitAnalysis) return;
+      const an = transitAnalysis;
+      const lr = lastData.lagna.rashi;
+      const mepDeg = lastData.lagna.degree_in_rashi;
+
+      const svg = document.getElementById('chart');
+      svg.innerHTML = '';
+      svg.style.display = 'block';
+      const _defs = svgEl('defs',{});
+      svg.appendChild(_defs);
+      const _tc = getTheme();
+      svg.appendChild(svgEl('rect',{width:500,height:500,fill:_tc.chartBg}));
+
+      for (let h=1;h<=12;h++) {
+        svg.appendChild(svgEl('polygon',{
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:_tc.houseFill,stroke:_tc.houseStroke,'stroke-width':'1'
+        }));
+      }
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+      }
+
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      hp[1].push({label:'As',deg:mepDeg,color:_tc.asColor,retro:false,isAs:true});
+      for (const name of PLANET_ORDER) {
+        const a = an[name]; if (!a) continue;
+        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,degColor:a.degColor||null,retro:a.retro,isAs:false});
+      }
+      for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
+
+      const LH=14;
+      for (let h=1;h<=12;h++) {
+        const planets=hp[h]; if(!planets.length) continue;
+        const [cx,cy]=CENTROIDS[h];
+        let y0=cy+2-(planets.length*LH)/2+LH/2;
+        for (const p of planets) {
+          const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          if (!p.isAs && p.degColor) {
+            const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
+            tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
+            tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
+            tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
+            const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
+            tEl.appendChild(sp1); tEl.appendChild(sp2); svg.appendChild(tEl);
+          } else {
+            const line = p.isAs
+              ? 'As '+fmtDeg(p.deg)
+              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
+            svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+          }
+          y0+=LH;
+        }
+      }
+
+      // Title: natal info (the Transits popover, kept open in this mode,
+      // already shows the transit date/time/location — see natalTitleLines).
+      const _tAttr = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
+      document.getElementById('chartTitle').textContent = '';
+      const {line1, line2} = natalTitleLines(lastData);
+      if (line2 === null) {
+        svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'33'}), line1));
+      } else {
+        svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'26'}), line1));
+        svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'40'}), line2));
+      }
+    }
+
+    // Overlays natal + transit planets in the same house wheel (natal lagna
+    // fixes the houses). One line per planet, per house, in degree order.
+    // Transit lines get a leading lowercase "t" (black); natal lines get a
+    // same-width blank spacer instead, so — under the shared monospace font —
+    // both columns line up regardless of which kind of line it is.
+    function renderBothView() {
+      if (!lastData || !lastAnalysis || !transitData || !transitAnalysis) return;
+      const an = lastAnalysis, tAn = transitAnalysis;
+      const lr = lastData.lagna.rashi;
+      const mepDeg = lastData.lagna.degree_in_rashi;
+
+      const svg = document.getElementById('chart');
+      svg.innerHTML = '';
+      svg.style.display = 'block';
+      const _defs = svgEl('defs',{});
+      svg.appendChild(_defs);
+      const _tc = getTheme();
+      svg.appendChild(svgEl('rect',{width:500,height:500,fill:_tc.chartBg}));
+
+      for (let h=1;h<=12;h++) {
+        svg.appendChild(svgEl('polygon',{
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:_tc.houseFill,stroke:_tc.houseStroke,'stroke-width':'1'
+        }));
+      }
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+      }
+
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      hp[1].push({label:'As',deg:mepDeg,color:_tc.asColor,retro:false,isAs:true,isTransit:false});
+      for (const name of PLANET_ORDER) {
+        const a = an[name]; if (a) hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,degColor:a.degColor||null,retro:a.retro,isAs:false,isTransit:false});
+        const t = tAn[name]; if (t) hp[t.house].push({label:t.abbr,deg:t.deg,color:t.color,degColor:t.degColor||null,retro:t.retro,isAs:false,isTransit:true});
+      }
+      for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
+
+      const LH=14;
+      for (let h=1;h<=12;h++) {
+        const planets=hp[h]; if(!planets.length) continue;
+        const [cx,cy]=CENTROIDS[h];
+        let y0=cy+2-(planets.length*LH)/2+LH/2;
+        for (const p of planets) {
+          const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
+          tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
+          tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
+          tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
+          const prefix = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+          prefix.setAttribute('fill', _tc.asColor); prefix.textContent = p.isTransit ? 't' : ' ';
+          tEl.appendChild(prefix);
+          if (!p.isAs && p.degColor) {
+            const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
+            tEl.appendChild(sp1); tEl.appendChild(sp2);
+          } else {
+            const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp1.setAttribute('fill', p.color);
+            sp1.textContent = p.isAs ? ('As '+fmtDeg(p.deg)) : (p.label+(retroMark?'R ':' ')+fmtDeg(p.deg));
+            tEl.appendChild(sp1);
+          }
+          svg.appendChild(tEl);
+          y0+=LH;
+        }
+      }
+
+      const _tAttrB = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
+      document.getElementById('chartTitle').textContent = '';
+      const {line1: nLine1, line2: nLine2} = natalTitleLines(lastData);
+      if (nLine2 === null) {
+        svg.appendChild(svgEl('text', Object.assign({},_tAttrB,{y:'33'}), nLine1));
+      } else {
+        svg.appendChild(svgEl('text', Object.assign({},_tAttrB,{y:'26'}), nLine1));
+        svg.appendChild(svgEl('text', Object.assign({},_tAttrB,{y:'40'}), nLine2));
+      }
     }
 
     function setMuhurtaNow() {
@@ -3602,8 +4215,8 @@
         try {
           const [date, hhmm] = r.dt.split(' ');
           const data = await fetchChartAt(date, hhmm + ':00',
-            { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' });
-          const analysis = analyzeAllGrahas(data);
+            { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' }, true);
+          const analysis = data.analysis;
           lines.push('── ' + r.dt + '  ' + r.signName + '  ' + r.loc + ' ──');
           for (const p of MUHURTA_PLANETS) {
             const a = analysis[p];
@@ -3719,12 +4332,12 @@
       const time = hhmm + ':00';
       try {
         const data = await fetchChartAt(date, time,
-          { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' });
+          { lat: parseFloat(loc.lat), lon: parseFloat(loc.lon), tz: parseFloat(loc.tz), tzName: loc.tzName || '' }, true);
         data._locName = r.loc;
         if (loc.tzName) data._tzName = loc.tzName;
         currentMuhurtaIdx = idx;
         document.getElementById('dlgMuhurta').close();
-        renderChart(data);
+        renderChart(data, true);
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
         updateMuhurtaNav(results.length);
@@ -3778,12 +4391,14 @@
       return (local - utc) / 3600000;
     }
 
-    async function fetchChartAt(date, time, loc) {
+    async function fetchChartAt(date, time, loc, includeAnalysis) {
       const tzOffset = (loc.tzName) ? getOffsetForDate(loc.tzName, date) : loc.tz;
+      const body = { date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: tzOffset };
+      if (includeAnalysis) body.include_analysis = true;
       const res = await fetch('/api/v1/chart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: tzOffset })
+        body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('API ' + res.status + ' at ' + date + ' ' + time);
       return res.json();
@@ -3823,207 +4438,11 @@
       return hi; // first minute where rashi == targetSign
     }
 
-    // Flat 5° check: is any FM within 5° of targetHouse's MEP?
-    function mepAff(targetHouse, fmData, mepDeg, lagnaRashi) {
-      for (const fm of fmData) {
-        if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, targetHouse, mepDeg, lagnaRashi) < 5) return true;
-      }
-      return false;
-    }
-
     // Any FM within 5° of planet? (allFmAspects already has <5° cutoff)
     function pAff(planetName, analysis) {
       const a = analysis[planetName];
       return a ? a.allFmAspects.length > 0 : false;
     }
-
-    // Screen a candidate muhurta chart. Returns {pass, reason} or {pass, strongPlanets, strongHouses, antarDasha}.
-    function screenMuhurta(data, analysis, cfg) {
-      cfg = cfg || getMuhurtaCfg();
-      const lr  = data.lagna.rashi;
-      const fms = FUNC_MALEFICS[lr] || new Set();
-      const mepDeg = data.lagna.degree_in_rashi;
-      const lagnaRuler = LAGNA_RULER[lr];
-
-      // Build flat fmData for this chart
-      const fmData = data.grahas
-        .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
-        .map(g => ({ graha: g.graha, house: ((g.rashi - lr + 12) % 12) + 1, deg: g.degree_in_rashi, rashi: g.rashi }));
-
-      // Rule 3b: Per-planet minimum strength (lagna ruler has 60% floor)
-      const planetMins = cfg.planetMins || {};
-      for (const p of MUHURTA_PLANETS) {
-        let minStr = planetMins[p] || 0;
-        if (p === lagnaRuler) minStr = Math.max(cfg.lagnaLordMin || 0.60, minStr);
-        if (minStr > 0) {
-          const pa = analysis[p];
-          if (pa && pa.strengthPct < minStr)
-            return { pass: false, reason: `${p} strength ${Math.round(pa.strengthPct * 100)}% < ${Math.round(minStr * 100)}% required` };
-        }
-      }
-
-      // Rule 4: Any planet badly placed (inDushtana)
-      // Filter to planet entries only — analysis also contains _houses/_mepDeg/_sunIsFM
-      const planetEntries = Object.values(analysis).filter(a => a && a.graha);
-      for (const a of planetEntries) {
-        if (a.inDushtana)
-          return { pass: false, reason: `${a.graha} badly placed (h${a.house})` };
-      }
-
-      // Rule 5a: Any special affliction anywhere
-      for (const a of planetEntries) {
-        for (const asp of a.allFmAspects) {
-          if ((asp.special || asp.chainSpecial) && asp.isDamaging)
-            return { pass: false, reason: `Special affliction: ${asp.isRaKe ? 'Ra-Ke' : asp.fm} on ${a.graha}` };
-        }
-      }
-
-      // Rule 5b: 2+ distinct FMs afflicting MEP of same MT sign house
-      for (let h = 1; h <= 12; h++) {
-        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
-        if (!MOOLA_LORD[hRashi]) continue;
-        const seen = new Set();
-        for (const fm of fmData) {
-          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < 5) seen.add(fm.graha);
-        }
-        if (seen.size >= 2)
-          return { pass: false, reason: `2+ FMs afflict MT house ${h} MEP` };
-      }
-
-      // Rule 5c: 1 FM afflicts MT sign house MEP AND that house's lord is also afflicted
-      for (let h = 1; h <= 12; h++) {
-        const hRashi = ((lr - 1 + h - 1) % 12) + 1;
-        const hLord  = MOOLA_LORD[hRashi];
-        if (!hLord) continue;
-        let hAff = false;
-        for (const fm of fmData) {
-          if (mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr) < 5) { hAff = true; break; }
-        }
-        if (hAff && pAff(hLord, analysis))
-          return { pass: false, reason: `FM afflicts h${h} MEP and ${hLord} is afflicted` };
-      }
-      // Rule 5d: No FM within mepOrb of Lagna Lord, its MT sign MEP, or house of occupation MEP
-      if (cfg.noFmLagna) {
-        const orb5d = cfg.noFmLagna ? 5 : (cfg.mepOrb || 5);
-
-        // Point 1: FM within orb of Lagna Lord's own degree
-        const llAn = analysis[lagnaRuler];
-        if (llAn) {
-          for (const asp of (llAn.allFmAspects || [])) {
-            if (asp.orb < orb5d)
-              return { pass: false, reason: `FM ${asp.fm} within ${asp.orb.toFixed(1)}° of Lagna Lord ${lagnaRuler}` };
-          }
-        }
-
-        // Point 2: FM within orb of Lagna Lord's MT sign house MEP
-        let llMtHouse = null;
-        for (const [rashi, lord] of Object.entries(MOOLA_LORD)) {
-          if (lord === lagnaRuler) { llMtHouse = ((parseInt(rashi) - lr + 12) % 12) + 1; break; }
-        }
-        if (llMtHouse) {
-          for (const fm of fmData) {
-            const d = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, llMtHouse, mepDeg, lr);
-            if (d < orb5d)
-              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord MT sign (h${llMtHouse}) MEP within ${d.toFixed(1)}°` };
-          }
-        }
-
-        // Point 3: FM within orb of house occupied by Lagna Lord
-        const llGraha = data.grahas.find(g => g.graha === lagnaRuler);
-        if (llGraha) {
-          const llHouse = ((llGraha.rashi - lr + 12) % 12) + 1;
-          for (const fm of fmData) {
-            const d = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, llHouse, mepDeg, lr);
-            if (d < orb5d)
-              return { pass: false, reason: `FM ${fm.graha} aspects Lagna Lord house (h${llHouse}) MEP within ${d.toFixed(1)}°` };
-          }
-        }
-      }
-
-      // Rule 6: Active antardasha
-      const chartDt = new Date(data.birth_data.date + 'T' + data.birth_data.time);
-      let activeAntar = null;
-      outer6: for (const d of (data.dasha || [])) {
-        for (const ad of (d.antardasha || [])) {
-          const s = new Date(ad.start), e = new Date(ad.end);
-          if (s <= chartDt && chartDt < e) { activeAntar = { dasha: d.lord, antar: ad.lord, start: ad.start, end: ad.end }; break outer6; }
-        }
-      }
-      if (activeAntar) {
-        const al = activeAntar.antar;
-        if (al === 'Rahu' || al === 'Ketu')
-          return { pass: false, reason: `Active antardasha ${al} is a node`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
-        if (fms.has(al))
-          return { pass: false, reason: `Active antardasha ${al} is FM`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
-        const aa = analysis[al];
-        if (!cfg.allowWeakAntar && aa && aa.strengthPct < (cfg.antarMin || 0.70))
-          return { pass: false, reason: `Active antardasha ${al} strength ${Math.round(aa.strengthPct * 100)}% < 70%`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
-        if (aa && aa.inDushtana)
-          return { pass: false, reason: `Active antardasha ${al} badly placed (h${aa.house})`, antarDays: Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) };
-      }
-
-      // Benefic window: walk forward from active antardasha to find next FM/node antardasha
-      let beneficDays = null;
-      if (activeAntar) {
-        let pastCurrent = false;
-        outerBW: for (const d of (data.dasha || [])) {
-          for (const ad of (d.antardasha || [])) {
-            if (!pastCurrent) {
-              const s = new Date(ad.start), e = new Date(ad.end);
-              if (s <= chartDt && chartDt < e) { pastCurrent = true; continue; }
-              if (!pastCurrent) continue;
-            }
-            if (ad.lord === 'Rahu' || ad.lord === 'Ketu' || fms.has(ad.lord)) {
-              const muhurtaDay = new Date(data.birth_data.date + 'T00:00:00Z');
-              const maleficDay = new Date(ad.start.slice(0,10) + 'T00:00:00Z');
-              beneficDays = Math.round((maleficDay - muhurtaDay) / 86400000);
-              break outerBW;
-            }
-          }
-        }
-      }
-
-      // ── QUALIFY ──
-      // Q1: Moon nakshatra lord must be FB (not FM, not node)
-      const moonG = data.grahas.find(g => g.graha === 'Moon');
-      if (!moonG) return { pass: false, reason: 'No Moon data' };
-      const moonLon = (moonG.rashi - 1) * 30 + moonG.degree_in_rashi;
-      const nakIdx  = Math.floor(moonLon / (360 / 27));
-      const nakLord = NAK_LORDS_27[Math.min(nakIdx, 26)];
-      if (nakLord === 'Rahu' || nakLord === 'Ketu' || fms.has(nakLord))
-        return { pass: false, reason: `Moon nak lord ${nakLord} is FM/node` };
-
-      // Q2: 2+ of the 7 main planets with strengthPct >= 0.70
-      const MAIN_7 = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
-      const strongPlanets = MAIN_7.filter(p => analysis[p] && analysis[p].strengthPct >= 0.70).length;
-      if (strongPlanets < cfg.minStrongPlanets)
-        return { pass: false, reason: `Only ${strongPlanets} strong planets (need ${cfg.minStrongPlanets}+)` };
-
-      // Q3: 6+ houses with sp >= 0.70
-      const houseMap = analysis._houses;
-      let strongHouses = 0;
-      for (let h = 1; h <= 12; h++) {
-        const hs = houseMap[h]; if (!hs) continue;
-        const sp = hs.mt ? (analysis[hs.lord] ? analysis[hs.lord].strengthPct : 0) : hs.sp;
-        if (sp >= 0.70) strongHouses++;
-      }
-      if (strongHouses < cfg.minStrongHouses)
-        return { pass: false, reason: `Only ${strongHouses} strong houses (need ${cfg.minStrongHouses}+)` };
-
-      if (cfg.minBeneficDays > 0 && (beneficDays === null || beneficDays < cfg.minBeneficDays))
-        return { pass: false, reason: `Benefic window ${beneficDays ?? 0}d < ${cfg.minBeneficDays}d minimum` };
-
-      return {
-        pass: true,
-        strongPlanets,
-        strongHouses,
-        antarDasha: activeAntar ? (activeAntar.dasha + '/' + activeAntar.antar) : '?',
-        antarDays: activeAntar ? Math.round((new Date(activeAntar.end)-new Date(activeAntar.start))/86400000) : null,
-        antarStart: activeAntar ? activeAntar.start : null,
-        beneficDays
-      };
-    }
-
 
     async function _muhurtaPoll() {
       if (!muhurtaJobId) return;
@@ -4140,7 +4559,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgMuhurtaEval','dlgNotRecommended'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgMuhurtaEval','dlgNotRecommended','dlgTransits'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
@@ -4561,7 +4980,7 @@
       document.getElementById('drBtn').textContent = light ? 'Dark' : 'Lite';
       localStorage.setItem(DR_KEY, light ? '1' : '0');
       // Re-render charts with new palette
-      if (lastData) renderChart(lastData);
+      if (lastData) renderChart(lastData, currentMuhurtaIdx >= 0);
     }
 
     function toggleDarkReader() {
