@@ -51,8 +51,13 @@
     #dashaPanel { width:calc(min(8.8vw,8.8vh) + 200px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
     #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
     #dashaInner { border:1px solid #7a5a20; border-radius:4px; display:flex; flex-direction:column; flex:1; min-height:0; background:#182038; }
-    #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; }
-    #d9Label { color:#806030; font-size:0.88rem; text-align:center; margin:0 0 2px; }
+    #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; position:relative; }
+    /* Overlays the SVG's own empty top margin (y=50 of its 500 viewBox,
+       i.e. the top 10% = min(4.4vw,4.4vh), same proportion as
+       #dashaShadowTitle) rather than taking flow space above it — keeps
+       #d9Area's top flush with #chartArea/#dashaPanel and centers
+       divChartSelect within that reserved gap. */
+    #d9Label { position:absolute; top:0; left:0; right:0; height:min(4.4vw,4.4vh); margin:0; padding:0; display:flex; align-items:center; justify-content:center; z-index:1; }
     #d9Chart { display:block; width:min(44vw,44vh); height:auto; }
     #rashiBox { display:none; width:min(44vw,44vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 10% 10%; container-type:inline-size; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
@@ -211,7 +216,6 @@
     body.light #rashiBox { background: #ede8d8; }
     body.light #rashiTitle { color: #7a5808; }
     body.light #rashiInner { background: #f8f4e8; border-color: #c09040; }
-    body.light #d9Label { color: #6a4808; }
     body.light .dasha-hdr-btns button { background: #e8e2d0; color: #2a2a3e; border-color: #c0a870; }
     body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #222240; }
     body.light .dr.dr-now { background: #d0ead0; border-left-color: #208020; color: #204820; }
@@ -370,7 +374,17 @@
   </div>
 
   <div id="d9Area">
-    <p id="d9Label">D9</p>
+    <p id="d9Label"><select id="divChartSelect" class="tb-select" onchange="renderD9Chart(lastData, lastAnalysis)">
+        <option value="D1">D1 — Rasi</option>
+        <option value="D2">D2 — Hora</option>
+        <option value="D3">D3 — Drekkana</option>
+        <option value="D7">D7 — Saptamsa</option>
+        <option value="D9" selected>D9 — Navamsa</option>
+        <option value="D10">D10 — Dasamsa</option>
+        <option value="D12">D12 — Dwadasamsa</option>
+        <option value="D30">D30 — Trimsamsa</option>
+        <option value="D60">D60 — Shashtiamsa</option>
+      </select></p>
     <svg id="d9Chart" viewBox="0 0 500 500"></svg>
     <div id="rashiBox">
       <div id="rashiTitle">Rashi Data</div>
@@ -3035,13 +3049,19 @@
     function renderD9Chart(data, an) {
       const d9Area = document.getElementById('d9Area');
       const d9Svg  = document.getElementById('d9Chart');
+      const sel = document.getElementById('divChartSelect');
+      const chartType = sel ? sel.value : 'D9';
       if (!data.divisional_charts) { d9Area.style.display = 'none'; return; }
-      const d9 = data.divisional_charts.find(c => c.chart_type === 'D9');
+      const d9 = data.divisional_charts.find(c => c.chart_type === chartType);
       if (!d9 || !d9.lagna || !d9.grahas) { d9Area.style.display = 'none'; return; }
       const lr = d9.lagna.rashi;
 
       d9Svg.innerHTML = '';
       const _td9 = getTheme();
+      // #d9Label overlays the SVG's own top margin (transparent, no
+      // background needed) — just match the select's text color to the
+      // main chart's title text color for visual consistency.
+      if (sel) sel.style.color = _td9.chartTitle;
       const _defs = svgEl('defs',{});
       _defs.innerHTML = '';
       d9Svg.appendChild(_defs);
@@ -3097,9 +3117,8 @@
           y0 += LH;
         }
       }
-      // Label inside SVG
-      document.getElementById('d9Label').textContent = '';
-      d9Svg.appendChild(svgEl('text',{x:'250',y:'28','font-size':'22',fill:_td9.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'},'Navamsa'));
+      // No in-SVG title text — divChartSelect (embedded in #d9Label, right
+      // above this SVG with a matching background) already labels the chart.
       d9Area.style.display = 'block';
     }
     function fmtDeg(d) {
