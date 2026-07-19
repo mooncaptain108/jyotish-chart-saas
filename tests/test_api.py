@@ -49,7 +49,7 @@ def test_full_chart():
     assert len(data["bhavas"]) == 12
 
     # 9 divisional charts
-    assert len(data["divisional_charts"]) == 9
+    assert len(data["divisional_charts"]) == 16
 
     # 9 mahadasha periods
     assert len(data["dasha"]) == 9

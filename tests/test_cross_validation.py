@@ -613,17 +613,18 @@ class TestDivisional:
     """Divisional chart structural tests."""
 
     @pytest.mark.parametrize("chart_name", REFERENCE_CHARTS.keys())
-    def test_nine_divisional_charts(self, chart_name):
-        """Must compute all 9 divisional charts."""
+    def test_sixteen_divisional_charts(self, chart_name):
+        """Must compute all 16 divisional charts (full shodasavarga)."""
         birth = REFERENCE_CHARTS[chart_name]["birth"]
         jd = _compute_jd(birth)
         positions = compute_all_planets(jd)
         _, ascmc = compute_houses(jd, birth["latitude"], birth["longitude"])
 
         charts = compute_all_divisional_charts(positions, ascmc[0])
-        assert len(charts) == 9
+        assert len(charts) == 16
         types = {c["chart_type"] for c in charts}
-        assert types == {"D1", "D2", "D3", "D7", "D9", "D10", "D12", "D30", "D60"}
+        assert types == {"D1", "D2", "D3", "D4", "D7", "D9", "D10", "D12",
+                          "D16", "D20", "D24", "D27", "D30", "D40", "D45", "D60"}
 
     @pytest.mark.parametrize("chart_name", REFERENCE_CHARTS.keys())
     def test_d1_matches_birth_chart(self, chart_name):
@@ -641,7 +642,8 @@ class TestDivisional:
                 f"{g['graha']}: D1 rashi={d1_graha['rashi']} != birth rashi={g['rashi']}"
             )
 
-    @pytest.mark.parametrize("chart_type", ["D1", "D2", "D3", "D7", "D9", "D10", "D12", "D30", "D60"])
+    @pytest.mark.parametrize("chart_type", ["D1", "D2", "D3", "D4", "D7", "D9", "D10", "D12",
+                                             "D16", "D20", "D24", "D27", "D30", "D40", "D45", "D60"])
     def test_divisional_signs_in_range(self, chart_type):
         """All divisional chart signs must be 1-12."""
         birth = REFERENCE_CHARTS["sai_sankalp"]["birth"]
@@ -764,28 +766,53 @@ class TestDivisional:
         assert _d12_sign(30.1) == 2  # Taurus part 0 -> Taurus
 
     def test_d30_trimsamsa_textbook(self):
-        """D30 Trimsamsa: unequal divisions per BPHS."""
-        # Odd signs: Mars(0-5), Saturn(5-10), Jupiter(10-18), Mercury(18-25), Venus(25-30)
+        """D30 Trimsamsa: unequal divisions per BPHS.
+
+        Values verified against Sanjay Rath's published Trimsamsa table
+        (https://srath.com/jyotisa/varga/trimsamsa-d-30-chart/): a planet's
+        ruling lord for a given span is the SAME lord for odd/even signs,
+        but which of that lord's two signs applies DIFFERS by parity —
+        e.g. Mercury -> Gemini in odd signs but Mercury -> Virgo in even
+        signs. A prior version of this test (and the code) incorrectly
+        reused the odd-sign sign mapping for even signs too.
+        """
+        # Odd signs: Mars(0-5)->Aries, Saturn(5-10)->Aquarius,
+        # Jupiter(10-18)->Sagittarius, Mercury(18-25)->Gemini, Venus(25-30)->Libra
         assert _d30_sign(2.0) == 1    # Aries: Mars -> Aries
         assert _d30_sign(7.0) == 11   # Aries: Saturn -> Aquarius
         assert _d30_sign(14.0) == 9   # Aries: Jupiter -> Sagittarius
         assert _d30_sign(22.0) == 3   # Aries: Mercury -> Gemini
         assert _d30_sign(27.0) == 7   # Aries: Venus -> Libra
-        # Even signs: Venus(0-5), Mercury(5-12), Jupiter(12-20), Saturn(20-25), Mars(25-30)
-        assert _d30_sign(32.0) == 7   # Taurus: Venus -> Libra
-        assert _d30_sign(39.0) == 3   # Taurus: Mercury -> Gemini
-        assert _d30_sign(46.0) == 9   # Taurus: Jupiter -> Sagittarius
-        assert _d30_sign(52.0) == 11  # Taurus: Saturn -> Aquarius
-        assert _d30_sign(57.0) == 1   # Taurus: Mars -> Aries
+        # Even signs: Venus(0-5)->Taurus, Mercury(5-12)->Virgo,
+        # Jupiter(12-20)->Pisces, Saturn(20-25)->Capricorn, Mars(25-30)->Scorpio
+        assert _d30_sign(32.0) == 2   # Taurus: Venus -> Taurus
+        assert _d30_sign(39.0) == 6   # Taurus: Mercury -> Virgo
+        assert _d30_sign(46.0) == 12  # Taurus: Jupiter -> Pisces
+        assert _d30_sign(52.0) == 10  # Taurus: Saturn -> Capricorn
+        assert _d30_sign(57.0) == 8   # Taurus: Mars -> Scorpio
 
-    def test_d60_odd_even_symmetry(self):
-        """D60 Shashtiamsa: odd signs forward, even signs backward."""
+    def test_d60_forward_from_same_sign_no_parity_split(self):
+        """D60 Shashtiamsa: forward from the same sign for ALL signs —
+        no odd/even asymmetry.
+
+        Verified against real, concrete cross-checked data (not a
+        secondhand web description, which turned out unreliable here
+        twice): Jupiter at 28°46' Scorpio (even sign) landed correctly
+        in Leo, and Saturn at 27°15' Cancer (even sign) landed correctly
+        in Capricorn, both against a reference app — only the
+        unconditional forward-from-same rule matches. Two prior versions
+        of this test/code assumed an odd/even split (first "backward for
+        even", then "forward from the 7th for even") and both were wrong.
+        """
         # Odd sign (Aries): forward from Aries
         assert _d60_sign(0.1) == 1    # Aries part 0 -> Aries
         assert _d60_sign(0.6) == 2    # Aries part 1 -> Taurus
-        # Even sign (Taurus): backward from Taurus
+        # Even sign (Taurus): forward from Taurus itself, same as odd signs
         assert _d60_sign(30.1) == 2   # Taurus part 0 -> Taurus
-        assert _d60_sign(30.6) == 1   # Taurus part 1 -> Aries (backward)
+        assert _d60_sign(30.6) == 3   # Taurus part 1 -> Gemini
+        # Real cross-checked data points (Aries lagna, D60 house = D60 rashi)
+        assert _d60_sign((8 - 1) * 30 + 28 + 46 / 60) == 5    # Jupiter Scorpio 28:46 -> Leo
+        assert _d60_sign((4 - 1) * 30 + 27 + 15 / 60) == 10   # Saturn Cancer 27:15 -> Capricorn
 
 
 # ============================================================================
@@ -844,7 +871,7 @@ class TestAPI:
 
         assert len(data["grahas"]) == 9
         assert len(data["bhavas"]) == 12
-        assert len(data["divisional_charts"]) == 9
+        assert len(data["divisional_charts"]) == 16
         assert len(data["dasha"]) == 9
 
     def test_api_graha_signs_match_prokerala(self):

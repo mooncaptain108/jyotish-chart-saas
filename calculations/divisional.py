@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from constants.rashis import longitude_to_rashi, RASHI_NAMES
-from constants.divisional_mappings import TRIMSAMSA_ODD, TRIMSAMSA_EVEN, TRIMSAMSA_SIGN
+from constants.divisional_mappings import TRIMSAMSA_ODD, TRIMSAMSA_EVEN
 
 
 def _d1_sign(longitude: float) -> int:
@@ -42,6 +42,18 @@ def _d3_sign(longitude: float) -> int:
         return (rashi - 1 + 4) % 12 + 1  # 5th from sign
     else:
         return (rashi - 1 + 8) % 12 + 1  # 9th from sign
+
+
+def _d4_sign(longitude: float) -> int:
+    """D4 (Chaturthamsa) — 4 divisions of 7°30' each.
+
+    Uniform for all signs: the four parts map to the 1st (same), 4th,
+    7th and 10th signs from the sign (its kendras).
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / 7.5)  # 0–3
+    return (rashi - 1 + 3 * part) % 12 + 1
 
 
 def _d7_sign(longitude: float) -> int:
@@ -115,10 +127,90 @@ def _d12_sign(longitude: float) -> int:
     return (rashi - 1 + part) % 12 + 1
 
 
+def _d16_sign(longitude: float) -> int:
+    """D16 (Shodasamsa) — 16 divisions of 1°52'30" each.
+
+    Movable signs count from Aries, fixed signs from Leo, dual signs
+    from Sagittarius.
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / (30 / 16))  # 0–15
+
+    if rashi in (1, 4, 7, 10):      # Movable
+        start = 1
+    elif rashi in (2, 5, 8, 11):    # Fixed
+        start = 5
+    else:                            # Dual (3, 6, 9, 12)
+        start = 9
+
+    return (start - 1 + part) % 12 + 1
+
+
+def _d20_sign(longitude: float) -> int:
+    """D20 (Vimsamsa) — 20 divisions of 1°30' each.
+
+    Movable signs count from Aries, fixed signs from Sagittarius, dual
+    signs from Leo.
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / 1.5)  # 0–19
+
+    if rashi in (1, 4, 7, 10):      # Movable
+        start = 1
+    elif rashi in (2, 5, 8, 11):    # Fixed
+        start = 9
+    else:                            # Dual
+        start = 5
+
+    return (start - 1 + part) % 12 + 1
+
+
+def _d24_sign(longitude: float) -> int:
+    """D24 (Chaturvimsamsa / Siddhamsa) — 24 divisions of 1°15' each.
+
+    Odd signs count from Leo, even signs from Cancer.
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / 1.25)  # 0–23
+    is_odd = rashi % 2 == 1
+    start = 5 if is_odd else 4
+
+    return (start - 1 + part) % 12 + 1
+
+
+def _d27_sign(longitude: float) -> int:
+    """D27 (Saptavimsamsa / Bhamsa) — 27 divisions of 1°6'40" each.
+
+    Fire signs count from Aries, earth signs from Cancer, air signs
+    from Libra, water signs from Capricorn. (Note: earth/water starts
+    are swapped relative to D9's element mapping — this is a real
+    classical distinction, not a copy-paste of D9.)
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / (30 / 27))  # 0–26
+
+    if rashi in (1, 5, 9):          # Fire
+        start = 1
+    elif rashi in (2, 6, 10):       # Earth
+        start = 4
+    elif rashi in (3, 7, 11):       # Air
+        start = 7
+    else:                            # Water (4, 8, 12)
+        start = 10
+
+    return (start - 1 + part) % 12 + 1
+
+
 def _d30_sign(longitude: float) -> int:
     """D30 (Trimsamsa) — unequal divisions based on Parashara's table.
 
-    Odd signs and even signs have different division schemes.
+    Odd signs and even signs have different division schemes, each
+    listing (span, sign) pairs directly — see the constants module for
+    why the sign can't be derived from the ruling planet alone.
     """
     rashi = longitude_to_rashi(longitude)
     degree = longitude % 30
@@ -126,42 +218,96 @@ def _d30_sign(longitude: float) -> int:
 
     table = TRIMSAMSA_ODD if is_odd else TRIMSAMSA_EVEN
     cumulative = 0
-    for span, lord in table:
+    for span, sign in table:
         cumulative += span
         if degree < cumulative:
-            return TRIMSAMSA_SIGN[lord]
+            return sign
 
     # Fallback (should not reach here)
-    return TRIMSAMSA_SIGN[table[-1][1]]
+    return table[-1][1]
+
+
+def _d40_sign(longitude: float) -> int:
+    """D40 (Khavedamsa) — 40 divisions of 0°45' each.
+
+    Odd signs count from Aries, even signs from Libra.
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / 0.75)  # 0–39
+    is_odd = rashi % 2 == 1
+    start = 1 if is_odd else 7
+
+    return (start - 1 + part) % 12 + 1
+
+
+def _d45_sign(longitude: float) -> int:
+    """D45 (Akshavedamsa) — 45 divisions of 0°40' each.
+
+    Movable signs count from Aries, fixed signs from Leo, dual signs
+    from Sagittarius (same starting-sign convention as D16, just a
+    finer division).
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / (30 / 45))  # 0–44
+
+    if rashi in (1, 4, 7, 10):      # Movable
+        start = 1
+    elif rashi in (2, 5, 8, 11):    # Fixed
+        start = 5
+    else:                            # Dual
+        start = 9
+
+    return (start - 1 + part) % 12 + 1
 
 
 def _d60_sign(longitude: float) -> int:
     """D60 (Shashtiamsa) — 60 divisions of 0°30' each.
 
-    Odd sign: count forward from the same sign.
-    Even sign: count backward from the same sign.
+    Counts forward from the same sign for ALL signs — no odd/even
+    asymmetry. 60 is a clean multiple of 12, so this cycles through all
+    12 signs exactly 5 times within one 30° sign, always landing back on
+    the sign itself at the start of each cycle.
+
+    Two earlier versions of this function (both wrong) tried an odd/even
+    split — first "backward from same sign" for even signs, then
+    "forward from the 7th sign" for even signs. Both were shown wrong by
+    concrete cross-checked data (Jupiter@Scorpio 28°46' and Saturn@Cancer
+    27°15', verified 2026-07-19 against a reference app): only the
+    unconditional forward-from-same-sign rule matched. What actually
+    reverses between odd and even signs in classical D60 is the *deity
+    name/nature* assigned to each of the 60 divisions (BPHS: a division
+    inauspicious in odd signs is auspicious in even signs, and vice
+    versa) — not the sign mapping. That deity-vs-sign distinction is
+    almost certainly what got conflated into a sign-mapping "rule" in
+    every secondhand web description checked, including the one this
+    function was previously "fixed" against.
     """
     rashi = longitude_to_rashi(longitude)
     degree = longitude % 30
     part = int(degree / 0.5)  # 0–59
-    is_odd = rashi % 2 == 1
 
-    if is_odd:
-        return (rashi - 1 + part) % 12 + 1
-    else:
-        return (rashi - 1 - part) % 12 + 1
+    return (rashi - 1 + part) % 12 + 1
 
 
-# Dispatcher
+# Dispatcher — full 16-varga shodasavarga set
 _DIVISIONAL_FUNCS = {
     "D1": _d1_sign,
     "D2": _d2_sign,
     "D3": _d3_sign,
+    "D4": _d4_sign,
     "D7": _d7_sign,
     "D9": _d9_sign,
     "D10": _d10_sign,
     "D12": _d12_sign,
+    "D16": _d16_sign,
+    "D20": _d20_sign,
+    "D24": _d24_sign,
+    "D27": _d27_sign,
     "D30": _d30_sign,
+    "D40": _d40_sign,
+    "D45": _d45_sign,
     "D60": _d60_sign,
 }
 
@@ -170,10 +316,17 @@ _DIVISIONAL_N = {
     "D1": 1,
     "D2": 2,
     "D3": 3,
+    "D4": 4,
     "D7": 7,
     "D9": 9,
     "D10": 10,
     "D12": 12,
+    "D16": 16,
+    "D20": 20,
+    "D24": 24,
+    "D27": 27,
+    "D40": 40,
+    "D45": 45,
     "D60": 60,
 }
 
@@ -199,7 +352,8 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
     Args:
         planet_positions: Output of ephemeris.compute_all_planets().
         ascendant_longitude: Sidereal longitude of the ascendant.
-        chart_type: One of D1, D2, D3, D7, D9, D10, D12, D30, D60.
+        chart_type: One of D1, D2, D3, D4, D7, D9, D10, D12, D16, D20,
+            D24, D27, D30, D40, D45, D60.
 
     Returns:
         Dict with chart_type, lagna info, and list of graha placements.
@@ -241,7 +395,7 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
 
 def compute_all_divisional_charts(planet_positions: dict[str, dict],
                                   ascendant_longitude: float) -> list[dict]:
-    """Compute all 9 supported divisional charts."""
+    """Compute all 16 supported divisional charts (full shodasavarga)."""
     charts = []
     for chart_type in _DIVISIONAL_FUNCS:
         charts.append(
