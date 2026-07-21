@@ -220,7 +220,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
         prelim = 1.0 if is_node else deg_pct
         if combust:     prelim *= 0.25 if sun_is_fm else 0.5
         if debilitated: prelim *= 0.25 if d9_debi else 0.5
-        if in_dushtana: prelim *= 0.4  if d9_debi else 0.5
+        if in_dushtana: prelim *= 0.4  if (d9_debi and not debilitated) else 0.5
         elif d9_debi and not debilitated: prelim *= 0.75
         planet_is_strong = not is_node and prelim >= 0.70
 
@@ -390,7 +390,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
         if not is_node:
             if combust:     sp *= 0.25 if sun_is_fm else 0.5
             if debilitated: sp *= 0.25 if d9_debi else 0.5
-            if in_dushtana: sp *= 0.4  if d9_debi else 0.5
+            if in_dushtana: sp *= 0.4  if (d9_debi and not debilitated) else 0.5
             elif d9_debi and not debilitated: sp *= 0.75
         for mta in mt_aff:
             sp *= (1 - mta['loss'])
