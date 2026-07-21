@@ -474,7 +474,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
         for a in analysis.values():
             if not isinstance(a, dict) or 'graha' not in a:
                 continue
-            if a['isNode'] or a['combust'] or not a['dispositor'] or a['dispositor'] == a['graha']:
+            if not a['dispositor'] or a['dispositor'] == a['graha']:
                 continue
             disp = analysis.get(a['dispositor'])
             if not isinstance(disp, dict):
