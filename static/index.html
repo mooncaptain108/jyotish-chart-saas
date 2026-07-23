@@ -335,6 +335,8 @@
         <li><button onclick="setChartViewMode('chart'); closeViewMenu();">Chart</button></li>
         <li><button onclick="setChartViewMode('transits'); closeViewMenu();">Transits</button></li>
         <li><button onclick="setChartViewMode('both'); closeViewMenu();">Chart &amp; Transits</button></li>
+        <li><hr></li>
+        <li><button onclick="openTransitsPopover(true); closeViewMenu();">Transits Control</button></li>
       </ul>
     </div>
     <div class="sep"></div>
@@ -624,7 +626,7 @@
   <dialog id="dlgTransits">
     <div class="dlg-header">
       <h2>Transits</h2>
-      <button class="dlg-close-x" onclick="document.getElementById('dlgTransits').close(); setChartViewMode('chart');">✕</button>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgTransits').close();">✕</button>
     </div>
     <div class="dlg-body">
       <div class="f-group">
@@ -679,10 +681,14 @@
         </div>
       </div>
       <p id="transitErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:#a0a0b0;cursor:pointer;margin-top:0.3rem;">
+        <input type="checkbox" id="chkTransitManualOnly">
+        Only load this dialog from View / Transits Control
+      </label>
     </div>
     <div class="dlg-footer">
       <button class="btn-primary" id="transitsAnalysisBtn" onclick="openAnalysisDialog()">Analyze</button>
-      <button class="btn-sec" onclick="document.getElementById('dlgTransits').close(); setChartViewMode('chart');">Close</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgTransits').close();">Close</button>
     </div>
   </dialog>
 
@@ -1092,6 +1098,7 @@
     const TESTS_KEY    = 'jyotish_tests_visible';
     const NEW_FORM_KEY = 'jyotish_new_form';
     const WELCOME_KEY  = 'jyotish_hide_welcome';
+    const TRANSIT_DLG_MANUAL_KEY = 'jyotish_transit_dlg_manual_only';
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
@@ -1327,6 +1334,10 @@
       } else {
         this.checked = true;
       }
+    });
+    document.getElementById('chkTransitManualOnly').checked = localStorage.getItem(TRANSIT_DLG_MANUAL_KEY) === '1';
+    document.getElementById('chkTransitManualOnly').addEventListener('change', function() {
+      localStorage.setItem(TRANSIT_DLG_MANUAL_KEY, this.checked ? '1' : '0');
     });
 
     // Export / Import
@@ -3760,6 +3771,8 @@
     let chartViewMode  = 'chart';  // 'chart' | 'transits' | 'both'
     let transitData    = null;     // last-fetched /api/v1/chart/transit response
     let transitAnalysis = null;    // analyzeAllGrahas({lagna: natal, grahas: transit}), decorated
+    let transitSeeded  = false;    // true once seedTransitFromBirth() has run for the CURRENT chart;
+                                    // gates re-seeding on popover reopen — only a new chart load resets it
 
     function rebuildTransitAtlasSelect() {
       const sel = document.getElementById('tAtlas');
@@ -3858,8 +3871,12 @@
     // (and the Divisional Chart panel's Transit entry has something to show)
     // without requiring the user to manually open the popover first. Used by
     // openTransitsPopover (first manual open) and by newSubmit/loadChart
-    // (automatically, right after a chart is first loaded).
+    // (automatically, right after a chart is first loaded). Sets transitSeeded
+    // so later popover opens (View > Transits Control, or re-selecting a
+    // Transits/Both view) don't stomp on whatever the user has since set —
+    // only a fresh chart load runs this again.
     function seedTransitFromBirth() {
+      transitSeeded = true;
       rebuildTransitAtlasSelect();
       const dstEl = document.getElementById('tDst'); if (dstEl) dstEl.checked = false;
       const locName = lastData._locName || '';
@@ -3888,15 +3905,24 @@
       }
     }
 
-    function openTransitsPopover() {
+    // explicit=true means this call came from View > Transits Control itself
+    // (always opens the dialog); otherwise it's the implicit open triggered by
+    // setChartViewMode('transits'/'both'), which respects the "only load this
+    // dialog from View / Transits Control" checkbox.
+    function openTransitsPopover(explicit) {
       const dlg = document.getElementById('dlgTransits');
-      if (!dlg.open) {
+      if (!transitSeeded) {
+        // First seed for this chart — also fetches and renders via fetchAndRenderTransit().
         seedTransitFromBirth();
-        dlg.showModal();
       } else if (transitData) {
+        // Already seeded (possibly edited by the user since) — re-render the
+        // current view mode from existing transitData without touching any
+        // popover fields, whether or not the popover itself is currently open.
         if (chartViewMode === 'transits') renderTransitsView();
         else if (chartViewMode === 'both') renderBothView();
       }
+      const manualOnly = localStorage.getItem(TRANSIT_DLG_MANUAL_KEY) === '1';
+      if (!dlg.open && (explicit || !manualOnly)) dlg.showModal();
     }
 
     async function fetchAndRenderTransit() {
