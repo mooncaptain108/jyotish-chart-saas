@@ -38,6 +38,7 @@
     #drBtn:hover { background:#22407a; border-color:#5a7ab0; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
     .tb-select:hover { background:#1e2a48; border-color:#1a4a80; }
+    #divChartSelect { padding:0.25rem 0.45rem; font-size:1.0rem; }
     #testsWrapper { display:contents; }
 
     /* ── Chart area ── */
@@ -57,12 +58,12 @@
        #dashaShadowTitle) rather than taking flow space above it — keeps
        #d9Area's top flush with #chartArea/#dashaPanel and centers
        divChartSelect within that reserved gap. */
-    #d9Label { position:absolute; top:0; left:0; right:0; height:min(4.4vw,4.4vh); margin:0; padding:0; display:flex; align-items:center; justify-content:center; z-index:1; }
-    #d9Chart { display:block; width:min(44vw,44vh); height:auto; }
-    #rashiBox { display:none; width:min(44vw,44vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 10% 10%; container-type:inline-size; }
+    #d9Label { position:absolute; top:0; left:0; right:0; height:min(4.58vw,4.58vh); margin:0; padding:0; display:flex; align-items:center; justify-content:center; z-index:1; }
+    #d9Chart { display:block; width:min(57.2vw,57.2vh); height:auto; }
+    #rashiBox { display:none; width:min(57.2vw,57.2vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 5% 3%; container-type:inline-size; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
     #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#182038; overflow-x:auto; }
-    #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:4.55cqw; }
+    #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:min(1.09rem, 1.60vh); }
     #rashiTable td { padding:1px 5px; white-space:nowrap; }
     .dasha-hdr-btns { display:flex; gap:3px; justify-content:center; padding:4px 0; flex-shrink:0; }
     .dasha-hdr-btns button { padding:1px 7px; font-size:min(1.04rem, 1.53vh); background:#162040; color:#c0c0d0; border:1px solid #333; border-radius:3px; cursor:pointer; }
@@ -376,6 +377,7 @@
   <div id="d9Area">
     <p id="d9Label"><select id="divChartSelect" class="tb-select" onchange="renderD9Chart(lastData, lastAnalysis)">
         <option value="D1">D1 — Rasi</option>
+        <option value="Transit" id="divChartTransitOpt">Transit — (none)</option>
         <option value="D2">D2 — Hora</option>
         <option value="D3">D3 — Drekkana</option>
         <option value="D4">D4 — Chaturthamsa</option>
@@ -392,7 +394,7 @@
         <option value="D45">D45 — Akshavedamsa</option>
         <option value="D60">D60 — Shashtiamsa</option>
       </select></p>
-    <svg id="d9Chart" viewBox="0 0 500 500"></svg>
+    <svg id="d9Chart" viewBox="0 10 500 480"></svg>
     <div id="rashiBox">
       <div id="rashiTitle">Rashi Data</div>
       <div id="rashiInner"><table id="rashiTable"></table></div>
@@ -1662,6 +1664,7 @@
         data._dst  = document.getElementById('nDst').checked;
         data.name  = document.getElementById('nName').value.trim() || data.name || '';
         renderChart(data);
+        seedTransitFromBirth();
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
         document.getElementById('errorMsg').textContent = '';
@@ -1748,6 +1751,7 @@
           data._dst = false;
         }
         renderChart(data);
+        seedTransitFromBirth();
         document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
         applyRawState();
       } catch (err) {
@@ -3058,6 +3062,10 @@
       const d9Svg  = document.getElementById('d9Chart');
       const sel = document.getElementById('divChartSelect');
       const chartType = sel ? sel.value : 'D9';
+      // Transit is not one of data.divisional_charts — it's the currently
+      // configured chart from the Transits popover (module-scope transitData/
+      // transitAnalysis), and unlike every other entry here it shows degrees.
+      if (chartType === 'Transit') { renderD9TransitChart(); return; }
       if (!data.divisional_charts) { d9Area.style.display = 'none'; return; }
       const d9 = data.divisional_charts.find(c => c.chart_type === chartType);
       if (!d9 || !d9.lagna || !d9.grahas) { d9Area.style.display = 'none'; return; }
@@ -3081,7 +3089,7 @@
       }
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
-        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'22',fill:_td9.houseNum,
+        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'19',fill:_td9.houseNum,
           'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},
           String(houseSign(h,lr))));
       }
@@ -3126,6 +3134,75 @@
       }
       // No in-SVG title text — divChartSelect (embedded in #d9Label, right
       // above this SVG with a matching background) already labels the chart.
+      d9Area.style.display = 'block';
+    }
+    // Renders the currently-configured transit (see fetchAndRenderTransit)
+    // into the Divisional Chart panel, WITH degrees — the one entry in the
+    // divChartSelect list that shows them; every D-chart above stays
+    // abbreviation-only. Mirrors renderTransitsView's degree layout.
+    function renderD9TransitChart() {
+      const d9Area = document.getElementById('d9Area');
+      const d9Svg  = document.getElementById('d9Chart');
+      const sel = document.getElementById('divChartSelect');
+      if (!lastData || !transitData || !transitAnalysis) { d9Area.style.display = 'none'; return; }
+      const an = transitAnalysis;
+      const lr = lastData.lagna.rashi;
+      const mepDeg = lastData.lagna.degree_in_rashi;
+
+      d9Svg.innerHTML = '';
+      const _td9 = getTheme();
+      if (sel) sel.style.color = _td9.chartTitle;
+      const _defs = svgEl('defs',{});
+      d9Svg.appendChild(_defs);
+      d9Svg.appendChild(svgEl('rect', {width:500,height:500,fill:_td9.chartBg}));
+      for (let h=1;h<=12;h++) {
+        d9Svg.appendChild(svgEl('polygon', {
+          points:HOUSE_POLYS[h].map(p=>p.join(',')).join(' '),
+          fill:_td9.houseFill, stroke:_td9.houseStroke, 'stroke-width':'1'
+        }));
+      }
+      for (let h=1;h<=12;h++) {
+        const [nx,ny]=NUM_POS[h];
+        d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'19',fill:_td9.houseNum,
+          'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},
+          String(houseSign(h,lr))));
+      }
+
+      const hp = {};
+      for (let h=1;h<=12;h++) hp[h]=[];
+      hp[1].push({label:'As', deg:mepDeg, color:_td9.asColor, retro:false, isAs:true});
+      for (const name of PLANET_ORDER) {
+        const a = an[name]; if (!a) continue;
+        hp[a.house].push({label:a.abbr, deg:a.deg, color:a.color, degColor:a.degColor||null, retro:a.retro, isAs:false});
+      }
+      for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
+
+      const LH = 16;
+      for (let h=1;h<=12;h++) {
+        const planets = hp[h]; if (!planets.length) continue;
+        const [cx,cy] = CENTROIDS[h];
+        let y0 = cy + 2 - (planets.length * LH) / 2 + LH / 2;
+        for (const p of planets) {
+          const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          if (!p.isAs && p.degColor) {
+            const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
+            tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
+            tEl.setAttribute('font-size','14'); tEl.setAttribute('font-family','monospace');
+            tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
+            const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
+            tEl.appendChild(sp1); tEl.appendChild(sp2); d9Svg.appendChild(tEl);
+          } else {
+            const line = p.isAs
+              ? 'As '+fmtDeg(p.deg)
+              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
+            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'14',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+          }
+          y0 += LH;
+        }
+      }
       d9Area.style.display = 'block';
     }
     function fmtDeg(d) {
@@ -3199,6 +3276,32 @@
 
       box.style.display = 'block';
     }
+
+    // Measured (not guessed) alignment: percentage padding tuned by hand
+    // against one test viewport doesn't hold across different window sizes
+    // / aspect ratios (confirmed by real-world drift after prior attempts).
+    // Instead, reset to the CSS baseline padding-bottom, measure both
+    // elements' actual rendered bottoms, and add exactly the px deficit
+    // needed — correct on any viewport, not just the one it was tuned on.
+    function alignRashiBoxToChart() {
+      const chartEl = document.getElementById('chart');
+      const rashiEl = document.getElementById('rashiBox');
+      if (!chartEl || !rashiEl) return;
+      if (chartEl.style.display === 'none' || rashiEl.style.display === 'none') return;
+      rashiEl.style.paddingBottom = '';
+      const chartBottom = chartEl.getBoundingClientRect().bottom;
+      const rashiBottom = rashiEl.getBoundingClientRect().bottom;
+      const deficit = chartBottom - rashiBottom;
+      if (deficit > 0) {
+        const baselinePx = parseFloat(getComputedStyle(rashiEl).paddingBottom) || 0;
+        rashiEl.style.paddingBottom = (baselinePx + deficit) + 'px';
+      }
+    }
+    let _alignResizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(_alignResizeTimer);
+      _alignResizeTimer = setTimeout(alignRashiBoxToChart, 150);
+    });
 
     // ═══════════════════════════════════════════════════
     // Chart renderer
@@ -3482,6 +3585,7 @@
       if (isMuhurtaResult) setChartViewMode('chart');
       renderD9Chart(data, lastAnalysis);
       renderRashiData(data, lastAnalysis);
+      alignRashiBoxToChart();
       const _moonG = data.grahas && data.grahas.find(g => g.graha === 'Moon');
       if (_moonG && data.birth_data && data.birth_data.date)
         data.dasha = buildVimshottariDashas(data.birth_data.date, _moonG.rashi, _moonG.degree_in_rashi);
@@ -3749,24 +3853,45 @@
     // Called by setChartViewMode('transits'|'both'). Opens the popover (with
     // defaults: current date/time, natal chart's own location) the first
     // time; if already open, just re-renders in the newly-selected mode.
+    // Seeds the Transits popover's fields from lastData's own birth location
+    // and "now", then fetches — so transitData/transitAnalysis are populated
+    // (and the Divisional Chart panel's Transit entry has something to show)
+    // without requiring the user to manually open the popover first. Used by
+    // openTransitsPopover (first manual open) and by newSubmit/loadChart
+    // (automatically, right after a chart is first loaded).
+    function seedTransitFromBirth() {
+      rebuildTransitAtlasSelect();
+      const dstEl = document.getElementById('tDst'); if (dstEl) dstEl.checked = false;
+      const locName = lastData._locName || '';
+      const atlasSel = document.getElementById('tAtlas');
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('tDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+      document.getElementById('tTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      if (locName && getAtlas()[locName]) {
+        atlasSel.value = locName;
+        const loc = getAtlas()[locName];
+        document.getElementById('tLat').value = loc.lat;
+        document.getElementById('tLon').value = loc.lon;
+        // Resolves tz via the atlas entry's IANA name for TODAY's date (DST-correct), then fetches.
+        transitUpdateTz();
+      } else {
+        // No named atlas entry to resolve a tzName from — use the birth
+        // chart's own tz offset directly and fetch unconditionally.
+        // (transitUpdateTz() silently no-ops without a resolvable atlas
+        // entry, so it can't be relied on here.)
+        atlasSel.value = '';
+        document.getElementById('tLat').value = lastData.birth_data.latitude;
+        document.getElementById('tLon').value = lastData.birth_data.longitude;
+        document.getElementById('tTz').value  = lastData.birth_data.timezone_offset;
+        fetchAndRenderTransit();
+      }
+    }
+
     function openTransitsPopover() {
       const dlg = document.getElementById('dlgTransits');
       if (!dlg.open) {
-        rebuildTransitAtlasSelect();
-        const locName = lastData._locName || '';
-        const atlasSel = document.getElementById('tAtlas');
-        if (locName && getAtlas()[locName]) {
-          atlasSel.value = locName;
-          const loc = getAtlas()[locName];
-          document.getElementById('tLat').value = loc.lat;
-          document.getElementById('tLon').value = loc.lon;
-        } else {
-          atlasSel.value = '';
-          document.getElementById('tLat').value = lastData.birth_data.latitude;
-          document.getElementById('tLon').value = lastData.birth_data.longitude;
-          document.getElementById('tTz').value  = lastData.birth_data.timezone_offset;
-        }
-        setTransitNow();  // sets date/time to now and triggers transitUpdateTz -> fetch
+        seedTransitFromBirth();
         dlg.showModal();
       } else if (transitData) {
         if (chartViewMode === 'transits') renderTransitsView();
@@ -3798,6 +3923,13 @@
         if (errEl) errEl.textContent = '';
         if (chartViewMode === 'transits') renderTransitsView();
         else if (chartViewMode === 'both') renderBothView();
+        // Keep the Divisional Chart dropdown's Transit option labeled with
+        // whatever transit is currently configured in the Transits popover,
+        // and live-refresh the divisional panel if it's showing Transit now.
+        const tOpt = document.getElementById('divChartTransitOpt');
+        if (tOpt) tOpt.textContent = 'Transit — ' + date + ' ' + time;
+        const divSel = document.getElementById('divChartSelect');
+        if (divSel && divSel.value === 'Transit' && lastData) renderD9Chart(lastData, lastAnalysis);
       } catch (err) {
         if (errEl) errEl.textContent = 'Error: ' + err.message;
         console.warn('[transit] fetch failed:', err);
@@ -3838,9 +3970,31 @@
           fill:_tc.houseFill,stroke:_tc.houseStroke,'stroke-width':'1'
         }));
       }
+      // Watermark so a transit-populated main chart is never mistaken for
+      // the natal chart -- drawn after the opaque house fill (else it would
+      // be painted over and invisible) but before the house numbers/planets
+      // so those still read as the foreground content.
+      svg.appendChild(svgEl('text',{x:'250',y:'235','font-size':'24',fill:_tc.planetDim,'font-family':'monospace','text-anchor':'middle'},'Transit'));
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+      }
+
+      // Speed (deg/day of ecliptic longitude, from the API's own daily-motion
+      // calc -- see calculations/grahas.py) isn't part of transitAnalysis
+      // (analyzeAllGrahas doesn't carry it), so look it up straight from the
+      // raw transitData response instead of adding it to the shared schema.
+      const speedByName = {};
+      for (const g of transitData.grahas) speedByName[g.graha] = g.speed;
+      function fmtSpeed(s) {
+        if (s === undefined || s === null) return '';
+        const sign = s >= 0 ? '+' : '-';
+        const abs  = Math.abs(s);
+        if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
+          return ' ' + sign + abs.toFixed(2);
+        const deg = Math.floor(abs);
+        const min = Math.floor((abs % 1) * 60);
+        return ' ' + sign + deg + ':' + String(min).padStart(2,'0');
       }
 
       const hp = {};
@@ -3848,7 +4002,7 @@
       hp[1].push({label:'As',deg:mepDeg,color:_tc.asColor,retro:false,isAs:true});
       for (const name of PLANET_ORDER) {
         const a = an[name]; if (!a) continue;
-        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,degColor:a.degColor||null,retro:a.retro,isAs:false});
+        hp[a.house].push({label:a.abbr,deg:a.deg,color:a.color,degColor:a.degColor||null,retro:a.retro,isAs:false,speed:speedByName[name]});
       }
       for (let h=1;h<=12;h++) hp[h].sort((a,b)=>a.deg-b.deg);
 
@@ -3859,6 +4013,7 @@
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          const speedTxt = p.isAs ? '' : fmtSpeed(p.speed);
           if (!p.isAs && p.degColor) {
             const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
             tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
@@ -3868,11 +4023,13 @@
             sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
-            tEl.appendChild(sp1); tEl.appendChild(sp2); svg.appendChild(tEl);
+            const sp3 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+            sp3.setAttribute('fill', p.color); sp3.textContent = speedTxt;
+            tEl.appendChild(sp1); tEl.appendChild(sp2); tEl.appendChild(sp3); svg.appendChild(tEl);
           } else {
             const line = p.isAs
               ? 'As '+fmtDeg(p.deg)
-              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
+              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg)+speedTxt;
             svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
           }
           y0+=LH;
@@ -3917,6 +4074,11 @@
           fill:_tc.houseFill,stroke:_tc.houseStroke,'stroke-width':'1'
         }));
       }
+      // Watermark so a transit-populated main chart is never mistaken for
+      // the natal chart -- drawn after the opaque house fill (else it would
+      // be painted over and invisible) but before the house numbers/planets
+      // so those still read as the foreground content.
+      svg.appendChild(svgEl('text',{x:'250',y:'235','font-size':'24',fill:_tc.planetDim,'font-family':'monospace','text-anchor':'middle'},'Transit'));
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
