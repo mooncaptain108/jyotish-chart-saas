@@ -104,9 +104,9 @@ Four boosts apply independently and **stack**:
 | Condition | Boost | Suppressible by MEP affliction? |
 |---|---|---|
 | Planet is a sun-like planet for this chart | +25% | No — inherent to the planet's nature |
-| Planet in its own Moolatrikona sign (any house) | +25% | Yes |
-| Planet in house 2, 3, or 9 (any sign) | +25% | Yes |
-| Planet in Leo (any house, excluding Sun) | +25% | Yes |
+| Planet in its own Moolatrikona sign (any house) | +25% | Only if the planet is itself a functional malefic |
+| Planet in house 2, 3, or 9 (any sign) | +25% | Only if the planet is itself a functional malefic |
+| Planet in Leo (any house, excluding Sun) | +25% | Only if the planet is itself a functional malefic |
 
 The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — applying both would double-count the same condition. Sun in Leo receives only the own MT sign boost (and the sun-like house boost if applicable).
 
@@ -114,7 +114,7 @@ All four conditions are evaluated independently — a planet satisfying more tha
 
 These increases stack with exaltation and D9 exaltation increases.
 
-**Suppression:** If any functional malefic is within **1° of the MEP** of the planet's occupied house, the three placement-based boosts (own MT sign, sun-like house, Leo) are suppressed for that planet. The sun-like planet boost is never suppressed.
+**Suppression:** This applies only to a functional malefic's own placement-based boosts. If the planet is a functional malefic and any functional malefic is within **1° of the MEP** of its occupied house, its three placement-based boosts (own MT sign, sun-like house, Leo) are suppressed. Benefic (non-FM) planets are never suppressed by this rule, even when an FM afflicts the MEP of the house they occupy — the affliction still costs them strength through the normal occupied-house affliction loss, just not through this boost-suppression path. The sun-like planet boost is never suppressed for anyone.
 
 **Exception to suppression:** A functional malefic planet placed in its **own Moolatrikona sign** retains all sun-like boosts regardless of MEP proximity. It is still dignified by occupying its own sign, and it still casts its normal aspects to other houses.
 

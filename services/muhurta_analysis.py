@@ -409,13 +409,15 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
 
         # Positive boosts
         if not is_node and exalted:    sp *= 1.25
-        # Sun-like boosts — all three stack independently; suppressed if any FM
-        # is within 1° of the occupied house MEP, except an FM in its own MT
+        # Sun-like boosts — all three stack independently; suppressed only when
+        # the planet is itself a functional malefic AND any FM is within 1° of
+        # its occupied house MEP (only a malefic's own boost is suppressible
+        # this way — benefics are never suppressed), except an FM in its own MT
         # sign keeps all boosts regardless.
-        if is_fm and in_own_mt:
+        if not is_fm:
             mep_house_afflicted = False
         elif in_own_mt:
-            mep_house_afflicted = any(a['orb'] < 1 for a in mt_aff)
+            mep_house_afflicted = False
         else:
             mep_house_afflicted = any(a['orb'] < 1 for a in occ_aff)
         sun_like_boost = False

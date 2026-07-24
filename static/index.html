@@ -2302,11 +2302,13 @@
         //    own MT sign: +25% any house
         //    h2/h3/h9: +25% any sign
         //    Leo: +25% any house
-        //    Suppressed if any FM within 1° of occupied house MEP
+        //    Suppressed if the planet is itself a functional malefic AND any
+        //    FM is within 1° of its occupied house MEP (only a malefic's own
+        //    boost is suppressible this way — benefics are never suppressed)
         //    Exception: FM in own MT sign keeps all boosts regardless
         const mepHouseAfflicted = (() => {
-          if (isFM && inOwnMT) return false;
-          if (inOwnMT) return mtAfflictions.some(a => a.orb < 1);
+          if (!isFM) return false;
+          if (inOwnMT) return false;
           return occAfflictions.some(a => a.orb < 1);
         })();
         let sunLikeBoost = false;
