@@ -351,6 +351,7 @@
         <li><button onclick="openHelpCalc(); closeHelpMenu();">Calculations</button></li>
         <li><button onclick="openHelpAnalysis(); closeHelpMenu();">Analysis Rules</button></li>
         <li><button onclick="openHelpData(); closeHelpMenu();">Data Storage</button></li>
+        <li><button onclick="openHelpTransitControl(); closeHelpMenu();">Transit Control</button></li>
         <li><hr></li>
         <li><button onclick="openAbout(); closeHelpMenu();">About</button></li>
       </ul>
@@ -529,6 +530,19 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="document.getElementById('dlgHelpCustomLoc').close()">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Help: Transit Control dialog ════ -->
+  <dialog id="dlgHelpTransitControl" style="max-width:600px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpTransitControl').close()">✕</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="helpTransitControlContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpTransitControl').close()">Close</button>
     </div>
   </dialog>
 
@@ -1202,13 +1216,13 @@
     }
     document.addEventListener('click', function() { closeHelpMenu(); closeAtlasMenu(); closeChartsMenu(); closeViewMenu(); });
 
-    let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null, _helpCustomLocMd = null;
+    let _helpMuhurtaMd = null, _helpCalcMd = null, _helpDataMd = null, _helpCustomLocMd = null, _helpTransitControlMd = null;
     let _notRecommendedMd = null;
 
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd' }[dlgId];
+      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1228,6 +1242,7 @@
     function openHelpData()       { _openHelpDoc('dlgHelpData',       'helpDataContent',       'static/DataStorage.md'); }
     function openHelpAnalysis()   { _openHelpDoc('dlgHelpAnalysis',   'helpAnalysisContent',   'static/AnalysisRules.md'); }
     function openHelpCustomLoc()  { _openHelpDoc('dlgHelpCustomLoc',  'helpCustomLocContent',  'static/CustomLocations.md'); }
+    function openHelpTransitControl() { _openHelpDoc('dlgHelpTransitControl', 'helpTransitControlContent', 'static/TransitsControl.md'); }
 
     function openWelcome() {
       document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
@@ -4817,7 +4832,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgMuhurtaEval','dlgNotRecommended','dlgTransits'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgMuhurtaEval','dlgNotRecommended','dlgTransits'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
