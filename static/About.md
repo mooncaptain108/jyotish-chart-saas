@@ -7,6 +7,10 @@
 - Also see https://www.yournetastrologer.com/strength_of_planets.htm
 - And https://www.yournetastrologer.com/predictive_techniques_strongp.htm
 - And https://groups.io/g/satva/message/1478?p=%2C%2C%2C100%2C0%2C0%2C0%3A%3Acreated%2C%2CCalculating+strength+of+planets%2C100%2C2%2C0%2C117613210
+
+#### Source Code
+https://github.com/mooncaptain108/jyotish-chart-saas
+
 #### Errors!
 <font size=2>
 If errors are found in the calculations or they don't reflect the logic in the books and website those are the fault of the programmer and should not reflect on the Systems' Approach. Please let me know if you find problems or have other helpful comments.
