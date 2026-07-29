@@ -175,18 +175,66 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             fm_data.append({'graha': g['graha'], 'house': house,
                             'deg': g['degree_in_rashi'], 'rashi': g['rashi']})
 
-    # Chain-special FMs
+    # Preliminary strength (base, ignoring MT/occ-house MEP + FM afflictions) --
+    # needed early so chain-special detection can test the src->fm link
+    # against fm's own strong/weak damage-orb threshold instead of a blanket 5 deg.
+    def _prelim_strong(g: dict) -> bool:
+        name = g['graha']
+        if name in ('Rahu', 'Ketu'):
+            return False
+        deg_pct     = deg_strength(g['degree_in_rashi'])
+        combust     = name in combust_set
+        debilitated = DEBI_RASHI.get(name) == g['rashi']
+        d9_debi     = name in d9_rashi and DEBI_RASHI.get(name) == d9_rashi[name]
+        house       = ((g['rashi'] - lr + 12) % 12) + 1
+        in_dushtana = house in DUSHTANA and MOOLA_LORD.get(g['rashi']) != name
+        prelim = deg_pct
+        if combust:     prelim *= 0.25 if sun_is_fm else 0.5
+        if debilitated: prelim *= 0.25 if d9_debi else 0.5
+        if in_dushtana: prelim *= 0.4  if (d9_debi and not debilitated) else 0.5
+        elif d9_debi and not debilitated: prelim *= 0.75
+        return prelim >= 0.70
+
+    strong_map = {g['graha']: _prelim_strong(g) for g in data['grahas']}
+
+    # Chain-special FMs: fm is chain-special only if some OTHER FM (src) is
+    # itself already causing a regular damaging affliction on fm (tested
+    # against fm's own strong/weak orb threshold, not a blanket 5 deg).
     chain_special: dict[str, str] = {}
     for fm in fm_data:
+        # Nodes are always coded "not strong" elsewhere (they have no degree/
+        # combust/debilitation-based weakness of their own -- that flag exists
+        # so *other* planets get judged against a node's fixed 5 deg receiving
+        # window). Reusing it here would let any FM within a blanket 5 deg of
+        # Rahu/Ketu chain-elevate through them "for free", since nodes are the
+        # only FM present in every chart -- defeating the point of requiring a
+        # genuinely regular/special-orb link. Judge a node target on the same
+        # 1 deg regular / 2 deg special bands as a real strong planet instead.
+        target_strong = True if fm['graha'] in ('Rahu', 'Ketu') else strong_map.get(fm['graha'], False)
         for src in fm_data:
             if src['graha'] == fm['graha']:
                 continue
             src_is_node = src['graha'] in ('Rahu', 'Ketu')
+            is_conj = src['house'] == fm['house']
             if fm['house'] not in fm_aspected_houses(src['graha'], src['house']):
                 continue
-            if src_is_node and src['house'] != fm['house']:
+            if src_is_node and not is_conj:
                 continue
-            if abs(src['deg'] - fm['deg']) <= 5:
+            src_in_dust = src['house'] in DUSHTANA and MOOLA_LORD.get(src['rashi']) != src['graha']
+            special_base = src['graha'] == mmp or (src_is_node and is_conj) or src_in_dust
+            # MMP source counts as a special affliction on Ra/Ke exactly like
+            # it would on any other planet (2 deg allowance), even though it
+            # doesn't numerically reduce Ra/Ke's own strengthPct -- the strength
+            # pipeline exempts nodes from the direct-affliction loss loop
+            # entirely (`if not is_node:` gate below). What the affliction DOES
+            # do is chain-elevate Ra/Ke to special, so THEIR OWN outgoing
+            # affliction on a third planet inherits that special-orb status --
+            # the affliction is carried through the chain, not applied to the
+            # node itself. Confirmed by user 2026-07-26 after independently
+            # re-deriving it (see [[node_chain_orb_open_question]]): Ra/Ke
+            # afflict, and are afflicted, the same way any other malefic does.
+            dmg_orb_base = 5 if not target_strong else (2 if special_base else 1)
+            if abs(src['deg'] - fm['deg']) < dmg_orb_base:
                 chain_special[fm['graha']] = src['graha']
                 break
 
@@ -247,9 +295,15 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             eff_spec   = special or c_spec
             dmg_orb    = 5 if not planet_is_strong else (2 if eff_spec else 1)
             is_dmg     = diff < dmg_orb
+            # "Regular" damaging test (base special only, no chain/cond5) --
+            # used to decide whether this aspect counts toward cond5's
+            # required 2+ individually-regular-damaging afflictions.
+            dmg_orb_base = 5 if not planet_is_strong else (2 if special else 1)
+            is_dmg_base  = diff < dmg_orb_base
             entry = {'fm': fm['graha'], 'orb': diff, 'special': special,
                      'chainSpecial': c_spec, 'chainSource': c_src,
                      'via': via, 'isDamaging': is_dmg, 'dmgOrb': dmg_orb,
+                     'isDamagingBase': is_dmg_base,
                      'isMmp': fm['graha'] == mmp, 'fmInDust': fm_in_dust}
             all_fm_aspects.append(entry)
             if is_dmg:
@@ -284,6 +338,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 'via':        ra['via'] if ra['orb'] <= ke['orb'] else ke['via'],
                 'dmgOrb':     ra['dmgOrb'] if ra['isDamaging'] else ke['dmgOrb'],
                 'isDamaging': ra['isDamaging'] or ke['isDamaging'],
+                'isDamagingBase': ra.get('isDamagingBase', False) or ke.get('isDamagingBase', False),
                 'isMmp':      ra.get('isMmp') or ke.get('isMmp'),
                 'fmInDust':   ra.get('fmInDust') or ke.get('fmInDust'),
             }
@@ -296,8 +351,10 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                     'special': ax['special'], 'chainSpecial': ax['chainSpecial'],
                     'chainSource': ax['chainSource'], 'via': ax['via'], 'dmgOrb': ax['dmgOrb']})
 
-        # Condition 5: 2+ distinct FMs within 5°
-        cond5 = len(all_fm_aspects) >= 2
+        # Condition 5: 2+ distinct FMs, each individually a regular damaging
+        # affliction on its own (base special only, no chain/cond5) -- not
+        # just 2+ FMs within the blanket 5 deg window.
+        cond5 = sum(1 for a in all_fm_aspects if a['isDamagingBase']) >= 2
         if cond5:
             for asp in all_fm_aspects:
                 asp['special'] = True; asp['cond5'] = True; asp['isDamaging'] = True

@@ -628,6 +628,7 @@
         <label class="f-label" for="nName">Chart name (required to save)</label>
         <input type="text" id="nName" placeholder="e.g. Paul natal, Seattle election">
       </div>
+      <input type="hidden" id="nEditId" value="">
       <p id="newErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
     </div>
     <div class="dlg-footer">
@@ -720,6 +721,44 @@
     </div>
   </dialog>
 
+  <!-- ════ Export Charts dialog ════ -->
+  <dialog id="dlgExport">
+    <div class="dlg-header">
+      <h2>Export Charts</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgExport').close()">✕</button>
+    </div>
+    <div class="dlg-body" style="max-height:60vh;overflow-y:auto;padding-bottom:0;">
+      <div style="margin-bottom:0.5rem;">
+        <button type="button" class="btn-sec" style="font-size:0.82rem;padding:0.2rem 0.6rem;" onclick="exportSetAll(true)">Select All</button>
+        <button type="button" class="btn-sec" style="font-size:0.82rem;padding:0.2rem 0.6rem;" onclick="exportSetAll(false)">Select None</button>
+        <span style="font-size:0.82rem;color:#a0a0b0;">Atlas and Settings are always included.</span>
+      </div>
+      <div id="exportListWrap"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-primary" onclick="doExportSelected()">Export Selected</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgExport').close()">Cancel</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Import confirm dialog ════ -->
+  <dialog id="dlgImportConfirm">
+    <div class="dlg-header">
+      <h2>Import Data</h2>
+      <button class="dlg-close-x" onclick="cancelImport()">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p id="importSummary"></p>
+      <label class="stg-check"><input type="radio" name="importMode" value="merge" checked> Merge with existing charts (recommended)</label>
+      <label class="stg-check"><input type="radio" name="importMode" value="overwrite"> Overwrite existing chart database</label>
+      <p style="font-size:0.82rem;color:#a0a0b0;">Merge keeps your existing charts and adds the imported ones (sorted alphabetically); duplicates by name are kept side by side so you can remove the ones you don't want from the Chart Library.</p>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-primary" onclick="applyImport()">Import</button>
+      <button class="btn-sec" onclick="cancelImport()">Cancel</button>
+    </div>
+  </dialog>
+
   <!-- ════ Atlas › New Location dialog ════ -->
   <dialog id="dlgAtlasNew">
     <div class="dlg-header">
@@ -790,12 +829,18 @@
   <dialog id="dlgBuild" style="min-width:480px;max-width:560px;">
     <div class="dlg-header">
       <h2>Test Chart Builder</h2>
-      <button class="dlg-close-x" onclick="closeTestBuilder()">✕</button>
+      <button class="dlg-close-x" onclick="tcbCloseAttempt()">✕</button>
     </div>
     <div class="dlg-body">
       <div class="f-group" style="margin-bottom:0.6rem;">
         <label class="f-label" for="tcb-name">Chart name</label>
         <input type="text" id="tcb-name" placeholder="e.g. TC6 · FB Boost Test" style="width:100%;box-sizing:border-box;" oninput="tcbNameChanged()">
+      </div>
+      <div class="f-group" style="margin-bottom:0.6rem;">
+        <label class="f-label" for="tcb-import-chart">Copy placements from a saved chart</label>
+        <select id="tcb-import-chart" style="width:100%;box-sizing:border-box;" onchange="tcbImportFromChart(this.value); this.value='';">
+          <option value="">&mdash; pick a chart to copy &mdash;</option>
+        </select>
       </div>
       <div id="tcb-status"></div>
       <div id="tcb-log"></div>
@@ -828,9 +873,8 @@
     </div>
     <div class="dlg-footer">
       <button id="tcb-delete" class="btn-sec" onclick="tcbDelete()" style="display:none;margin-right:auto;">Delete</button>
-      <button id="tcb-save" class="btn-primary" onclick="tcbSave()" disabled>Save &amp; Load</button>
-      <button class="btn-sec" onclick="tcbSaveDraft()">Save Draft</button>
-      <button class="btn-sec" onclick="closeTestBuilder()">Close</button>
+      <button id="tcb-save" class="btn-primary" onclick="tcbSave()" disabled>Save</button>
+      <button class="btn-sec" onclick="tcbCloseAttempt()">Close</button>
     </div>
   </dialog>
 
@@ -1116,7 +1160,17 @@
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
-    function getCharts()  { try { return JSON.parse(localStorage.getItem(CHARTS_KEY) || '[]'); } catch { return []; } }
+    function genChartId() {
+      return (crypto.randomUUID ? crypto.randomUUID() : ('c_' + Date.now().toString(36) + Math.random().toString(36).slice(2)));
+    }
+    function getCharts()  {
+      let arr;
+      try { arr = JSON.parse(localStorage.getItem(CHARTS_KEY) || '[]'); } catch { arr = []; }
+      let changed = false;
+      for (const c of arr) { if (!c.id) { c.id = genChartId(); changed = true; } }
+      if (changed) setCharts(arr);
+      return arr;
+    }
     function setCharts(v) { localStorage.setItem(CHARTS_KEY, JSON.stringify(v)); }
 
     // ═══════════════════════════════════════════════════
@@ -1357,48 +1411,99 @@
 
     // Export / Import
     function exportData() {
+      rebuildExportChartList();
+      document.getElementById('dlgExport').showModal();
+    }
+    function rebuildExportChartList() {
+      const charts = getCharts().slice().sort((a,b) => a.name.localeCompare(b.name));
+      const wrap = document.getElementById('exportListWrap');
+      if (!charts.length) { wrap.innerHTML = '<p class="no-records">No saved charts yet.</p>'; return; }
+      let html = '<table class="chart-list"><thead><tr><th></th><th>Name</th><th>Date</th><th>Location</th></tr></thead><tbody>';
+      for (const c of charts) {
+        const loc = c.locationName || (c.lat + ', ' + c.lon);
+        html += `<tr><td><input type="checkbox" class="export-chk" data-id="${esc(c.id)}" checked></td>
+          <td>${esc(c.name)}</td><td>${esc(c.date)}</td><td>${esc(loc)}</td></tr>`;
+      }
+      wrap.innerHTML = html + '</tbody></table>';
+    }
+    function exportSetAll(state) {
+      document.querySelectorAll('.export-chk').forEach(cb => cb.checked = state);
+    }
+    function doExportSelected() {
+      const selectedIds = new Set(Array.from(document.querySelectorAll('.export-chk:checked')).map(cb => cb.dataset.id));
       const keys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_'));
       const obj = {};
       for (const k of keys) {
         const v = localStorage.getItem(k);
         try { obj[k] = JSON.parse(v); } catch { obj[k] = v; }
       }
+      obj[CHARTS_KEY] = getCharts().filter(c => selectedIds.has(c.id));
       const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'jyotish-data-' + new Date().toISOString().slice(0, 10) + '.json';
       a.click();
       URL.revokeObjectURL(a.href);
+      document.getElementById('dlgExport').close();
     }
+
+    let pendingImportObj = null;
     function doImport(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
-        try {
-          const obj = JSON.parse(e.target.result);
-          let imported = 0;
-          for (const [k, v] of Object.entries(obj)) {
-            if (k.startsWith('jyotish_')) {
-              localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
-              imported++;
-            }
-          }
-          event.target.value = '';
-          if (imported === 0) { alert('No Jyotish data found in the file — nothing imported.'); return; }
-          rawVisible   = localStorage.getItem(RAW_KEY) === '1';
-          testsVisible = localStorage.getItem(TESTS_KEY) !== '0';
-          document.getElementById('chkEphemeris').checked = rawVisible;
-          document.getElementById('chkTests').checked     = testsVisible;
-          applyRawState();
-          applyTestsState();
-          updateMenuState();
-          alert('Import complete. Reload the page to restore saved charts and atlas.');
-        } catch(err) {
-          alert('Import failed: ' + err.message);
-        }
+        event.target.value = '';
+        let obj;
+        try { obj = JSON.parse(e.target.result); }
+        catch (err) { alert('Import failed: ' + err.message); return; }
+        pendingImportObj = obj;
+        const importedCharts = Array.isArray(obj[CHARTS_KEY]) ? obj[CHARTS_KEY] : [];
+        document.getElementById('importSummary').textContent =
+          `Importing ${importedCharts.length} chart(s) — you have ${getCharts().length} existing.`;
+        document.querySelector('input[name="importMode"][value="merge"]').checked = true;
+        document.getElementById('dlgImportConfirm').showModal();
       };
       reader.readAsText(file);
+    }
+    function cancelImport() {
+      pendingImportObj = null;
+      document.getElementById('dlgImportConfirm').close();
+    }
+    function applyImport() {
+      const obj = pendingImportObj;
+      if (!obj) return;
+      const mode = document.querySelector('input[name="importMode"]:checked').value;
+      let imported = 0;
+      for (const [k, v] of Object.entries(obj)) {
+        if (!k.startsWith('jyotish_')) continue;
+        if (k === CHARTS_KEY) {
+          const importedCharts = Array.isArray(v) ? v : [];
+          let charts;
+          if (mode === 'overwrite') {
+            charts = importedCharts;
+          } else {
+            const remapped = importedCharts.map(c => ({ ...c, id: genChartId() }));
+            charts = getCharts().concat(remapped);
+          }
+          charts.sort((a,b) => a.name.localeCompare(b.name));
+          setCharts(charts);
+        } else {
+          localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+        }
+        imported++;
+      }
+      pendingImportObj = null;
+      document.getElementById('dlgImportConfirm').close();
+      if (imported === 0) { alert('No Jyotish data found in the file — nothing imported.'); return; }
+      rawVisible   = localStorage.getItem(RAW_KEY) === '1';
+      testsVisible = localStorage.getItem(TESTS_KEY) !== '0';
+      document.getElementById('chkEphemeris').checked = rawVisible;
+      document.getElementById('chkTests').checked     = testsVisible;
+      applyRawState();
+      applyTestsState();
+      updateMenuState();
+      alert('Import complete. Reload the page to restore saved charts and atlas.');
     }
 
     // ═══════════════════════════════════════════════════
@@ -1566,6 +1671,7 @@
     // ═══════════════════════════════════════════════════
     function openNewDialog() {
       document.getElementById('dlgNewTitle').textContent = 'New Chart';
+      document.getElementById('nEditId').value = '';
       rebuildNewAtlasSelect();
       // Restore last entered values, or default date/time to now
       let saved = null;
@@ -1701,8 +1807,9 @@
                         locationName: document.getElementById('nAtlas').value || '',
                         tzOverride: document.getElementById('nTzOverride').checked,
                         dst: document.getElementById('nDst').checked };
-          const idx = charts.findIndex(c => c.name === name);
-          if (idx >= 0) charts[idx] = rec; else charts.push(rec);
+          const editId = document.getElementById('nEditId').value;
+          const idx = editId ? charts.findIndex(c => c.id === editId) : charts.findIndex(c => c.name === name);
+          if (idx >= 0) { rec.id = charts[idx].id; charts[idx] = rec; } else { rec.id = genChartId(); charts.push(rec); }
           charts.sort((a,b) => a.name.localeCompare(b.name));
           setCharts(charts);
         }
@@ -1725,18 +1832,18 @@
       let html = '<table class="chart-list"><thead><tr><th>Name</th><th>Date</th><th>Time</th><th>Location</th><th></th></tr></thead><tbody>';
       for (const c of charts) {
         const loc = c.locationName || (c.lat + ', ' + c.lon);
-        html += `<tr class="data-row" onclick="loadChart('${esc(c.name)}')">
+        html += `<tr class="data-row" onclick="loadChart('${esc(c.id)}')">
           <td>${esc(c.name)}</td><td>${esc(c.date)}</td><td>${esc(c.time)}</td><td>${esc(loc)}</td>
           <td onclick="event.stopPropagation()">
-            <button class="btn-sec" style="font-size:0.88rem;padding:0.25rem 0.55rem;margin-right:0.25rem" onclick="editChart('${esc(c.name)}')">Edit</button>
-            <button class="btn-danger" onclick="deleteChart('${esc(c.name)}')">Del</button>
+            <button class="btn-sec" style="font-size:0.88rem;padding:0.25rem 0.55rem;margin-right:0.25rem" onclick="editChart('${esc(c.id)}')">Edit</button>
+            <button class="btn-danger" onclick="deleteChart('${esc(c.id)}')">Del</button>
           </td></tr>`;
       }
       wrap.innerHTML = html + '</tbody></table>';
     }
 
-    async function loadChart(name) {
-      const c = getCharts().find(ch => ch.name === name); if (!c) return;
+    async function loadChart(id) {
+      const c = getCharts().find(ch => ch.id === id); if (!c) return;
       document.getElementById('dlgOpen').close();
       document.getElementById('errorMsg').textContent = '';
       try {
@@ -1785,16 +1892,18 @@
       }
     }
 
-    function deleteChart(name) {
-      if (!confirm('Delete "' + name + '"?')) return;
-      setCharts(getCharts().filter(c => c.name !== name));
+    function deleteChart(id) {
+      const c = getCharts().find(ch => ch.id === id); if (!c) return;
+      if (!confirm('Delete "' + c.name + '"?')) return;
+      setCharts(getCharts().filter(ch => ch.id !== id));
       rebuildChartList();
     }
 
-    function editChart(name) {
-      const c = getCharts().find(ch => ch.name === name); if (!c) return;
+    function editChart(id) {
+      const c = getCharts().find(ch => ch.id === id); if (!c) return;
       document.getElementById('dlgOpen').close();
       rebuildNewAtlasSelect();
+      document.getElementById('nEditId').value = c.id;
       document.getElementById('nName').value  = c.name;
       document.getElementById('nLat').value   = c.lat;
       document.getElementById('nLon').value   = c.lon;
@@ -2026,20 +2135,57 @@
         .filter(g => g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha))
         .map(g => ({ graha:g.graha, house:((g.rashi-lr+12)%12)+1, deg:g.degree_in_rashi, rashi:g.rashi }));
 
-      // Chain-special FMs: any FM that is itself aspected within 5° by another FM
-      // When a chain-special FM aspects a planet, the effective orb extends to 5°
+      // Preliminary strength (base, ignoring MT/occ-house MEP + FM afflictions) --
+      // needed early so chain-special detection can test the source->fm link
+      // against fm's own strong/weak damage-orb threshold instead of a blanket 5°.
+      function prelimStrong(g) {
+        if (g.graha === 'Rahu' || g.graha === 'Ketu') return false;
+        const degPct        = degStrength(g.degree_in_rashi);
+        const combust        = combustSet.has(g.graha);
+        const debilitated    = DEBI_RASHI[g.graha] === g.rashi;
+        const d9Debilitated  = d9RashiMap[g.graha] !== undefined && DEBI_RASHI[g.graha] === d9RashiMap[g.graha];
+        const house          = ((g.rashi - lr + 12) % 12) + 1;
+        const inDushtana     = DUSHTANA.has(house) && MOOLA_LORD[g.rashi] !== g.graha;
+        let prelim = degPct;
+        if (combust)    prelim *= sunIsFM ? 0.25 : 0.5;
+        if (debilitated) prelim *= d9Debilitated ? 0.25 : 0.5;
+        if (inDushtana)  prelim *= (!debilitated && d9Debilitated) ? 0.4 : 0.5;
+        else if (d9Debilitated && !debilitated) prelim *= 0.75;
+        return prelim >= 0.70;
+      }
+      const strongMap = new Map(data.grahas.map(g => [g.graha, prelimStrong(g)]));
+
+      // Chain-special FMs: fm is chain-special only if some OTHER FM (source) is
+      // itself already causing a regular damaging affliction on fm (tested
+      // against fm's own strong/weak orb threshold, not a blanket 5°).
       // chainSpecialFMs maps fm.graha -> name of the FM that afflicts it
       const chainSpecialFMs = new Map();
       for (const fm of fmData) {
+        const targetStrong = (fm.graha === 'Rahu' || fm.graha === 'Ketu') ? true : (strongMap.get(fm.graha) || false);
         for (const source of fmData) {
           if (source.graha === fm.graha) continue;
           const sourceIsNode = source.graha === 'Rahu' || source.graha === 'Ketu';
+          const isConjunct = source.house === fm.house;
           const sourceAsp = fmAspectedHouses(source.graha, source.house);
           if (!sourceAsp.has(fm.house)) continue;
           // Rahu/Ketu can only start a chain via conjunction (same house), not via aspects
-          if (sourceIsNode && source.house !== fm.house) continue;
+          if (sourceIsNode && !isConjunct) continue;
+          const sourceInDushtana = DUSHTANA.has(source.house) && MOOLA_LORD[source.rashi] !== source.graha;
+          const specialBase = source.graha === mmp || (sourceIsNode && isConjunct) || sourceInDushtana;
+          // MMP source counts as a special affliction on Ra/Ke exactly like it
+          // would on any other planet (2deg allowance), even though it doesn't
+          // numerically reduce Ra/Ke's own strengthPct -- the strength
+          // pipeline exempts nodes from the direct-affliction loss loop
+          // entirely (`if (!isNode)` gate below). What the affliction DOES do
+          // is chain-elevate Ra/Ke to special, so THEIR OWN outgoing
+          // affliction on a third planet inherits that special-orb status --
+          // the affliction is carried through the chain, not applied to the
+          // node itself. Confirmed by user 2026-07-26 after independently
+          // re-deriving it: Ra/Ke afflict, and are afflicted, the same way
+          // any other malefic does.
+          const dmgOrbBase = !targetStrong ? 5 : (specialBase ? 2 : 1);
           const diff = Math.abs(source.deg - fm.deg);
-          if (diff <= 5) { chainSpecialFMs.set(fm.graha, source.graha); break; }
+          if (diff < dmgOrbBase) { chainSpecialFMs.set(fm.graha, source.graha); break; }
         }
       }
 
@@ -2104,7 +2250,12 @@
           // Strong: flat within orb (special=2°, regular=1°); weak: graduated over 5°
           const dmgOrb = !planetIsStrong ? 5 : (effectiveSpecial ? 2 : 1);
           const isDamaging = diff < dmgOrb;
-          allFmAspects.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, isDamaging, dmgOrb });
+          // "Regular" damaging test (base special only, no chain/cond5) -- used to
+          // decide whether this aspect counts toward cond5's required 2+
+          // individually-regular-damaging afflictions.
+          const dmgOrbBase = !planetIsStrong ? 5 : (special ? 2 : 1);
+          const isDamagingBase = diff < dmgOrbBase;
+          allFmAspects.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, isDamaging, dmgOrb, isDamagingBase });
           if (isDamaging) afflictions.push({ fm:fm.graha, orb:diff, special, chainSpecial, chainSource, via, dmgOrb });
         }
         // FB aspects to this planet — collect for boost pass after all base strengths known
@@ -2136,9 +2287,11 @@
             const axisVia         = raAsp.orb <= keAsp.orb ? raAsp.via : keAsp.via;
             const axisDmgOrb      = raAsp.isDamaging ? raAsp.dmgOrb : keAsp.dmgOrb;
             const axisIsDmg       = raAsp.isDamaging || keAsp.isDamaging;
+            const axisIsDmgBase   = !!(raAsp.isDamagingBase || keAsp.isDamagingBase);
             const axisEntry = { fm:'Ra-Ke', orb:axisOrb, special:axisSpecial,
               chainSpecial:axisChainSpec, chainSource:axisChainSource,
-              via:axisVia, isDamaging:axisIsDmg, dmgOrb:axisDmgOrb, isRaKe:true };
+              via:axisVia, isDamaging:axisIsDmg, dmgOrb:axisDmgOrb, isRaKe:true,
+              isDamagingBase:axisIsDmgBase };
             const lo = Math.min(raIdx, keIdx), hi = Math.max(raIdx, keIdx);
             allFmAspects.splice(hi, 1); allFmAspects.splice(lo, 1);
             allFmAspects.unshift(axisEntry);
@@ -2153,9 +2306,11 @@
           }
         }
 
-        // Condition 5: 2+ distinct FMs within 5° → flat ×0.25 total (−75%), all special
-        // Ra-Ke axis is already merged above so it counts as one here.
-        const cond5UniqueCount = allFmAspects.length;
+        // Condition 5: 2+ distinct FMs, each individually a regular damaging
+        // affliction on its own (base special only, no chain/cond5) -- not just
+        // 2+ FMs within the blanket 5° window. Ra-Ke axis is already merged
+        // above so it counts as one here.
+        const cond5UniqueCount = allFmAspects.filter(a => a.isDamagingBase).length;
         const cond5 = cond5UniqueCount >= 2;
         if (cond5) {
           for (const asp of allFmAspects) { asp.special = true; asp.cond5 = true; asp.isDamaging = true; }
@@ -3236,7 +3391,14 @@
     function fmtDeg(d) {
       if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
         return d.toFixed(2);
-      return Math.floor(d) + ':' + String(Math.floor((d%1)*60)).padStart(2,'0');
+      // Round the minutes rather than truncating -- floating point noise
+      // (e.g. 19/60 stored as 21.316666666666666) makes Math.floor land one
+      // minute low right at the boundary (18.999999999999986 -> 18 instead
+      // of 19). Handle the rare 60-minute rollover from rounding up.
+      let deg = Math.floor(d);
+      let min = Math.round((d - deg) * 60);
+      if (min === 60) { min = 0; deg += 1; }
+      return deg + ':' + String(min).padStart(2,'0');
     }
     function fmtCoord(val, isLat) {
       if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal') return val;
@@ -3266,7 +3428,15 @@
         return _tr.colorStrong;
       }
       function lordColor(abbr) { return planetColor(_abbr2name[abbr] || abbr); }
-      function degStr(d) { return Math.floor(d) + '°' + String(Math.floor((d % 1) * 60)).padStart(2,'0') + '′'; }
+      function degStr(d) {
+        // Same rounding fix as fmtDeg() -- Math.floor was truncating minutes
+        // one low on floating-point noise right at the boundary (e.g. 19/60
+        // stored as .3166666...6 instead of exactly .31666...7).
+        let deg = Math.floor(d);
+        let min = Math.round((d % 1) * 60);
+        if (min === 60) { min = 0; deg += 1; }
+        return deg + '°' + String(min).padStart(2,'0') + '′';
+      }
 
       const rows = [];
       // Ascendant
@@ -3603,8 +3773,16 @@
         svg.appendChild(svgEl('text', Object.assign({},_tAttr,{y:'40'}), line2));
       }
 
-      // Enable Analysis button; hide Edit Test (only shown for user test charts)
-      document.getElementById('analysisBtn').disabled = false;
+      // Enable Analysis button only for a fully-placed chart (all 9 planets) --
+      // muhurta screening and several analysis rules silently skip whatever
+      // planet is missing rather than failing loudly, which would be
+      // misleading on a partial snapshot chart. Hide Edit Test (only shown
+      // for user test charts).
+      const _allPlanetsPresent = PLANET_ORDER.every(
+        p => (data.grahas || []).some(g => g.graha === p));
+      const _analysisBtnEl = document.getElementById('analysisBtn');
+      _analysisBtnEl.disabled = !_allPlanetsPresent;
+      _analysisBtnEl.title = _allPlanetsPresent ? '' : 'Analysis requires all 9 planets to be placed (this is a partial chart)';
       document.getElementById('editTestBtn').style.display = 'none';
       currentUserTestKey = null;
       // View menu (Transit Views feature): never shown for muhurta result charts
@@ -3614,15 +3792,24 @@
       renderD9Chart(data, lastAnalysis);
       renderRashiData(data, lastAnalysis);
       alignRashiBoxToChart();
+      // Dasha timing is computed from the chart's actual birth date -- test/
+      // snapshot charts use a fixed placeholder birth date (2000-01-01), so
+      // any computed periods would be meaningless. Skip computing it and
+      // don't force the panel open for test charts; leave real charts
+      // exactly as before.
       const _moonG = data.grahas && data.grahas.find(g => g.graha === 'Moon');
-      if (_moonG && data.birth_data && data.birth_data.date)
+      const _isTestChart = !!(data.birth_data && data.birth_data._isTest);
+      if (!_isTestChart && _moonG && data.birth_data && data.birth_data.date) {
         data.dasha = buildVimshottariDashas(data.birth_data.date, _moonG.rashi, _moonG.degree_in_rashi);
+      } else {
+        data.dasha = null;
+      }
       populateDashaPanel(data);
       requestAnimationFrame(() => {
         const d9Svg = document.getElementById('d9Chart');
         const panel = document.getElementById('dashaPanel');
         panel.style.marginTop = '0';
-        panel.style.display = 'flex';
+        if (!_isTestChart) panel.style.display = 'flex';
         const d9h = d9Svg ? d9Svg.getBoundingClientRect().height : 0;
         if (d9h > 0) panel.style.height = d9h + 'px';
         dashaScrollNow();
@@ -4035,8 +4222,9 @@
         const abs  = Math.abs(s);
         if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
           return ' ' + sign + abs.toFixed(2);
-        const deg = Math.floor(abs);
-        const min = Math.floor((abs % 1) * 60);
+        let deg = Math.floor(abs);
+        let min = Math.round((abs % 1) * 60);
+        if (min === 60) { min = 0; deg += 1; }
         return ' ' + sign + deg + ':' + String(min).padStart(2,'0');
       }
 
@@ -4863,6 +5051,7 @@
 
     let tcbState = null;  // { name, lagna:{rashi,degree}, grahas:{PlanetName:{rashi,degree,retro}} }
     let tcbEditKey = null; // localStorage key of draft being edited
+    let tcbDirty = false; // true once tcbState changes since open/last save -- gates the close-confirm
 
     function openEditTest() {
       if (!currentUserTestKey) return;
@@ -4878,10 +5067,12 @@
         tcbState.grahas[g.graha] = { rashi:g.rashi, degree:g.degree_in_rashi, retro:g.retrograde||false };
       }
       tcbEditKey = currentUserTestKey;
+      tcbDirty = false;
       document.getElementById('tcb-name').value = tcbState.name;
       document.getElementById('tcb-delete').style.display = '';
       document.getElementById('tcb-input').value = '';
       tcbLog('');
+      tcbRefreshChartImportList();
       tcbUpdateStatus();
       tcbExpLoad(data.expected);
       document.getElementById('dlgBuild').showModal();
@@ -4895,17 +5086,92 @@
         const raw = localStorage.getItem(draftKey);
         if (raw) { tcbState = JSON.parse(raw); tcbEditKey = draftKey; }
       }
+      tcbDirty = false;
       document.getElementById('tcb-name').value = tcbState.name || '';
       document.getElementById('tcb-delete').style.display = tcbEditKey ? '' : 'none';
       document.getElementById('tcb-input').value = '';
       tcbLog('');
+      tcbRefreshChartImportList();
       tcbUpdateStatus();
       tcbExpLoad(tcbState.expected);
       document.getElementById('dlgBuild').showModal();
       setTimeout(() => document.getElementById('tcb-input').focus(), 50);
     }
 
+    function tcbRefreshChartImportList() {
+      const sel = document.getElementById('tcb-import-chart');
+      if (!sel) return;
+      const charts = getCharts().slice().sort((a,b) => a.name.localeCompare(b.name));
+      sel.innerHTML = '<option value="">&mdash; pick a chart to copy &mdash;</option>' +
+        charts.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+    }
+
+    async function tcbImportFromChart(chartId) {
+      if (!chartId || !tcbState) return;
+      const c = getCharts().find(ch => ch.id === chartId);
+      if (!c) return;
+      tcbLog(`Loading placements from "${c.name}"...`);
+      try {
+        const res = await fetch('/api/v1/chart', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            date:c.date, time:ensureSeconds(c.time),
+            latitude:parseFloat(c.lat), longitude:parseFloat(c.lon), timezone_offset:parseFloat(c.tz),
+          }),
+        });
+        if (!res.ok) throw new Error('Server error ' + res.status);
+        const data = await res.json();
+        tcbState.lagna = { rashi: data.lagna.rashi, degree: data.lagna.degree_in_rashi };
+        tcbState.grahas = {};
+        for (const g of data.grahas) {
+          tcbState.grahas[g.graha] = { rashi:g.rashi, degree:g.degree_in_rashi, retro:g.retrograde||false };
+        }
+        // Only suggest a name if the field is still empty -- don't clobber
+        // a name the user already typed.
+        const nameEl = document.getElementById('tcb-name');
+        if (!nameEl.value.trim()) {
+          nameEl.value = c.name + ' - boundary test';
+          tcbState.name = nameEl.value;
+        }
+        tcbDirty = true;
+        tcbLog(`Copied placements from "${c.name}" -- edit degrees below, then Save under this name`, 'ok');
+        tcbUpdateStatus();
+      } catch (err) {
+        tcbLog('Error loading chart: ' + err.message, 'err');
+      }
+    }
+
     function closeTestBuilder() { document.getElementById('dlgBuild').close(); }
+
+    function tcbCloseNeedsPrompt() {
+      // Nothing changed since open/last save -- nothing to lose.
+      if (!tcbDirty) return 'silent';
+      // Changes exist, but they already meet the minimum save bar (lagna +
+      // name) -- just save instead of nagging with a discard warning.
+      const name = document.getElementById('tcb-name').value.trim();
+      if (tcbIsComplete() && name) return 'autosave';
+      // Changes exist that can't be saved as-is (no lagna yet, or no name) --
+      // this is the only case actually worth confirming before discarding.
+      return 'confirm';
+    }
+
+    function tcbCloseAttempt() {
+      const need = tcbCloseNeedsPrompt();
+      if (need === 'autosave') { tcbSave(); return; }
+      if (need === 'confirm' &&
+          !confirm('Close without saving? Your changes will be lost.')) return;
+      closeTestBuilder();
+    }
+
+    // Same logic for the native Escape-key close (fires 'cancel' before
+    // 'close' on <dialog>), so ESC can't bypass the checks above.
+    document.getElementById('dlgBuild').addEventListener('cancel', function(e) {
+      const need = tcbCloseNeedsPrompt();
+      if (need === 'silent') return; // let the native close proceed
+      e.preventDefault();
+      if (need === 'autosave') { tcbSave(); return; }
+      if (confirm('Close without saving? Your changes will be lost.')) closeTestBuilder();
+    });
 
     function tcbLog(msg, cls) {
       const el = document.getElementById('tcb-log');
@@ -4915,12 +5181,16 @@
     }
 
     function tcbNameChanged() {
-      if (tcbState) tcbState.name = document.getElementById('tcb-name').value.trim();
+      if (tcbState) { tcbState.name = document.getElementById('tcb-name').value.trim(); tcbDirty = true; }
       tcbUpdateSaveBtn();
     }
 
     function tcbIsComplete() {
-      return tcbState && tcbState.lagna !== null && TCB_PLANETS.every(p => tcbState.grahas[p]);
+      // A test chart only requires a Lagna (sign+degree); a Name is checked
+      // separately by callers. Partial charts (a subset of planets, even
+      // none) are valid -- e.g. a quick situation snapshot for email that
+      // doesn't warrant placing all 9 planets.
+      return !!(tcbState && tcbState.lagna !== null);
     }
 
     function tcbUpdateSaveBtn() {
@@ -5038,6 +5308,7 @@
         }
         if (!sign) { tcbLog(`Cannot identify sign in: "${raw}"`, 'err'); return; }
         tcbState.lagna = { rashi:sign, degree:deg };
+        tcbDirty = true;
         tcbLog(`Lagna: ${RASHI_NAME[sign]} @ ${deg.toFixed(2)}°`, 'ok');
         tcbUpdateStatus(); return;
       }
@@ -5049,12 +5320,14 @@
         delete tcbState.grahas[pn];
         if (pn === 'Rahu') delete tcbState.grahas['Ketu'];
         if (pn === 'Ketu') delete tcbState.grahas['Rahu'];
+        tcbDirty = true;
         tcbLog(`${pn} cleared`, 'ok'); tcbUpdateStatus(); return;
       }
 
       // ── Reset ──
       if (tokens[0] === 'reset') {
         tcbState.lagna = null; tcbState.grahas = {};
+        tcbDirty = true;
         tcbLog('Chart reset', 'ok'); tcbUpdateStatus(); return;
       }
 
@@ -5075,6 +5348,7 @@
 
       if (!sign) { tcbLog(`Cannot identify sign/house for ${pName} in: "${raw}"`, 'err'); return; }
       tcbState.grahas[pName] = { rashi:sign, degree:deg, retro };
+      tcbDirty = true;
       let msg = `${pName}: ${RASHI_NAME[sign]} @ ${deg.toFixed(2)}°${retro?' R':''}`;
 
       // Auto-fill nodes
@@ -5097,7 +5371,7 @@
         birth_data:{ date:'2000-01-01', time:'12:00:00', latitude:0, longitude:0, timezone_offset:0, _isTest:true },
         ayanamsa:0,
         lagna:{ rashi:tcbState.lagna.rashi, degree_in_rashi:tcbState.lagna.degree, rashi_name:RASHI_NAME[tcbState.lagna.rashi] },
-        grahas: TCB_PLANETS.map(p => {
+        grahas: TCB_PLANETS.filter(p => tcbState.grahas[p]).map(p => {
           const g = tcbState.grahas[p];
           return { graha:p, rashi:g.rashi, degree_in_rashi:g.degree, retrograde:g.retro||false };
         })
@@ -5110,32 +5384,20 @@
     function tcbSave() {
       const name = document.getElementById('tcb-name').value.trim();
       if (!name) { tcbLog('Enter a name first', 'err'); return; }
-      if (!tcbIsComplete()) { tcbLog('All planets must be placed', 'err'); return; }
+      if (!tcbIsComplete()) { tcbLog('Set the Lagna sign and degree first', 'err'); return; }
       const data = tcbBuildData();
       const key = 'jyotish_utc_' + name;
       localStorage.setItem(key, JSON.stringify(data));
       localStorage.removeItem('jyotish_utd_' + name);
       // Remove old key if renamed
       if (tcbEditKey && tcbEditKey !== key) localStorage.removeItem(tcbEditKey);
+      tcbDirty = false;
       tcbRefreshDropdown();
       closeTestBuilder();
       renderChart(data);
       // Re-show Edit Test button (renderChart hides it)
       currentUserTestKey = key;
       document.getElementById('editTestBtn').style.display = '';
-    }
-
-    function tcbSaveDraft() {
-      const name = document.getElementById('tcb-name').value.trim();
-      if (!name) { tcbLog('Enter a name first', 'err'); return; }
-      tcbState.name = name;
-      tcbState.expected = tcbExpRead();
-      const key = 'jyotish_utd_' + name;
-      localStorage.setItem(key, JSON.stringify(tcbState));
-      if (tcbEditKey && tcbEditKey !== key) localStorage.removeItem(tcbEditKey);
-      tcbEditKey = key;
-      document.getElementById('tcb-delete').style.display = '';
-      tcbLog(`Draft saved: "${name}"`, 'ok');
     }
 
     // ── Expected Results UI ──────────────────────────────────────────────────

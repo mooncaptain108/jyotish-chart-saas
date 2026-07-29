@@ -175,6 +175,149 @@ def test_cond5_flat_quarter_strength():
     assert abs(m['strengthPct'] - 0.25) < 0.001
 
 
+# ─── Chain-special and cond5 require an independently regular-damaging link ──
+# (2026-07-26: tightened per user report -- a source FM within a blanket 5 deg
+# used to be enough to chain-elevate or cond5-elevate a target; now the
+# contributing link/aspect must itself clear the regular (non-elevated)
+# damaging-orb threshold on its own.)
+
+def test_chain_special_requires_regular_damaging_source_link():
+    """Taurus rising: Jupiter (MMP, FM) aspects Mars (FM) at orb 4.5 deg --
+    within the old blanket 5 deg chain window, but Mars is strong so the
+    regular threshold for a special (MMP) source is 2 deg -- 4.5 deg does
+    NOT clear it. Mars then aspects Saturn (strong, house7) at orb 1.5 deg,
+    which needs chain-special (2 deg allowance) to count as damaging.
+    Without a valid chain link, Saturn must show no affliction at all."""
+    chart = _chart(2, 15.0, {
+        'Saturn':  (8, 15.0),   # house7, strong
+        'Mars':    (2, 13.5),   # house1, 7th aspect -> house7, orb=1.5 to Saturn
+        'Jupiter': (2, 9.0),    # house1 conjunct Mars, orb=4.5 -- too wide to chain
+    })
+    an = analyze_all_grahas(chart)
+    sat = an['Saturn']
+    assert sat['allFmAspects'][0]['chainSpecial'] is False
+    assert sat['allFmAspects'][0]['isDamaging'] is False
+    assert sat['afflictions'] == []
+
+
+def test_chain_special_fires_when_source_link_is_regular_damaging():
+    """Same geometry, but Jupiter now sits at orb 1.0 from Mars -- within
+    Mars's own strong-planet special-source threshold (2 deg, since Jupiter
+    is MMP) -- a genuine regular damaging link. Mars becomes chain-special
+    and its 1.5 deg aspect on Saturn is now correctly damaging."""
+    chart = _chart(2, 15.0, {
+        'Saturn':  (8, 15.0),
+        'Mars':    (2, 13.5),
+        'Jupiter': (2, 12.5),   # orb=1.0 from Mars -- clears the 2 deg special threshold
+    })
+    an = analyze_all_grahas(chart)
+    sat = an['Saturn']
+    assert sat['allFmAspects'][0]['chainSpecial'] is True
+    assert sat['allFmAspects'][0]['isDamaging'] is True
+
+
+def test_cond5_requires_two_individually_regular_damaging_aspects():
+    """Taurus rising: Mars conjunct Mercury at orb 0.8 (regular damaging for
+    a strong target) plus Venus conjunct at orb 4.0 (within the old blanket
+    5 deg window, but NOT individually damaging for a strong target). Under
+    the tightened rule this must NOT trigger cond5 -- only Mars's own
+    regular affliction should apply. Lagna kept at 25 deg (far from the
+    ~9-10 deg planet cluster) so occ-house-MEP proximity doesn't interfere,
+    matching the isolation approach used by test_cond5_flat_quarter_strength."""
+    chart = _chart(2, 25.0, {
+        'Mercury': (2, 10.0),
+        'Mars':    (2, 9.2),    # orb 0.8 -- regular damaging alone
+        'Venus':   (2, 6.0),    # orb 4.0 -- not damaging alone
+    })
+    an = analyze_all_grahas(chart)
+    m = an['Mercury']
+    assert m['cond5'] is False
+    assert len(m['afflictions']) == 1
+    assert m['afflictions'][0]['fm'] == 'Mars'
+    assert m['afflictions'][0]['special'] is False
+
+
+def test_cond5_fires_with_two_individually_regular_damaging_aspects():
+    """Same setup, but Venus now sits at orb 0.9 -- also individually
+    regular damaging on its own -- so cond5 should correctly fire."""
+    chart = _chart(2, 25.0, {
+        'Mercury': (2, 10.0),
+        'Mars':    (2, 9.2),    # orb 0.8
+        'Venus':   (2, 9.1),    # orb 0.9 -- also individually damaging
+    })
+    an = analyze_all_grahas(chart)
+    m = an['Mercury']
+    assert m['cond5'] is True
+    assert abs(m['strengthPct'] - 0.25) < 0.001
+
+
+def test_chain_special_does_not_treat_node_target_as_automatically_weak():
+    """Real user-reported case ("Paul" chart, 2026-07-26): Leo rising, Moon
+    is the sole FM and also the MMP. Moon conjuncts Rahu (and opposes Ketu)
+    at orb ~3.5 deg -- outside the 2 deg special-source allowance a
+    strong-planet target would need, so this link must NOT chain-elevate
+    Ketu. But Ketu is a node, and nodes are coded "not strong" everywhere
+    else in the pipeline (a convention for how OTHER planets are judged
+    when afflicting a node, not a real weakness of the node itself) --
+    naively reusing that flag as `target_strong` here let the blanket 5 deg
+    fallback slip back in through Rahu/Ketu, which are FMs in every chart.
+    Ketu's own 9th-aspect on Sun at orb ~1.79 deg (regular threshold 1 deg,
+    since Sun is strong and not otherwise special) must stay a non-affliction."""
+    chart = _chart(5, 4.0019, {
+        'Sun':     (3, 17.5172),
+        'Moon':    (1, 22.8016),
+        'Mars':    (5, 28.6479),
+        'Mercury': (3, 5.4779),
+        'Jupiter': (8, 28.778),
+        'Venus':   (3, 5.0314),
+        'Saturn':  (4, 27.2518),
+        'Rahu':    (1, 19.3059),
+        'Ketu':    (7, 19.3059),
+    })
+    an = analyze_all_grahas(chart)
+    ketu_on_sun = an['Sun']['allFmAspects'][0]
+    assert ketu_on_sun['fm'] == 'Ketu'
+    assert ketu_on_sun['chainSpecial'] is False
+    assert ketu_on_sun['isDamaging'] is False
+    assert an['Sun']['afflictions'] == []
+    assert abs(an['Sun']['strengthPct'] - 1.0) < 0.001
+
+
+def test_chain_special_mmp_source_widens_node_target_orb_to_2deg():
+    """Real user-reported case ("Paul" chart), settled 2026-07-26 after two
+    rounds of reconsideration: Ra/Ke take on strength the same way any other
+    planet does (MT-lord strength in an MT house, MEP-affliction status
+    otherwise) and afflict/are afflicted like any other malefic -- so an MMP
+    source (Moon here) counts as a special affliction on a node exactly like
+    it would on a real strong planet: a 2 deg allowance, not a flat <1 deg
+    lock (an earlier, since-reverted fix wrongly locked nodes to <1 deg
+    always). This doesn't numerically change Ra/Ke's own strengthPct (nodes
+    are exempt from the direct-affliction loss loop), but it chain-elevates
+    them, carrying "special" through to their own downstream affliction --
+    here, Ketu's 9th aspect on Sun at orb ~1.79 deg."""
+    def paul_shaped(moon_deg):
+        return _chart(5, 4.0019, {
+            'Sun': (3, 17.5172), 'Moon': (1, moon_deg),
+            'Rahu': (1, 19.3059), 'Ketu': (7, 19.3059),
+        })
+
+    # Moon ~0.81 deg from Rahu/Ketu -- within 1 deg -> chains regardless.
+    an_close = analyze_all_grahas(paul_shaped(18.5))
+    assert an_close['Sun']['allFmAspects'][0]['chainSpecial'] is True
+    assert an_close['Sun']['allFmAspects'][0]['isDamaging'] is True
+
+    # Moon ~1.71 deg -- outside 1 deg but within the MMP-source 2 deg
+    # allowance -> still chains.
+    an_mid = analyze_all_grahas(paul_shaped(17.6))
+    assert an_mid['Sun']['allFmAspects'][0]['chainSpecial'] is True
+    assert an_mid['Sun']['allFmAspects'][0]['isDamaging'] is True
+
+    # Moon ~2.11 deg -- outside even the 2 deg special allowance -> no chain.
+    an_far = analyze_all_grahas(paul_shaped(17.2))
+    assert an_far['Sun']['allFmAspects'][0]['chainSpecial'] is False
+    assert an_far['Sun']['allFmAspects'][0]['isDamaging'] is False
+
+
 # ─── FM self-affliction of its own occupied house ──────────────────────
 
 def test_fm_can_afflict_own_occupied_house_unless_own_mt_sign():
