@@ -2041,6 +2041,15 @@
         if (((fromHouse - 1 + off) % 12) + 1 === toHouse) return ordinal(off + 1) + ' aspect';
       return 'aspect';
     }
+    // Short form for the "<planet> <via> <orb>° over <target>" cross-analysis
+    // phrasing — 'Bound.' covers mepOrb's physical-boundary-adjacency case,
+    // where a small orb exists to a house's MEP with no classical drishti.
+    function aspectAbbrev(grahaName, fromHouse, toHouse) {
+      if (fromHouse === toHouse) return 'Conj.';
+      for (const off of (ASPECT_OFFSETS[grahaName] || ASPECT_OFFSETS.default))
+        if (((fromHouse - 1 + off) % 12) + 1 === toHouse) return ordinal(off + 1) + ' Aspect';
+      return 'Bound.';
+    }
 
     function isStrong(deg) { return deg >= 5 && deg <= 25; }
 
@@ -3017,59 +3026,108 @@
       }
     }
 
+    // Display order for the cross-analysis phrase lists below — classical
+    // graha order (Sun..Ketu), independent of the shared PLANET_ORDER used
+    // elsewhere (chart drawing, dasha, main analysis) so this doesn't
+    // ripple into other panels.
+    const CROSS_SOURCE_ORDER = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
+
+    // Groups hits by source planet (CROSS_SOURCE_ORDER); within one source,
+    // conjunctions before aspects, each tier ascending by orb.
+    function sortCrossHits(hits) {
+      return hits.sort((a, b) => {
+        const so = CROSS_SOURCE_ORDER.indexOf(a.source) - CROSS_SOURCE_ORDER.indexOf(b.source);
+        if (so) return so;
+        const aConj = a.via === 'Conj.' ? 0 : 1;
+        const bConj = b.via === 'Conj.' ? 0 : 1;
+        if (aConj !== bConj) return aConj - bConj;
+        return a.orb - b.orb;
+      });
+    }
+
     // For each planet in `targets`, find every planet in `sources` that
     // aspects/conjuncts it within 5deg (degree-preserving aspect projection,
     // same convention used throughout — see mep_orb/mepOrb notes). No FM/
     // strength distinction here, this is a plain conjunction+aspect scan.
-    function computeCrossAspects(sources, targets) {
-      const result = {};
+    // Returns a flat list of hits, unsorted — sortCrossHits() orders them
+    // once combined with the MEP hits below.
+    function crossPlanetHits(sources, targets) {
+      const hits = [];
       for (const tName of PLANET_ORDER) {
         const t = targets[tName]; if (!t || !t.graha) continue;
-        const hits = [];
         for (const sName of PLANET_ORDER) {
           const s = sources[sName]; if (!s || !s.graha) continue;
           if (!fmAspectedHouses(s.graha, s.house).has(t.house)) continue;
           const orb = Math.abs(s.deg - t.deg);
           if (orb >= 5) continue;
-          hits.push({ source: s.graha, orb, via: aspectLabel(s.graha, s.house, t.house) });
+          hits.push({ source: s.graha, orb, via: aspectAbbrev(s.graha, s.house, t.house), target: tName, kind: 'planet' });
         }
-        hits.sort((a,b) => a.orb - b.orb);
-        if (hits.length) result[tName] = hits;
       }
-      return result;
+      return hits;
+    }
+
+    // Which of `sources`' planets conjunct/aspect each house's MEP (natal
+    // lagna degree replicated into every house) — extends the ordinary MT/
+    // occupation-house MEP affliction check (mepOrb) to transiting positions,
+    // so transits crossing the chart's sensitive points show up alongside
+    // the planet-to-planet cross aspects above (same source planet, same
+    // sorted group — see sortCrossHits()).
+    function crossMepHits(sources, lagnaRashi, mepDeg) {
+      const hits = [];
+      for (let house = 1; house <= 12; house++) {
+        for (const sName of PLANET_ORDER) {
+          const s = sources[sName]; if (!s || !s.graha) continue;
+          const orb = mepOrb(s.graha, s.house, s.deg, s.rashi, house, mepDeg, lagnaRashi);
+          if (orb >= 5) continue;
+          hits.push({ source: s.graha, orb, via: aspectAbbrev(s.graha, s.house, house), house, kind: 'mep' });
+        }
+      }
+      return hits;
     }
 
     // Chart & Transits analysis: no house/planet strength — just conjunctions
     // and aspects within 5deg between natal and transit positions, in two
     // sections (transit-over-natal, natal-over-transit). Per Transit Views spec.
+    // Transit-over-natal additionally reports transits over each house's MEP
+    // (a house-cusp-like sensitive point; there's no separate "transit MEP"
+    // since transit shares the natal lagna/house wheel, so this only applies
+    // in this direction) — merged into the same list as the planet hits so
+    // every hit from one transiting planet sorts together.
     function openTransitCrossAnalysisDialog() {
       if (!lastData || !lastAnalysis || !transitData || !transitAnalysis) return;
       const an = lastAnalysis, tAn = transitAnalysis;
-      const transitOverNatal = computeCrossAspects(tAn, an);   // targets = natal planets
-      const natalOverTransit = computeCrossAspects(an, tAn);   // targets = transit planets
+      const lagnaRashi = lastData.lagna.rashi, mepDeg = an._mepDeg;
 
-      const fmCls = n => (an[n] && an[n].isFM) ? 'c-red' : 'c-green';
-      const section = (title, byTarget, srcLabel) => {
+      const fmCls = (dict, n) => (dict[n] && dict[n].isFM) ? 'c-red' : 'c-green';
+      const targetHtml = (tgtDict, h) => h.kind === 'mep'
+        ? `${ordinal(h.house)} MEP`
+        : `<span class="${fmCls(tgtDict, h.target)}">${h.target}</span>`;
+
+      // The source planet gets its own header line per run of same-source
+      // hits; every "over ..." description line underneath is indented
+      // (3 spaces for now — nbsp since HTML collapses plain spaces).
+      const section = (title, hits, srcDict, tgtDict) => {
         let html = `<div class="an-section-head">${title}</div>`;
-        let any = false;
-        for (const name of PLANET_ORDER) {
-          const hits = byTarget[name]; if (!hits) continue;
-          any = true;
-          html += `<div class="an-planet"><div class="an-phead"><span class="an-name ${fmCls(name)}">${name}</span></div><div>`;
-          for (const h of hits) {
-            html += `<div class="an-item c-brown">${srcLabel} <span class="${fmCls(h.source)}">${h.source}</span> — ${h.via} — ${h.orb.toFixed(2)}°</div>`;
+        if (!hits.length) { html += `<div class="an-item">None within 5°</div>`; return html; }
+        let lastSource = null;
+        for (const h of hits) {
+          if (h.source !== lastSource) {
+            html += `<div class="an-item c-brown"><span class="${fmCls(srcDict, h.source)}">${h.source}</span></div>`;
+            lastSource = h.source;
           }
-          html += `</div></div>`;
+          html += `<div class="an-item c-brown">&nbsp;&nbsp;&nbsp; ${h.via} ${h.orb.toFixed(2)}° over ${targetHtml(tgtDict, h)} ${pct(1 - h.orb / 5)}</div>`;
         }
-        if (!any) html += `<div class="an-item">None within 5°</div>`;
         return html;
       };
+
+      const transitHits = sortCrossHits(crossPlanetHits(tAn, an).concat(crossMepHits(tAn, lagnaRashi, mepDeg)));
+      const natalHits    = sortCrossHits(crossPlanetHits(an, tAn));
 
       let html = `<div class="an-lagna">
         <strong style="color:#c9a84c">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna
       </div>`;
-      html += section('Transit over Natal', transitOverNatal, 'Transit');
-      html += section('Natal over Transit', natalOverTransit, 'Natal');
+      html += section('Transit over Natal', transitHits, tAn, an);
+      html += section('Natal over Transit', natalHits, an, tAn);
 
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
