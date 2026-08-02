@@ -73,6 +73,31 @@ def _d7_sign(longitude: float) -> int:
         return (rashi - 1 + 6 + part) % 12 + 1
 
 
+def _d8_sign(longitude: float) -> int:
+    """D8 (Ashtamsa) — 8 divisions of 3°45' each.
+
+    Not part of Parashara's classical Shodasavarga (16-varga) set — used in
+    Jaimini-influenced longevity/crisis analysis. Movable signs count from
+    Aries, fixed signs from Sagittarius, dual signs from Leo — the same
+    starting-sign convention as D20 (see _d20_sign), just a coarser division.
+    Cross-checked against multiple independent sources before implementing,
+    given this module's history of getting secondhand varga descriptions
+    wrong (see the _d60_sign docstring).
+    """
+    rashi = longitude_to_rashi(longitude)
+    degree = longitude % 30
+    part = int(degree / (30 / 8))  # 0–7
+
+    if rashi in (1, 4, 7, 10):      # Movable
+        start = 1
+    elif rashi in (2, 5, 8, 11):    # Fixed
+        start = 9
+    else:                            # Dual
+        start = 5
+
+    return (start - 1 + part) % 12 + 1
+
+
 def _d9_sign(longitude: float) -> int:
     """D9 (Navamsa) — 9 divisions of 3°20' each.
 
@@ -291,13 +316,15 @@ def _d60_sign(longitude: float) -> int:
     return (rashi - 1 + part) % 12 + 1
 
 
-# Dispatcher — full 16-varga shodasavarga set
+# Dispatcher — Parashara's 16-varga shodasavarga set, plus D8 (Ashtamsa),
+# a Jaimini-influenced addition outside the classical shodasavarga list.
 _DIVISIONAL_FUNCS = {
     "D1": _d1_sign,
     "D2": _d2_sign,
     "D3": _d3_sign,
     "D4": _d4_sign,
     "D7": _d7_sign,
+    "D8": _d8_sign,
     "D9": _d9_sign,
     "D10": _d10_sign,
     "D12": _d12_sign,
@@ -318,6 +345,7 @@ _DIVISIONAL_N = {
     "D3": 3,
     "D4": 4,
     "D7": 7,
+    "D8": 8,
     "D9": 9,
     "D10": 10,
     "D12": 12,
@@ -352,7 +380,7 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
     Args:
         planet_positions: Output of ephemeris.compute_all_planets().
         ascendant_longitude: Sidereal longitude of the ascendant.
-        chart_type: One of D1, D2, D3, D4, D7, D9, D10, D12, D16, D20,
+        chart_type: One of D1, D2, D3, D4, D7, D8, D9, D10, D12, D16, D20,
             D24, D27, D30, D40, D45, D60.
 
     Returns:
@@ -395,7 +423,7 @@ def compute_divisional_chart(planet_positions: dict[str, dict],
 
 def compute_all_divisional_charts(planet_positions: dict[str, dict],
                                   ascendant_longitude: float) -> list[dict]:
-    """Compute all 16 supported divisional charts (full shodasavarga)."""
+    """Compute all supported divisional charts (shodasavarga + D8)."""
     charts = []
     for chart_type in _DIVISIONAL_FUNCS:
         charts.append(
