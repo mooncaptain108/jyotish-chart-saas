@@ -83,14 +83,28 @@ def mep_rashi(lagna_rashi: int, house: int) -> int:
 
 def mep_orb(graha: str, from_house: int, deg: float, rashi: int,
             target_house: int, mep_deg: float, lagna_rashi: int) -> float:
-    """Effective orb between a planet and target_house's MEP: the smaller of
+    """Effective orb between a planet and target_house's MEP: the smallest of
     (a) its aspect-projected degree distance if it classically aspects
     target_house (drishti preserves degree-in-sign across the projection,
-    so no rashi is involved), and (b) its raw circular distance to the
-    MEP's absolute position (only ever small for conjunction or physical
-    boundary adjacency, independent of classical drishti)."""
-    candidates = [abs_diff_deg(rashi, deg, mep_rashi(lagna_rashi, target_house), mep_deg)]
-    if target_house in fm_aspected_houses(graha, from_house):
+    so no rashi is involved), (b) its raw circular distance to target_house's
+    MEP from its own occupied position (only ever small for conjunction or
+    physical boundary adjacency, independent of classical drishti), and
+    (c) the same circular boundary-bleed check but from each of its aspect
+    PROJECTIONS instead of its own position -- drishti preserves degree-in-
+    sign, so a special aspect landing near 0deg/30deg of its target house's
+    rashi bleeds across that house's own boundary too, exactly like the
+    planet's physical position bleeds across its occupied house's boundary.
+    E.g. Saturn at 0:17 in house 6 bleeds into house 5's MEP (mechanism b);
+    its 3rd-house aspect lands at 0:17 in house 8 and, by the same logic,
+    bleeds into house 7's MEP (mechanism c)."""
+    target_mep_rashi = mep_rashi(lagna_rashi, target_house)
+    aspected = fm_aspected_houses(graha, from_house)  # includes from_house itself
+    candidates = [abs_diff_deg(rashi, deg, target_mep_rashi, mep_deg)]
+    for h in aspected:
+        if h == from_house:
+            continue  # already covered by the direct-rashi candidate above
+        candidates.append(abs_diff_deg(mep_rashi(lagna_rashi, h), deg, target_mep_rashi, mep_deg))
+    if target_house in aspected:
         candidates.append(abs(deg - mep_deg))
     return min(candidates)
 

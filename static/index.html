@@ -2019,15 +2019,29 @@
       return ((lagnaRashi - 1 + (house - 1)) % 12) + 1;
     }
 
-    // Effective orb between a planet and targetHouse's MEP: the smaller of
+    // Effective orb between a planet and targetHouse's MEP: the smallest of
     // (a) its aspect-projected degree distance if it classically aspects
     // targetHouse (drishti preserves degree-in-sign across the projection,
-    // so no rashi is involved), and (b) its raw circular distance to the
-    // MEP's absolute position (only ever small for conjunction or physical
-    // boundary adjacency, independent of classical drishti).
+    // so no rashi is involved), (b) its raw circular distance to targetHouse's
+    // MEP from its own occupied position (only ever small for conjunction or
+    // physical boundary adjacency, independent of classical drishti), and
+    // (c) the same circular boundary-bleed check but from each of its aspect
+    // PROJECTIONS instead of its own position -- drishti preserves degree-in-
+    // sign, so a special aspect landing near 0deg/30deg of its target house's
+    // rashi bleeds across that house's own boundary too, exactly like the
+    // planet's physical position bleeds across its occupied house's boundary.
+    // E.g. Saturn at 0:17 in house 6 bleeds into house 5's MEP (mechanism b);
+    // its 3rd-house aspect lands at 0:17 in house 8 and, by the same logic,
+    // bleeds into house 7's MEP (mechanism c).
     function mepOrb(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
-      let orb = absDiffDeg(rashi, deg, mepRashi(lagnaRashi, targetHouse), mepDeg);
-      if (fmAspectedHouses(grahaName, fromHouse).has(targetHouse))
+      const targetMepRashi = mepRashi(lagnaRashi, targetHouse);
+      const aspected = fmAspectedHouses(grahaName, fromHouse); // includes fromHouse itself
+      let orb = absDiffDeg(rashi, deg, targetMepRashi, mepDeg);
+      for (const h of aspected) {
+        if (h === fromHouse) continue; // already covered by the direct-rashi candidate above
+        orb = Math.min(orb, absDiffDeg(mepRashi(lagnaRashi, h), deg, targetMepRashi, mepDeg));
+      }
+      if (aspected.has(targetHouse))
         orb = Math.min(orb, Math.abs(deg - mepDeg));
       return orb;
     }
