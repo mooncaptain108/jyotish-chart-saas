@@ -3861,7 +3861,17 @@
       // View menu (Transit Views feature): never shown for muhurta result charts
       const viewDropdown = document.getElementById('viewDropdown');
       if (viewDropdown) viewDropdown.style.display = isMuhurtaResult ? 'none' : '';
-      if (isMuhurtaResult) setChartViewMode('chart');
+      // Set the view-mode flag and close the Transits popover directly
+      // (not via setChartViewMode('chart'), which would call back into
+      // renderChart(lastData, currentMuhurtaIdx >= 0) -- since lastData
+      // and currentMuhurtaIdx are already set for this in-progress muhurta
+      // chart render, that reentrant call re-triggers this same isMuhurtaResult
+      // branch forever, blowing the call stack).
+      if (isMuhurtaResult) {
+        chartViewMode = 'chart';
+        const _transitsDlg = document.getElementById('dlgTransits');
+        if (_transitsDlg && _transitsDlg.open) _transitsDlg.close();
+      }
       renderD9Chart(data, lastAnalysis);
       renderRashiData(data, lastAnalysis);
       alignRashiBoxToChart();
