@@ -344,6 +344,7 @@
     <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()" disabled>Muhurta</button>
     <span id="muhurtaStatus" style="display:none;font-size:0.82rem;color:#a0c870;white-space:nowrap;margin-left:0.3rem;font-family:monospace;"></span>
     <div class="sep"></div>
+    <button class="tb-btn" id="transitNowBtn" onclick="setTransitToNow()" style="display:none" title="Set the transit to the current date &amp; time">Now</button>
     <div class="tb-dropdown" id="helpDropdown">
       <button class="tb-btn" onclick="toggleHelpMenu(event)">Help &#9662;</button>
       <ul class="tb-menu" id="helpMenu">
@@ -815,7 +816,7 @@
   <!-- ════ Analysis dialog ════ -->
   <dialog id="dlgAnalysis">
     <div class="dlg-header">
-      <h2>Chart Analysis</h2>
+      <h2 id="analysisDlgTitle">Chart Analysis</h2>
       <button class="dlg-close-x" onclick="document.getElementById('dlgAnalysis').close()">✕</button>
     </div>
     <div class="dlg-body" style="max-height:75vh;overflow-y:auto;">
@@ -3013,11 +3014,16 @@
       const MUHURTA_LAGNA = new Set([1,3,4,5,7,8,9,10,11]);
       const chartDateMs = new Date(data.birth_data.date).getTime();
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
-      const showBanner = MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo;
+      // Transits view's birth_data is the live transit moment (always
+      // "recent"), not the candidate chart's date -- Muhurta Eval only
+      // makes sense for the chart itself, so skip it in Transits view.
+      const showBanner = chartViewMode !== 'transits' && MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo;
       if (showBanner) {
         html = `<button id="muhurtaEvalBtn" onclick="showMuhurtaEval()" style="background:#222;border:1px solid #444;color:#999;padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;">Muhurta Eval…</button>` + html;
       }
 
+      document.getElementById('analysisDlgTitle').textContent =
+        chartViewMode === 'transits' ? 'Transits Analysis' : 'Chart Analysis';
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
 
@@ -3144,6 +3150,7 @@
       html += section('Transit over Natal', transitHits, tAn, an);
       html += section('Natal over Transit', natalHits, an, tAn);
 
+      document.getElementById('analysisDlgTitle').textContent = 'Chart & Transits Analysis';
       document.getElementById('analysisContent').innerHTML = html;
       document.getElementById('dlgAnalysis').showModal();
     }
@@ -3318,6 +3325,7 @@
       const d9Svg  = document.getElementById('d9Chart');
       const sel = document.getElementById('divChartSelect');
       const chartType = sel ? sel.value : 'D9';
+      updateTransitNowBtn();
       // Transit is not one of data.divisional_charts — it's the currently
       // configured chart from the Transits popover (module-scope transitData/
       // transitAnalysis), and unlike every other entry here it shows degrees.
@@ -4249,9 +4257,31 @@
       }
     }
 
+    // Shows the toolbar 'Now' button whenever a transit is on screen --
+    // either view mode (Transits/Chart & Transits) or the Divisional
+    // Chart dropdown's Transit entry -- so the transit time can be reset
+    // to the current moment without opening Transits Control.
+    function updateTransitNowBtn() {
+      const btn = document.getElementById('transitNowBtn');
+      if (!btn) return;
+      const sel = document.getElementById('divChartSelect');
+      const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
+      btn.style.display = show ? '' : 'none';
+    }
+
+    function setTransitToNow() {
+      if (!lastData) return;
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('tDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+      document.getElementById('tTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      fetchAndRenderTransit();
+    }
+
     function setChartViewMode(mode) {
       if (!lastData) return;
       chartViewMode = mode;
+      updateTransitNowBtn();
       if (mode === 'chart') {
         const dlg = document.getElementById('dlgTransits');
         if (dlg.open) dlg.close();
