@@ -91,6 +91,9 @@
     .stg-body { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.7rem; overflow-y:auto; }
     .stg-divider { border:none; border-top:1px solid #0f3460; margin:0.2rem 0; }
     .stg-btn { width:100%; text-align:left; }
+    /* Bold chart text — overrides the inline font-weight on planet/degree SVG labels
+       (CSS beats SVG presentation attributes, so this needs no changes to renderChart). */
+    body.chart-bold svg text.pl { font-weight: 700; }
     .stg-check { display:flex; align-items:center; gap:0.55rem; color:#c0c0d0; font-size:0.88rem; cursor:pointer; user-select:none; }
     .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
 
@@ -440,6 +443,8 @@
       <label class="stg-check"><input type="checkbox" id="chkShowWelcome"> Show Welcome Message</label>
       <label class="stg-check"><input type="checkbox" id="chkDegMin"> Degrees: deg:min</label>
       <label class="stg-check"><input type="checkbox" id="chkDecimal"> Degrees: decimal</label>
+      <hr class="stg-divider">
+      <label class="stg-check"><input type="checkbox" id="chkChartBold"> Bold planet &amp; degree text</label>
 
     </div>
   </div>
@@ -1159,6 +1164,7 @@
     const NEW_FORM_KEY = 'jyotish_new_form';
     const WELCOME_KEY  = 'jyotish_hide_welcome';
     const TRANSIT_DLG_MANUAL_KEY = 'jyotish_transit_dlg_manual_only';
+    const CHART_BOLD_KEY = 'jyotish_chart_bold';
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
@@ -1361,6 +1367,7 @@
       const degFmt = localStorage.getItem('jyotish_deg_fmt') || 'degmin';
       document.getElementById('chkDegMin').checked  = degFmt !== 'decimal';
       document.getElementById('chkDecimal').checked = degFmt === 'decimal';
+      document.getElementById('chkChartBold').checked = localStorage.getItem(CHART_BOLD_KEY) === '1';
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -1410,6 +1417,11 @@
     document.getElementById('chkTransitManualOnly').addEventListener('change', function() {
       localStorage.setItem(TRANSIT_DLG_MANUAL_KEY, this.checked ? '1' : '0');
     });
+    document.getElementById('chkChartBold').addEventListener('change', function() {
+      localStorage.setItem(CHART_BOLD_KEY, this.checked ? '1' : '0');
+      document.body.classList.toggle('chart-bold', this.checked);
+    });
+    document.body.classList.toggle('chart-bold', localStorage.getItem(CHART_BOLD_KEY) === '1');
 
     // Export / Import
     function exportData() {
@@ -2506,7 +2518,7 @@
           isFM, isMMP, isNode, combust, weakByDeg, debilitated, d9Debilitated, exalted, inOwnMT, d9Exalted, d9House, d9InDushtana, inDushtana,
           afflictions, allFmAspects, mtAfflictions, occAfflictions, cond5, dispositor,
           degPct, strengthPct, planetIsStrong, sunLikeBoost, isSunLikePlanet, inOwnMT, inSunLikeHouse, inLeo, mepHouseAfflicted, fbAspects, fbBoostItems:[],
-          baseWeak, dispositorWeak:false, isWeak:baseWeak, dispCapChain:[], color:null
+          baseWeak, dispositorWeak:false, dispCapped:false, isWeak:baseWeak, dispCapChain:[], color:null
         };
       }
 
@@ -2539,21 +2551,23 @@
 
       // ── Dispositor cap — cascade until stable (max 7 passes) ──
       // Runs after FB boost so a dispositor boosted by a FB passes that strength to disposed planets.
+      // The dispositor is always a ceiling on the strength of planets in its MT sign —
+      // this applies whether or not the dispositor itself is "weak". A weak dispositor
+      // additionally marks the disposed planet as weak (chain propagation).
       for (let pass = 0; pass < 7; pass++) {
         let changed = false;
         for (const a of Object.values(analysis)) {
           if (!a.dispositor || a.dispositor === a.graha) continue;
           const disp = analysis[a.dispositor];
           if (!disp) continue;
-          if (disp.isWeak) {
-            if (!a.dispositorWeak) { a.dispositorWeak = true; a.isWeak = true; changed = true; }
-            // Re-check cap every pass — dispositor's strength may have dropped in a prior pass
-            const cap = disp.strengthPct;
-            if (cap < a.strengthPct) {
-              a.strengthPct = cap;
-              a.dispCapChain = [a.dispositor, ...disp.dispCapChain];
-              changed = true;
-            }
+          if (disp.isWeak && !a.dispositorWeak) { a.dispositorWeak = true; a.isWeak = true; changed = true; }
+          // Re-check cap every pass — dispositor's strength may have changed in a prior pass
+          const cap = disp.strengthPct;
+          if (cap < a.strengthPct) {
+            a.strengthPct = cap;
+            a.dispCapped = true;
+            a.dispCapChain = [a.dispositor, ...disp.dispCapChain];
+            changed = true;
           }
         }
         if (!changed) break;
@@ -2931,7 +2945,7 @@
         }
 
         // Step 11: Dispositor cap
-        if (a.dispositorWeak) {
+        if (a.dispCapped) {
           const disp   = an[a.dispositor];
           const dClass = (disp && disp.isFM) ? 'c-red' : 'c-brown';
           const capNote = a.dispCapChain.length > 1 ? ` via ${a.dispCapChain.join('→')}` : '';
@@ -3716,7 +3730,7 @@
     function _tripwireCompareAnalysis(jsAn, serverAn, label) {
       try {
         const PLANET_FIELDS = ['strengthPct','isWeak','inDushtana','combust','debilitated',
-          'exalted','cond5','dispositorWeak','degCapApplied','isSunLikePlanet',
+          'exalted','cond5','dispositorWeak','dispCapped','degCapApplied','isSunLikePlanet',
           'inSunLikeHouse','inLeo','mepHouseAfflicted'];
         const LIST_FIELDS = ['afflictions','mtAfflictions','occAfflictions'];
         for (const name of Object.keys(jsAn)) {

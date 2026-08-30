@@ -515,7 +515,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             'isSunLikePlanet': is_sun_like_planet, 'inSunLikeHouse': in_sun_like_house,
             'inLeo': in_leo, 'mepHouseAfflicted': mep_house_afflicted,
             'fbAspects': fb_aspects, 'fbBoostItems': [],
-            'baseWeak': base_weak, 'dispositorWeak': False,
+            'baseWeak': base_weak, 'dispositorWeak': False, 'dispCapped': False,
             'isWeak': base_weak, 'dispCapChain': [], 'degCapApplied': False,
         }
 
@@ -542,6 +542,9 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 'via': fba['via'], 'boost': boost, 'fbStrong': fb_strong})
 
     # ── Dispositor cap cascade (max 7 passes) ──
+    # The dispositor is always a ceiling on the strength of planets in its MT sign —
+    # this applies whether or not the dispositor itself is "weak". A weak dispositor
+    # additionally marks the disposed planet as weak (chain propagation).
     for _ in range(7):
         changed = False
         for a in analysis.values():
@@ -552,14 +555,14 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             disp = analysis.get(a['dispositor'])
             if not isinstance(disp, dict):
                 continue
-            if disp['isWeak']:
-                if not a['dispositorWeak']:
-                    a['dispositorWeak'] = True; a['isWeak'] = True; changed = True
-                cap = disp['strengthPct']
-                if cap < a['strengthPct']:
-                    a['strengthPct'] = cap
-                    a['dispCapChain'] = [a['dispositor']] + disp['dispCapChain']
-                    changed = True
+            if disp['isWeak'] and not a['dispositorWeak']:
+                a['dispositorWeak'] = True; a['isWeak'] = True; changed = True
+            cap = disp['strengthPct']
+            if cap < a['strengthPct']:
+                a['strengthPct'] = cap
+                a['dispCapped'] = True
+                a['dispCapChain'] = [a['dispositor']] + disp['dispCapChain']
+                changed = True
         if not changed:
             break
 

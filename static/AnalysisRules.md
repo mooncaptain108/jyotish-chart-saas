@@ -213,4 +213,6 @@ Houses that are not MT houses start at **100% strength**. Benefic and malefic in
 
 ### Dispositor Cap
 
-After all afflictions and increases are applied, if a planet's **dispositor** (the lord of the sign it occupies) is weak, the planet's strength is capped at the dispositor's strength. This rule cascades — if the dispositor's own dispositor is weak, the cap propagates up the chain.
+After all afflictions and increases are applied, a planet's strength can never exceed its **dispositor's** (the lord of the moolatrikona sign it occupies) strength — the dispositor is always a ceiling, whether or not the dispositor is itself weak. This rule cascades — if the dispositor's own dispositor is weaker still, the cap propagates up the chain.
+
+Separately, if the dispositor is **weak**, the disposed planet is also marked weak (not just capped in value) — this is the "occupies the moolatrikona sign of a weak planet" rule. A planet disposed by a strong-but-lower dispositor gets capped to that lower value but is not itself flagged weak on that basis alone.
