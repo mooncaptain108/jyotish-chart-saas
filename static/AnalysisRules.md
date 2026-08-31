@@ -108,7 +108,7 @@ Four boosts apply independently and **stack**:
 | Planet in house 2, 3, or 9 (any sign) | +25% | Only if the planet is itself a functional malefic |
 | Planet in Leo (any house, excluding Sun) | +25% | Only if the planet is itself a functional malefic |
 
-The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — applying both would double-count the same condition. Sun in Leo receives only the own MT sign boost (and the sun-like house boost if applicable).
+The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — applying both would double-count the same condition. Sun in Leo receives only the own MT sign boost.
 
 All four conditions are evaluated independently — a planet satisfying more than one receives multiple boosts stacked together.
 
