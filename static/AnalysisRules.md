@@ -97,7 +97,7 @@ A functional malefic planet is always shown in red regardless of its strength pe
 
 The 2nd, 3rd, and 9th houses are **sun-like houses**. Leo (sign 5) is always sun-like regardless of which house it occupies.
 
-A planet is a **sun-like planet** for a given chart if its Moolatrikona sign falls in house 2, 3, or 9. The Sun is excluded — Sun in Leo is covered by the own MT sign boost, not a separate Leo boost.
+A planet is a **sun-like planet** for a given chart if its Moolatrikona sign falls in house 2, 3, or 9. The Sun itself is always excluded from this designation, confirmed against the primary sources (yournetastrologer.com and Choudhry's "Impact of Rising Signs"): for Gemini, Cancer, and Sagittarius rising — the three lagnas where Leo (Sun's own Moolatrikona sign) falls into a sun-like house (3rd, 2nd, and 9th respectively) — that material lists the other sun-like planet(s) for the chart but never the Sun. The Sun's own strength is instead covered by its own-MT-sign and sun-like-house boosts below, based on where Sun actually sits, not by treating Sun as a proxy "sun-like" planet for a house it merely disposits.
 
 Four boosts apply independently and **stack**:
 
