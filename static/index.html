@@ -340,6 +340,8 @@
         <li><button onclick="setChartViewMode('both'); closeViewMenu();">Chart &amp; Transits</button></li>
         <li><hr></li>
         <li><button onclick="openTransitsPopover(true); closeViewMenu();">Transits Control</button></li>
+        <li><hr></li>
+        <li><button onclick="openEphemerisDialog(); closeViewMenu();">Ephemeris Report</button></li>
       </ul>
     </div>
     <div class="sep"></div>
@@ -711,6 +713,50 @@
     <div class="dlg-footer">
       <button class="btn-primary" id="transitsAnalysisBtn" onclick="openAnalysisDialog()">Analyze</button>
       <button class="btn-sec" onclick="document.getElementById('dlgTransits').close();">Close</button>
+    </div>
+  </dialog>
+
+  <!-- ════ Ephemeris Report dialog ════ -->
+  <dialog id="dlgEphemeris" style="min-width:600px;width:950px;max-width:95vw;">
+    <div class="dlg-header">
+      <h2>Ephemeris Report</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgEphemeris').close();">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="f-group">
+        <label class="f-label" for="eLocSelect">Location</label>
+        <select id="eLocSelect"></select>
+      </div>
+      <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;">
+        <div class="f-group" style="margin-bottom:0;">
+          <label class="f-label" for="eDate">Date</label>
+          <input type="date" id="eDate">
+        </div>
+        <div class="f-group" style="margin-bottom:0;">
+          <label class="f-label" for="eTime">Time</label>
+          <input type="time" id="eTime" step="1">
+        </div>
+        <div class="f-group" style="margin-bottom:0;">
+          <label class="f-label" for="eInterval">Interval</label>
+          <select id="eInterval">
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="f-group" style="margin-bottom:0;">
+          <button class="btn-primary" onclick="generateEphemerisReport()">Go</button>
+        </div>
+      </div>
+      <p id="ephemErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
+      <textarea id="eReport" class="muh-str-report" style="display:none;min-height:420px;font-size:0.82rem;" readonly wrap="off"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.4rem;">
+        <button class="btn-sec" id="eSaveReportBtn" style="font-size:0.88rem;padding:0.25rem 0.6rem;display:none;" onclick="saveEphemerisReport()">Save Report</button>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgEphemeris').close();">Close</button>
     </div>
   </dialog>
 
@@ -3629,6 +3675,19 @@
       return parts.join(' ');
     }
 
+    function fmtTimeAmPm(hhmm) {
+      const [hStr, mStr] = hhmm.split(':');
+      let h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12; if (h === 0) h = 12;
+      return `${h}:${mStr} ${ampm}`;
+    }
+
+    function hhmmToMinutes(hhmm) {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    }
+
     function dashaColor(graha) {
       if (!lastAnalysis || !lastAnalysis[graha]) return '#c0c0d0';
       return lastAnalysis[graha].color || '#c0c0d0';
@@ -4493,6 +4552,147 @@
       }
     }
 
+    // ═══════════════════════════════════════════════════
+    // Ephemeris Report (View menu)
+    // ═══════════════════════════════════════════════════
+    const EPHEM_CURRENT_LOC_VALUE = '__current_transit__';
+    const EPHEM_MONTH3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const EPHEM_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu'];
+    let ephemCurrentLoc = null; // snapshot of the Transits Control location, taken when the dialog opens
+
+    function rebuildEphemLocSelect() {
+      const sel = document.getElementById('eLocSelect');
+      const names = Object.keys(getAtlas()).sort((a,b) => { const ca=a.split(',')[0].toUpperCase(),cb=b.split(',')[0].toUpperCase(); return ca<cb?-1:ca>cb?1:0; });
+      sel.innerHTML = '<option value="' + EPHEM_CURRENT_LOC_VALUE + '">(Current Transit Location)</option>';
+      for (const n of names) { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); }
+    }
+
+    // Pre-loads the location/date/time controls from whatever is currently
+    // set in Transits Control (tAtlas/tLat/tLon/tTz/tDate/tTime), per spec.
+    // The atlas-location snapshot is captured by value (not just the name)
+    // so the report still works even if the current transit is at a manually
+    // entered location with no matching atlas entry.
+    function openEphemerisDialog() {
+      if (!lastData) return;
+      rebuildEphemLocSelect();
+      const tAtlasName = document.getElementById('tAtlas').value;
+      const atlasLoc = tAtlasName ? getAtlas()[tAtlasName] : null;
+      ephemCurrentLoc = {
+        lat: parseFloat(document.getElementById('tLat').value),
+        lon: parseFloat(document.getElementById('tLon').value),
+        tz:  parseFloat(document.getElementById('tTz').value),
+        tzName: atlasLoc ? (atlasLoc.tzName || null) : null,
+      };
+      document.getElementById('eLocSelect').value = EPHEM_CURRENT_LOC_VALUE;
+      document.getElementById('eDate').value = document.getElementById('tDate').value;
+      document.getElementById('eTime').value = document.getElementById('tTime').value;
+      document.getElementById('eInterval').value = 'Daily';
+      document.getElementById('ephemErrMsg').textContent = '';
+      const ta = document.getElementById('eReport');
+      ta.style.display = 'none'; ta.value = '';
+      document.getElementById('eSaveReportBtn').style.display = 'none';
+      document.getElementById('dlgEphemeris').showModal();
+    }
+
+    // Advances a y/mo(0-idx)/d triple by one interval step, clamping the day
+    // to the target month's length for Monthly/Yearly (same approach as
+    // stepTransitField's month/year branches) rather than letting it roll
+    // over into the following month.
+    function ephemAdvanceDate(y, mo, d, interval) {
+      if (interval === 'Monthly') {
+        mo += 1;
+        const y2 = y + Math.floor(mo / 12), mo2 = ((mo % 12) + 12) % 12;
+        return [y2, mo2, Math.min(d, daysInMonth(y2, mo2))];
+      }
+      if (interval === 'Yearly') {
+        return [y + 1, mo, Math.min(d, daysInMonth(y + 1, mo))];
+      }
+      const deltaDays = interval === 'Weekly' ? 7 : 1;
+      const dt = new Date(y, mo, d + deltaDays);
+      return [dt.getFullYear(), dt.getMonth(), dt.getDate()];
+    }
+
+    function ephemFmtDate(y, mo, d) {
+      return String(d).padStart(2, '0') + '-' + EPHEM_MONTH3[mo] + '-' + String(y % 100).padStart(2, '0');
+    }
+
+    // Suffix convention (per spec): only mark the EXCEPTION to a planet's
+    // usual motion. Ordinary planets are normally direct, so only retrograde
+    // (negative speed) gets an 'R'. Rahu is normally retrograde (its
+    // "retrograde" field is unconditionally true for the true node -- see
+    // compute_graha_positions), so only its rare direct spell (positive
+    // speed) gets a 'D'.
+    function ephemFmtPos(g, isNode) {
+      const dr = g.degree_in_rashi;
+      let deg = Math.floor(dr), min = Math.round((dr % 1) * 60);
+      if (min === 60) { min = 0; deg += 1; }
+      const suffix = isNode ? (g.speed > 0 ? 'D' : '') : (g.speed < 0 ? 'R' : '');
+      return deg + '°' + (RASHI_ABBR2[g.rashi] || '') + String(min).padStart(2, '0') + "'" + suffix;
+    }
+
+    async function generateEphemerisReport() {
+      if (!lastData) return;
+      const dateEl = document.getElementById('eDate');
+      const timeEl = document.getElementById('eTime');
+      const interval = document.getElementById('eInterval').value;
+      const errEl = document.getElementById('ephemErrMsg');
+      const ta = document.getElementById('eReport');
+      const saveBtn = document.getElementById('eSaveReportBtn');
+      errEl.textContent = '';
+      if (!dateEl.value || !timeEl.value) { errEl.textContent = 'Set a date and time first.'; return; }
+
+      const locVal = document.getElementById('eLocSelect').value;
+      let lat, lon, tz, tzName;
+      if (locVal && locVal !== EPHEM_CURRENT_LOC_VALUE) {
+        const loc = getAtlas()[locVal];
+        if (!loc) { errEl.textContent = 'Location not found.'; return; }
+        lat = parseFloat(loc.lat); lon = parseFloat(loc.lon);
+        tz = parseFloat(loc.tz); tzName = loc.tzName || null;
+      } else if (ephemCurrentLoc) {
+        ({ lat, lon, tz, tzName } = ephemCurrentLoc);
+      } else { errEl.textContent = 'No location set.'; return; }
+      if (isNaN(lat) || isNaN(lon) || isNaN(tz)) { errEl.textContent = 'No location set.'; return; }
+
+      ta.style.display = 'block'; ta.value = 'Generating…';
+      saveBtn.style.display = 'none';
+
+      let [y, mo, d] = dateEl.value.split('-').map(Number); mo -= 1;
+      const timeStr = ensureSeconds(timeEl.value);
+
+      const W = 12;
+      const lines = [['Date', ...EPHEM_PLANETS].map(h => h.padEnd(W)).join('')];
+
+      for (let i = 0; i < 60; i++) {
+        const dateStr = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        let rowTz = tz;
+        if (tzName) {
+          try {
+            const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(tzName) + '&date=' + dateStr);
+            if (res.ok) rowTz = (await res.json()).offset;
+          } catch {}
+        }
+        try {
+          const res = await fetch('/api/v1/chart/transit', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateStr, time: timeStr, latitude: lat, longitude: lon, timezone_offset: rowTz }),
+          });
+          if (!res.ok) throw new Error('Server error ' + res.status);
+          const data = await res.json();
+          const row = [ephemFmtDate(y, mo, d)];
+          for (const name of EPHEM_PLANETS) {
+            const g = data.grahas.find(x => x.graha === name);
+            row.push(g ? ephemFmtPos(g, name === 'Rahu') : 'n/a');
+          }
+          lines.push(row.map(c => c.padEnd(W)).join(''));
+        } catch (err) {
+          lines.push(ephemFmtDate(y, mo, d).padEnd(W) + 'ERROR: ' + err.message);
+        }
+        [y, mo, d] = ephemAdvanceDate(y, mo, d, interval);
+      }
+      ta.value = lines.join('\n');
+      saveBtn.style.display = '';
+    }
+
     // Start Date + Days <-> End Date sync for the Muhurta popover. There's
     // no Start Time control any more — the search always starts at
     // midnight (00:00) of the Start Date; see startMuhurtaSearch()'s
@@ -4719,14 +4919,15 @@
           if (rj.dt.split(' ')[0] === d0 && rj.sign === r0.sign) gj++;
           else break;
         }
-        groups.push({ from: gi });
+        groups.push({ from: gi, to: gj - 1 });
         gi = gj;
       }
 
       const lines = [];
       for (const g of groups) {
-        const r   = results[g.from];
-        const loc = getAtlas()[r.loc] || {};
+        const r    = results[g.from];
+        const rEnd = results[g.to];
+        const loc  = getAtlas()[r.loc] || {};
         const [date, time] = r.dt.split(' ');
         const lon  = loc.lon !== undefined ? parseFloat(loc.lon).toFixed(4) : '?';
         const lat  = loc.lat !== undefined ? parseFloat(loc.lat).toFixed(4) : '?';
@@ -4742,7 +4943,8 @@
         const antarStr = r.antarDasha ? `  Antardasha: ${r.antarDasha}${r.beneficDays != null ? " → " + fmtBeneficWindow(r.beneficDays) : ""}` : "";
         const excStr = (r.exceptionsUsed && r.exceptionsUsed.length) ? `  [! ${r.exceptionsUsed.join(', ')}]` : '';
         const prefix = (r.exceptionsUsed && r.exceptionsUsed.length) ? '! ' : '';
-        lines.push(`${prefix}${date}  ${time}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}${excStr}`);
+        const durMin = hhmmToMinutes(rEnd.dt.split(' ')[1]) - hhmmToMinutes(time);
+        lines.push(`${prefix}${date}  ${fmtTimeAmPm(time)}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}${excStr} (lasts for ${durMin} minute${durMin === 1 ? '' : 's'})`);
       }
       ta.style.display = 'block';
       ta.value = lines.join('\n');
@@ -4750,13 +4952,13 @@
       if (sb) sb.style.display = '';
     }
 
-    async function saveReport() {
-      const text = document.getElementById('mStrReport').value;
+    async function saveReportFrom(elId, filename) {
+      const text = document.getElementById(elId).value;
       if (!text || text === 'No results.') return;
       try {
         if (window.showSaveFilePicker) {
           const handle = await window.showSaveFilePicker({
-            suggestedName: 'muhurta-report.txt',
+            suggestedName: filename,
             types: [{ description: 'Text / Markdown', accept: {'text/plain': ['.txt', '.md']} }]
           });
           const writable = await handle.createWritable();
@@ -4766,12 +4968,15 @@
           const blob = new Blob([text], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url; a.download = 'muhurta-report.txt';
+          a.href = url; a.download = filename;
           document.body.appendChild(a); a.click();
           document.body.removeChild(a); URL.revokeObjectURL(url);
         }
       } catch(e) { if (e.name !== 'AbortError') alert('Save failed: ' + e.message); }
     }
+
+    async function saveReport() { return saveReportFrom('mStrReport', 'muhurta-report.txt'); }
+    async function saveEphemerisReport() { return saveReportFrom('eReport', 'ephemeris-report.txt'); }
 
     async function generateStrengthReport() {
       const results = getMuhurtaResults();
