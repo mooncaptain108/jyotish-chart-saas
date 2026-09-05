@@ -1798,8 +1798,15 @@
       if (!override) newUpdateTz();
     }
 
+    // Bumped at the top of every call so a response from a superseded call
+    // (e.g. the atlas-restore lookup that openNewDialog() fires on open,
+    // still in flight when the user immediately picks a different location)
+    // can detect it's stale and discard itself instead of clobbering a
+    // later, correct result -- see newUpdateTz()/transitUpdateTz() below.
+    let _newTzReqId = 0;
     async function newUpdateTz() {
       if (document.getElementById('nTzOverride')?.checked) return;
+      const reqId = ++_newTzReqId;
       nTzSetEditable(false);
       const dstEl = document.getElementById('nDst'); if (dstEl) dstEl.checked = false;
       const atlasName = document.getElementById('nAtlas').value;
@@ -1809,14 +1816,17 @@
       if (loc.tzName) {
         try {
           const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
+          if (reqId !== _newTzReqId) return; // a newer call superseded this one
           if (res.ok) {
             const tzData = await res.json();
+            if (reqId !== _newTzReqId) return;
             document.getElementById('nTz').value = tzData.offset;
             const dstEl = document.getElementById('nDst'); if (dstEl) dstEl.checked = !!tzData.dst;
             return;
           }
         } catch {}
       }
+      if (reqId !== _newTzReqId) return;
       // Fallback: JS Intl API (no server tzName available)
       document.getElementById('nTz').value = getOffsetForDate(loc.tzName || 'UTC', date);
     }
@@ -4156,7 +4166,12 @@
       transitUpdateTz();
     }
 
+    // See _newTzReqId above -- same stale-response guard, for the Transits
+    // Control popover's own atlas lookup (separate counter since the two
+    // dialogs' lookups are otherwise independent).
+    let _transitTzReqId = 0;
     async function transitUpdateTz() {
+      const reqId = ++_transitTzReqId;
       const dstEl = document.getElementById('tDst'); if (dstEl) dstEl.checked = false;
       const atlasName = document.getElementById('tAtlas').value;
       const loc = getAtlas()[atlasName];
@@ -4166,8 +4181,10 @@
       if (loc.tzName) {
         try {
           const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
+          if (reqId !== _transitTzReqId) return; // a newer call superseded this one
           if (res.ok) {
             const tzData = await res.json();
+            if (reqId !== _transitTzReqId) return;
             document.getElementById('tTz').value = tzData.offset;
             if (dstEl) dstEl.checked = !!tzData.dst;
             fetchAndRenderTransit();
@@ -4175,6 +4192,7 @@
           }
         } catch {}
       }
+      if (reqId !== _transitTzReqId) return;
       document.getElementById('tTz').value = parseFloat(loc.tz) || '';
       fetchAndRenderTransit();
     }
