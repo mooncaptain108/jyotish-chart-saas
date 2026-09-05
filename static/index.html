@@ -823,7 +823,8 @@
       <div class="f-group">
         <label class="f-label" for="aName">Name / City</label>
         <div style="display:flex;gap:0.5rem;align-items:center;">
-          <input type="text" id="aName" placeholder="City, State" style="flex:1;">
+          <input type="text" id="aName" placeholder="City, State" style="flex:1;"
+                 oninput="document.getElementById('aTzName').value='';document.getElementById('aGeoStatus').textContent='';">
           <button class="btn-sec" style="white-space:nowrap;font-size:0.82rem;padding:0.3rem 0.6rem;" onclick="atlasGeocode()">Lookup</button>
         </div>
         <div id="aGeoStatus" style="font-size:0.88rem;color:#a0a0b0;margin-top:0.2rem;min-height:1em;"></div>
@@ -1677,13 +1678,26 @@
       const tz  = parseFloat(document.getElementById('aTz').value);
       if (isNaN(lat) || isNaN(lon) || isNaN(tz)) { alert('Check lat/lon/timezone values.'); return; }
       const atlas = getAtlas();
-      const tzName = document.getElementById('aTzName').value.trim();
+      let tzName = document.getElementById('aTzName').value.trim();
+      // Drop a stale/inconsistent IANA zone rather than persist a record whose
+      // hidden tzName disagrees with the confirmed offset (that mismatch is
+      // what silently pulls the wrong offset into a new chart).
+      if (tzName && !tzNameMatchesStored(tzName, tz, null)) {
+        tzName = '';
+        document.getElementById('aTzName').value = '';
+      }
       atlas[name] = { lat: lat.toFixed(4), lon: lon.toFixed(4), tz, ...(tzName && { tzName }) };
       setAtlas(atlas);
       rebuildAtlasList();
       rebuildNewAtlasSelect();
       updateMenuState();
-      document.getElementById('aName').value = '';
+      // Full reset so the next location added in this same open dialog can't
+      // inherit the previous entry's hidden IANA zone / lat / lon.
+      document.getElementById('aName').value   = '';
+      document.getElementById('aLat').value    = '';
+      document.getElementById('aLon').value    = '';
+      document.getElementById('aTzName').value = '';
+      document.getElementById('aGeoStatus').textContent = '';
     }
 
     function atlasDelete(name) {
@@ -1804,6 +1818,25 @@
     // can detect it's stale and discard itself instead of clobbering a
     // later, correct result -- see newUpdateTz()/transitUpdateTz() below.
     let _newTzReqId = 0;
+
+    // `tzName` drives DST-accurate historical lookups, but only when it is
+    // CONSISTENT with the record's confirmed `tz` offset: `tz` must equal the
+    // zone's own offset in either half of the year (its standard offset, or
+    // its DST offset -- a record geocoded during DST stores the latter). A
+    // `tz` that matches neither means the record carries a stale/wrong zone
+    // (e.g. a Pakistan city, +05:00, left tagged "Asia/Kolkata", +05:30) --
+    // callers then ignore the zone and use the visible stored offset, no DST.
+    function tzNameMatchesStored(tzName, storedTz, dateStr) {
+      const s = parseFloat(storedTz);
+      if (!tzName || !Number.isFinite(s)) return false;
+      try {
+        const y = (dateStr || '2000-01-01').slice(0, 4);
+        const jan = getOffsetForDate(tzName, y + '-01-15');
+        const jul = getOffsetForDate(tzName, y + '-07-15');
+        return Math.abs(jan - s) < 0.25 || Math.abs(jul - s) < 0.25;
+      } catch { return false; }
+    }
+
     async function newUpdateTz() {
       if (document.getElementById('nTzOverride')?.checked) return;
       const reqId = ++_newTzReqId;
@@ -1820,8 +1853,14 @@
           if (res.ok) {
             const tzData = await res.json();
             if (reqId !== _newTzReqId) return;
-            document.getElementById('nTz').value = tzData.offset;
-            const dstEl = document.getElementById('nDst'); if (dstEl) dstEl.checked = !!tzData.dst;
+            const dstEl = document.getElementById('nDst');
+            if (tzNameMatchesStored(loc.tzName, loc.tz, date)) {
+              document.getElementById('nTz').value = tzData.offset;
+              if (dstEl) dstEl.checked = !!tzData.dst;
+            } else {
+              document.getElementById('nTz').value = parseFloat(loc.tz);
+              if (dstEl) dstEl.checked = false;
+            }
             return;
           }
         } catch {}
@@ -4185,8 +4224,13 @@
           if (res.ok) {
             const tzData = await res.json();
             if (reqId !== _transitTzReqId) return;
-            document.getElementById('tTz').value = tzData.offset;
-            if (dstEl) dstEl.checked = !!tzData.dst;
+            if (tzNameMatchesStored(loc.tzName, loc.tz, date)) {
+              document.getElementById('tTz').value = tzData.offset;
+              if (dstEl) dstEl.checked = !!tzData.dst;
+            } else {
+              document.getElementById('tTz').value = parseFloat(loc.tz);
+              if (dstEl) dstEl.checked = false;
+            }
             fetchAndRenderTransit();
             return;
           }
