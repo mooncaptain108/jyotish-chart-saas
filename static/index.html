@@ -152,6 +152,9 @@
     .an-planet { margin-bottom:0.9rem; border-left:3px solid #1a4a80; padding-left:0.75rem; }
     .an-phead { display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.3rem; }
     .an-abbr { font-family:monospace; font-size:1rem; font-weight:bold; min-width:2rem; }
+    /* inline graha glyph (Settings > Planet glyphs) — inherits currentColor */
+    .gph { display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.22em; }
+    .an-abbr .gph { width:1.2em; height:1.2em; }
     .an-name { font-size:0.9rem; }
     .an-loc { font-size:0.88rem; color:#808098; margin-left:auto; }
     .an-item { font-size:0.8rem; padding:0.1rem 0; }
@@ -308,6 +311,59 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
+  <!-- ══ Graha glyph sprite — used when Settings › Planet glyphs is on.
+       Each symbol is 24×24, strokes/fills use currentColor so the glyph
+       takes the planet colour of whatever element references it. ══ -->
+  <svg width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="g-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="2.1" fill="currentColor"/>
+      </symbol>
+      <symbol id="g-moon" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M7.5 3A9 9 0 0 1 7.5 21A10 10 0 0 0 7.5 3Z"/>
+      </symbol>
+      <symbol id="g-mars" viewBox="0 0 24 24">
+        <circle cx="10.5" cy="13.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M14.9 9.1 20 4 M15 4H20V9" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="g-mercury" viewBox="0 0 24 24">
+        <path d="M8.4 4a3.6 3.6 0 0 0 7.2 0" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 16.5V22 M8.6 19.2H15.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="g-jupiter" viewBox="0 0 24 24">
+        <path d="M6 8c0-4 6-4 6 0 0 5-5 8-8 12h13 M15 5V21.5"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="g-venus" viewBox="0 0 24 24">
+        <circle cx="12" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 14.5V22 M8.2 18.3H15.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="g-saturn" viewBox="0 0 24 24">
+        <path d="M7 4V20 M7 13C7 9 15.5 9 15.5 13.5L15.5 22"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4.8 6.8H9.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="g-rahu" viewBox="0 0 24 24">
+        <path d="M8 19.7A7.5 7.5 0 1 1 16 19.7"
+          fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+        <circle cx="8" cy="19.7" r="2.1" fill="currentColor"/>
+        <circle cx="16" cy="19.7" r="2.1" fill="currentColor"/>
+      </symbol>
+      <symbol id="g-ketu" viewBox="0 0 24 24">
+        <path d="M8 4.3A7.5 7.5 0 1 0 16 4.3"
+          fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+        <circle cx="8" cy="4.3" r="2.1" fill="currentColor"/>
+        <circle cx="16" cy="4.3" r="2.1" fill="currentColor"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <div id="appWrap">
 
   <!-- ── Toolbar ── -->
@@ -447,6 +503,7 @@
       <label class="stg-check"><input type="checkbox" id="chkDecimal"> Degrees: decimal</label>
       <hr class="stg-divider">
       <label class="stg-check"><input type="checkbox" id="chkChartBold"> Bold planet &amp; degree text</label>
+      <label class="stg-check"><input type="checkbox" id="chkGlyphs"> Planet glyphs (instead of Su/Mo/…)</label>
 
     </div>
   </div>
@@ -1212,6 +1269,25 @@
     const WELCOME_KEY  = 'jyotish_hide_welcome';
     const TRANSIT_DLG_MANUAL_KEY = 'jyotish_transit_dlg_manual_only';
     const CHART_BOLD_KEY = 'jyotish_chart_bold';
+    const GLYPH_KEY      = 'jyotish_planet_glyphs';
+
+    // Settings > Planet glyphs: swap the two-letter graha abbreviations for
+    // hand-drawn SVG symbols (sprite at top of <body>). Keyed by abbreviation;
+    // 'As' has no glyph and always stays text.
+    const GRAHA_GLYPH_ID = {
+      Su:'g-sun', Mo:'g-moon', Ma:'g-mars', Me:'g-mercury', Ju:'g-jupiter',
+      Ve:'g-venus', Sa:'g-saturn', Ra:'g-rahu', Ke:'g-ketu'
+    };
+    function glyphsOn() { return localStorage.getItem(GLYPH_KEY) === '1'; }
+    // HTML contexts (tables, dasha list, analysis panel): returns an inline
+    // <svg> string for the glyph, or the plain abbreviation when glyphs are
+    // off or the token has no glyph. Colour comes from the parent's `color`.
+    function grahaHTML(abbr) {
+      const id = GRAHA_GLYPH_ID[abbr];
+      return (glyphsOn() && id)
+        ? '<svg class="gph" aria-label="' + abbr + '"><use href="#' + id + '"/></svg>'
+        : abbr;
+    }
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
     function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
@@ -1415,6 +1491,7 @@
       document.getElementById('chkDegMin').checked  = degFmt !== 'decimal';
       document.getElementById('chkDecimal').checked = degFmt === 'decimal';
       document.getElementById('chkChartBold').checked = localStorage.getItem(CHART_BOLD_KEY) === '1';
+      document.getElementById('chkGlyphs').checked = glyphsOn();
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -1469,6 +1546,17 @@
       document.body.classList.toggle('chart-bold', this.checked);
     });
     document.body.classList.toggle('chart-bold', localStorage.getItem(CHART_BOLD_KEY) === '1');
+
+    document.getElementById('chkGlyphs').addEventListener('change', function() {
+      localStorage.setItem(GLYPH_KEY, this.checked ? '1' : '0');
+      if (!lastData) return;
+      // Repaint the natal wheel + rashi table + navamsa + dasha, then restore
+      // whichever chart view is currently showing (renderChart repaints #chart
+      // with the natal wheel regardless of view mode).
+      renderChart(lastData, currentMuhurtaIdx >= 0);
+      if (chartViewMode === 'transits') renderTransitsView();
+      else if (chartViewMode === 'both') renderBothView();
+    });
 
     // Export / Import
     function exportData() {
@@ -2848,7 +2936,7 @@
         const retroStr = (a.retro && !NO_RETRO_LABEL.has(a.abbr)) ? 'R' : '';
         html += `<div class="an-planet">
           <div class="an-phead">
-            <span class="an-abbr" style="color:${a.color}">${a.abbr}${retroStr}</span>
+            <span class="an-abbr" style="color:${a.color}">${grahaHTML(a.abbr)}${retroStr}</span>
             <span class="an-name ${a.isFM ? 'c-red' : 'c-green'}">${a.graha}</span>
             <span class="an-loc">${a.rashiName} &bull; House ${a.house} &bull; ${fmtDeg(a.deg)}°</span>
           </div><div>`;
@@ -3429,6 +3517,42 @@
       return el;
     }
 
+    // Emit a graha glyph (+ optional degree/speed tail) into an SVG chart,
+    // horizontally centred on cx exactly like the <text> label it replaces.
+    // Used by every wheel renderer when Settings > Planet glyphs is on.
+    // 'As' has no glyph and never reaches here (caller guards on
+    // GRAHA_GLYPH_ID[abbr]). o = {cx, y, size, abbr, color, deg?, degColor?,
+    // retro?, tailExtra?, prefix?, prefixColor?}
+    function emitGlyphLabel(parent, o) {
+      const size  = o.size;
+      const gw    = size * 1.15;
+      const degTx = (o.deg != null ? fmtDeg(o.deg) : '') + (o.tailExtra || '');
+      const tail  = ((o.retro ? 'R ' : '') + degTx).trimEnd();
+      const tailW = tail ? tail.length * size * 0.6 + size * 0.3 : 0;
+      const preW  = o.prefix ? size * 0.62 : 0;
+      let x = o.cx - (preW + gw + tailW) / 2;
+      const g = svgEl('g', { 'class': 'pl' });
+      if (o.prefix) {
+        g.appendChild(svgEl('text', { x: x, y: o.y, 'font-size': size,
+          'font-family': 'monospace', fill: o.prefixColor || o.color }, o.prefix));
+        x += preW;
+      }
+      const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttribute('href', '#' + GRAHA_GLYPH_ID[o.abbr]);
+      use.setAttribute('x', x);
+      use.setAttribute('y', o.y - size * 0.82);
+      use.setAttribute('width', gw);
+      use.setAttribute('height', gw);
+      use.setAttribute('style', 'color:' + o.color);
+      g.appendChild(use);
+      if (tail) {
+        g.appendChild(svgEl('text', { x: x + gw + size * 0.3, y: o.y,
+          'font-size': size, 'font-family': 'monospace',
+          fill: o.degColor || o.color }, tail));
+      }
+      parent.appendChild(g);
+    }
+
     function renderD9Chart(data, an) {
       const d9Area = document.getElementById('d9Area');
       const d9Svg  = document.getElementById('d9Chart');
@@ -3492,16 +3616,17 @@
         const rows = [];
         for (let i=0;i<planets.length;i+=2) rows.push(planets.slice(i,i+2));
         let y0 = cy + 2 - (rows.length * LH) / 2 + LH / 2;
-        for (const row of rows) {
-          if (row.length === 1) {
-            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'19',fill:row[0].color,'class':'pl',
-              'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
+        const emitD9 = (x, p) => {
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.abbr]) {
+            emitGlyphLabel(d9Svg, { cx:x, y:y0, size:19, abbr:p.abbr, color:p.color });
           } else {
-            d9Svg.appendChild(svgEl('text',{x:cx-22,y:y0,'font-size':'19',fill:row[0].color,'class':'pl',
-              'font-family':'monospace','text-anchor':'middle'},row[0].abbr));
-            d9Svg.appendChild(svgEl('text',{x:cx+22,y:y0,'font-size':'19',fill:row[1].color,'class':'pl',
-              'font-family':'monospace','text-anchor':'middle'},row[1].abbr));
+            d9Svg.appendChild(svgEl('text',{x:x,y:y0,'font-size':'19',fill:p.color,'class':'pl',
+              'font-family':'monospace','text-anchor':'middle'},p.abbr));
           }
+        };
+        for (const row of rows) {
+          if (row.length === 1) emitD9(cx, row[0]);
+          else { emitD9(cx-22, row[0]); emitD9(cx+22, row[1]); }
           y0 += LH;
         }
       }
@@ -3557,6 +3682,11 @@
         let y0 = cy + 2 - (planets.length * LH) / 2 + LH / 2;
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
+            emitGlyphLabel(d9Svg, { cx, y:y0, size:14, abbr:p.label, color:p.color,
+              deg:p.deg, degColor:p.degColor, retro:!!retroMark });
+            y0 += LH; continue;
+          }
           if (!p.isAs && p.degColor) {
             const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
             tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
@@ -3654,11 +3784,11 @@
       tbl.innerHTML = rows.map(r => {
         const col = planetColor(r.name);
         return `<tr>
-          <td style="color:${col}">${r.abbr}</td>
+          <td style="color:${col}">${grahaHTML(r.abbr)}</td>
           <td style="color:${_tr.planetDim};text-align:right">${r.deg}</td>
           <td style="color:${_tr.planetDim};padding-left:8px">${r.rasi}</td>
           <td style="color:${_tr.houseNum};padding-left:8px">${r.nak}</td>
-          <td style="color:${lordColor(r.lord)};padding-left:8px">${r.lord}</td>
+          <td style="color:${lordColor(r.lord)};padding-left:8px">${grahaHTML(r.lord)}</td>
         </tr>`;
       }).join('');
 
@@ -3810,9 +3940,9 @@
         const isNow = i === nowIdx;
         const sep = i > 0 && rows[i].dasha !== rows[i-1].dasha ? '<div class="dr-sep"></div>' : '';
         return sep + `<div class="dr${isNow?' dr-now':''}" data-idx="${i}">` +
-          `<span style="color:${dc}">${abbr(r.dasha)}</span>` +
+          `<span style="color:${dc}">${grahaHTML(abbr(r.dasha))}</span>` +
           `<span style="color:#6080a0">/</span>` +
-          `<span style="color:${ac}">${abbr(r.antar)}</span>` +
+          `<span style="color:${ac}">${grahaHTML(abbr(r.antar))}</span>` +
           `<span class="dr-date">${fmtDashaDate(r.isoStart)}</span>` +
           `</div>`;
       }).join('');
@@ -3945,6 +4075,11 @@
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
+            emitGlyphLabel(svg, { cx, y:y0, size:12, abbr:p.label, color:p.color,
+              deg:p.deg, degColor:p.degColor, retro:!!retroMark });
+            y0 += LH; continue;
+          }
           if (!p.isAs && p.degColor) {
             const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
             tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
@@ -4493,6 +4628,11 @@
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
           const speedTxt = p.isAs ? '' : fmtSpeed(p.speed);
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
+            emitGlyphLabel(svg, { cx, y:y0, size:12, abbr:p.label, color:p.color,
+              deg:p.deg, degColor:p.degColor, retro:!!retroMark, tailExtra:speedTxt });
+            y0 += LH; continue;
+          }
           if (!p.isAs && p.degColor) {
             const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
             tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
@@ -4579,6 +4719,12 @@
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
           const retroMark = (p.retro && !NO_RETRO_LABEL.has(p.label)) ? 'R' : '';
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
+            emitGlyphLabel(svg, { cx, y:y0, size:12, abbr:p.label, color:p.color,
+              deg:p.deg, degColor:p.degColor, retro:!!retroMark,
+              prefix: p.isTransit ? 't' : '', prefixColor: _tc.asColor });
+            y0 += LH; continue;
+          }
           const tEl = document.createElementNS('http://www.w3.org/2000/svg','text');
           tEl.setAttribute('x',String(cx)); tEl.setAttribute('y',String(y0));
           tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
@@ -5631,8 +5777,14 @@
         const [cx,cy]=CENTROIDS[h];
         let y0=cy+2-(planets.length*LH)/2+LH/2;
         for (const p of planets) {
+          const retro = p.retro && !NO_RETRO_LABEL.has(p.label);
+          if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
+            emitGlyphLabel(svg, { cx, y:y0, size:12, abbr:p.label, color:p.color,
+              deg:p.deg, retro:retro });
+            y0 += LH; continue;
+          }
           const line = p.label==='As' ? ('As '+fmtDeg(p.deg))
-            : (p.label+((p.retro&&!NO_RETRO_LABEL.has(p.label))?' R ':' ')+fmtDeg(p.deg));
+            : (p.label+(retro?' R ':' ')+fmtDeg(p.deg));
           svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
           y0+=LH;
         }
