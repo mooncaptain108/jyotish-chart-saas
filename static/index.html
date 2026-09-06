@@ -3633,7 +3633,7 @@
       let x = o.cx - (preW + gw + tailW) / 2;
       const g = svgEl('g', { 'class': 'pl' });
       if (o.prefix) {
-        g.appendChild(svgEl('text', { x: x, y: o.y, 'font-size': size,
+        g.appendChild(svgEl('text', { x: x, y: o.y, 'font-size': size, 'class': 'pl',
           'font-family': 'monospace', fill: o.prefixColor || o.color }, o.prefix));
         x += preW;
       }
@@ -3646,7 +3646,7 @@
       use.setAttribute('style', 'color:' + o.color);
       g.appendChild(use);
       if (tail) {
-        g.appendChild(svgEl('text', { x: x + gw + size * 0.3, y: o.y,
+        g.appendChild(svgEl('text', { x: x + gw + size * 0.3, y: o.y, 'class': 'pl',
           'font-size': size, 'font-family': 'monospace',
           fill: o.degColor || o.color }, tail));
       }
