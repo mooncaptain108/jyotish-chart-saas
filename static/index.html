@@ -3081,13 +3081,19 @@
           html += `<div class="an-item c-brown">Strength from ${a.rashiName} (house ${a.house}) ${run()}</div>`;
         }
 
-        // Step 9: Sun-like boosts. Own MT sign takes the boost alone —
-        // sun-like-planet / sun-like-house describe the same placement and
-        // are not added on top. (suppressed if FM within 1° of MEP; FM in
-        // own MT exempt)
+        // Step 9: Sun-like boosts. A planet in its own MT sign takes one +25%.
+        // When that sign is also a sun-like house (so the planet is the
+        // chart's sun-like planet), that is the *reason* for the boost and
+        // the own-MT / sun-like-house conditions are the same placement —
+        // named on one line, not added three times. (suppressed if FM within
+        // 1° of MEP; FM in own MT exempt)
         if (a.inOwnMT) {
           cur *= 1.25;
-          html += `<div class="an-item c-green">Own MT sign (${a.rashiName}): +25% ${run()}</div>`;
+          if (a.isSunLikePlanet) {
+            html += `<div class="an-item c-green">Sun-like planet — own MT sign ${a.rashiName} in sun-like house h${a.house}: +25% ${run()}</div>`;
+          } else {
+            html += `<div class="an-item c-green">Own MT sign (${a.rashiName}): +25% ${run()}</div>`;
+          }
         } else {
           if (a.isSunLikePlanet) {
             cur *= 1.25;
