@@ -99,24 +99,26 @@ The 2nd, 3rd, and 9th houses are **sun-like houses**. Leo (sign 5) is always sun
 
 A planet is a **sun-like planet** for a given chart if its Moolatrikona sign falls in house 2, 3, or 9. The Sun itself is always excluded from this designation, confirmed against the primary sources (yournetastrologer.com and Choudhry's "Impact of Rising Signs"): for Gemini, Cancer, and Sagittarius rising — the three lagnas where Leo (Sun's own Moolatrikona sign) falls into a sun-like house (3rd, 2nd, and 9th respectively) — that material lists the other sun-like planet(s) for the chart but never the Sun. The Sun's own strength is instead covered by its own-MT-sign and sun-like-house boosts below, based on where Sun actually sits, not by treating Sun as a proxy "sun-like" planet for a house it merely disposits.
 
-Four boosts apply independently and **stack**:
+Boosts of **+25% (×1.25)** each.
+
+**A planet in its own Moolatrikona sign takes the MT-sign boost alone.** When that planet is also a sun-like planet and/or sits in a sun-like house, those describe the *same placement* — its Moolatrikona sign occupies a sun-like house — and are **not added on top**. The whole configuration is worth one +25%, not three. (Source: K. R. Chaudhary's "Aries rising, Jupiter in the 9th house in its own Moolatrikona sign" example, where an infant Jupiter at 2.5° goes 50% → 50% × 1.25 = 62.5%, a single increase. See `sun-like-boost-review-2026-09-06.md` in the project scratch folder.)
 
 | Condition | Boost | Suppressible by MEP affliction? |
 |---|---|---|
-| Planet is a sun-like planet for this chart | +25% | No — inherent to the planet's nature |
-| Planet in its own Moolatrikona sign (any house) | +25% | Only if the planet is itself a functional malefic |
-| Planet in house 2, 3, or 9 (any sign) | +25% | Only if the planet is itself a functional malefic |
+| Planet in its own Moolatrikona sign (any house) | +25% | No — a planet in its own MT sign is never MEP-suppressed |
+| Planet is a sun-like planet for this chart, **and not in its own MT sign** | +25% | No — inherent to the planet's nature |
+| Planet in house 2, 3, or 9, **and not in its own MT sign** | +25% | Only if the planet is itself a functional malefic |
 | Planet in Leo (any house, excluding Sun) | +25% | Only if the planet is itself a functional malefic |
 
-The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — applying both would double-count the same condition. Sun in Leo receives only the own MT sign boost.
+A sun-like planet placed in a sun-like house **other than** its own Moolatrikona sign still receives *both* the sun-like-planet and the sun-like-house boost — this is Chaudhary's "if Jupiter had been placed in either the 2nd or 3rd sun-like houses, then its strength would have a further additional rise of 25%".
 
-All four conditions are evaluated independently — a planet satisfying more than one receives multiple boosts stacked together.
+The Sun is excluded from the Leo boost because Leo is already Sun's own Moolatrikona sign — Sun in Leo receives only the own-MT-sign boost.
 
-These increases stack with exaltation and D9 exaltation increases.
+The remaining conditions are evaluated independently — a planet satisfying more than one (e.g. sun-like planet in a different sun-like house, plus Leo) receives those boosts stacked. These increases also stack with exaltation and D9 exaltation increases.
 
-**Suppression:** This applies only to a functional malefic's own placement-based boosts. If the planet is a functional malefic and any functional malefic is within **1° of the MEP** of its occupied house, its three placement-based boosts (own MT sign, sun-like house, Leo) are suppressed. Benefic (non-FM) planets are never suppressed by this rule, even when an FM afflicts the MEP of the house they occupy — the affliction still costs them strength through the normal occupied-house affliction loss, just not through this boost-suppression path. The sun-like planet boost is never suppressed for anyone.
+**Suppression:** This applies only to a functional malefic's own placement-based boosts. If the planet is a functional malefic and any functional malefic is within **1° of the MEP** of its occupied house, its **sun-like house** and **Leo** boosts are suppressed. Benefic (non-FM) planets are never suppressed by this rule, even when an FM afflicts the MEP of the house they occupy — the affliction still costs them strength through the normal occupied-house affliction loss, just not through this boost-suppression path. The sun-like planet boost is never suppressed for anyone.
 
-**Exception to suppression:** A functional malefic planet placed in its **own Moolatrikona sign** retains all sun-like boosts regardless of MEP proximity. It is still dignified by occupying its own sign, and it still casts its normal aspects to other houses.
+**Exception to suppression:** A functional malefic planet placed in its **own Moolatrikona sign** keeps its MT-sign boost regardless of MEP proximity. It is still dignified by occupying its own sign, and it still casts its normal aspects to other houses.
 
 **Weak-planet recovery:** A planet receiving a sun-like boost can recover from weakness due to infancy or old age, up to a maximum of 100%.
 

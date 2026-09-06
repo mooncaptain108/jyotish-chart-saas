@@ -66,13 +66,15 @@ def test_sun_like_house_boost_alone():
     assert abs(v['strengthPct'] - 1.25) < 0.001
 
 
-def test_sun_like_boosts_stack_independently():
-    """A planet that is both a sun-like lord AND in its own sign (Leo) gets
-    both boosts, multiplicatively (Aries rising: Jupiter lords house9's
-    Sagittarius MT sign, and here sits in Leo -- inLeo -- but not in a
-    sun-like house itself)."""
+def test_sun_like_and_leo_boosts_both_classify_but_dispositor_caps():
+    """Aries rising, Jupiter in Leo (house 5): Jupiter is the chart's sun-like
+    planet (MT sign Sagittarius in house 9) AND is in Leo -- both boosts
+    classify (raw value would be 1.25 * 1.25 = 1.5625). But Jupiter in Leo is
+    disposed by the Sun, and the dispositor is always a ceiling, so the final
+    strength is capped to the Sun's 1.0. The uncapped stacking is covered by
+    test_sun_like_planet_in_a_different_sun_like_house_still_stacks."""
     chart = _chart(1, 15.0, {
-        'Sun': (4, 15.0),        # safe house, keeps Jupiter's dispositor strong
+        'Sun': (4, 15.0),        # Cancer / house4 -- Jupiter's dispositor, strength 1.0
         'Jupiter': (5, 8.0),     # Leo, house5 -- not a sun-like house
     })
     an = analyze_all_grahas(chart)
@@ -80,7 +82,50 @@ def test_sun_like_boosts_stack_independently():
     assert j['isSunLikePlanet'] is True
     assert j['inLeo'] is True
     assert j['inSunLikeHouse'] is False
-    assert abs(j['strengthPct'] - 1.5625) < 0.001
+    assert j['inOwnMT'] is False
+    assert j['sunLikeBoost'] is True
+    assert abs(j['strengthPct'] - 1.0) < 0.001   # capped to dispositor (Sun) strength
+
+
+def test_own_mt_sign_and_sun_like_not_additive():
+    """A planet in its own Moolatrikona sign that is ALSO a sun-like planet
+    and ALSO sits in a sun-like house -- all one placement fact -- gets
+    exactly ONE +25%, not three. K.R. Chaudhary's "Aries rising, Jupiter in
+    the 9th in its own MT sign" example (50% x 1.25 = 62.5%, a single rise).
+
+    Here: Pisces rising, Mars in house2 = Aries -- its own MT sign, a
+    sun-like house, and the placement that makes Mars the chart's sun-like
+    planet for house 2."""
+    chart = _chart(12, 15.0, {
+        'Sun':  (4, 15.0),   # house5 for Pisces -- no aspect to house2, no combustion
+        'Mars': (1, 15.0),   # Aries = house2: own MT + sun-like house + sun-like planet
+    })
+    an = analyze_all_grahas(chart)
+    m = an['Mars']
+    assert m['inOwnMT'] is True
+    assert m['isSunLikePlanet'] is True
+    assert m['inSunLikeHouse'] is True
+    assert m['sunLikeBoost'] is True
+    assert abs(m['strengthPct'] - 1.25) < 0.001   # one boost, not 1.25 ** 3
+
+
+def test_sun_like_planet_in_a_different_sun_like_house_still_stacks():
+    """The genuine two-boost case Chaudhary allows: a sun-like planet placed
+    in a sun-like house OTHER than its own Moolatrikona sign keeps both the
+    sun-like-planet and the sun-like-house boost ("...a further additional
+    rise of 25%"). Aries rising: Jupiter is the sun-like planet (MT sign
+    Sagittarius in house 9); place it in house3 (Gemini), a different
+    sun-like house."""
+    chart = _chart(1, 15.0, {
+        'Sun': (7, 15.0),
+        'Jupiter': (3, 15.0),   # Gemini = house3: sun-like house, not Jupiter's own sign
+    })
+    an = analyze_all_grahas(chart)
+    j = an['Jupiter']
+    assert j['inOwnMT'] is False
+    assert j['isSunLikePlanet'] is True
+    assert j['inSunLikeHouse'] is True
+    assert abs(j['strengthPct'] - 1.5625) < 0.001   # 1.25 * 1.25
 
 
 def test_sun_like_boost_suppressed_by_mep_affliction():

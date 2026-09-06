@@ -480,22 +480,30 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
 
         # Positive boosts
         if not is_node and exalted:    sp *= 1.25
-        # Sun-like boosts — all three stack independently; suppressed only when
-        # the planet is itself a functional malefic AND any FM is within 1° of
-        # its occupied house MEP (only a malefic's own boost is suppressible
-        # this way — benefics are never suppressed), except an FM in its own MT
-        # sign keeps all boosts regardless.
+        # Sun-like boosts (+25% each). Suppressed only when the planet is
+        # itself a functional malefic AND any FM is within 1° of its occupied
+        # house MEP (only a malefic's own boost is suppressible this way —
+        # benefics are never suppressed), except an FM in its own MT sign
+        # keeps all boosts regardless.
         if not is_fm:
             mep_house_afflicted = False
         elif in_own_mt:
             mep_house_afflicted = False
         else:
             mep_house_afflicted = any(a['orb'] < 1 for a in occ_aff)
+        # A planet in its own Moolatrikona sign takes the MT-sign boost ALONE:
+        # when it is also a sun-like planet and/or sits in a sun-like house,
+        # that is the same placement fact (its MT sign occupies a sun-like
+        # house) — not additive. K.R. Chaudhary's "Aries rising, Jupiter in
+        # the 9th in its own MT sign" example: one 25%, not three. See
+        # sun-like-boost-review-2026-09-06.
         sun_like_boost = False
-        if is_sun_like_planet:                          sp *= 1.25; sun_like_boost = True
-        if in_own_mt        and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
-        if in_sun_like_house and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
-        if in_leo           and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
+        if in_own_mt:
+            sp *= 1.25; sun_like_boost = True
+        else:
+            if is_sun_like_planet:                           sp *= 1.25; sun_like_boost = True
+            if in_sun_like_house and not mep_house_afflicted: sp *= 1.25; sun_like_boost = True
+        if in_leo and not mep_house_afflicted:               sp *= 1.25; sun_like_boost = True
         if d9_exalted and not d9_in_dust: sp *= 1.25
 
         analysis[name] = {

@@ -2673,24 +2673,30 @@
         // Positive state boosts — stacking, no cap; apply to FM planets too
         // 1. Exaltation +25% (non-nodes only; nodes handled in node strength pass)
         if (!isNode && exalted) strengthPct *= 1.25;
-        // 2. Sun-like boosts — all three stack independently
-        //    own MT sign: +25% any house
-        //    h2/h3/h9: +25% any sign
-        //    Leo: +25% any house
-        //    Suppressed if the planet is itself a functional malefic AND any
-        //    FM is within 1° of its occupied house MEP (only a malefic's own
-        //    boost is suppressible this way — benefics are never suppressed)
-        //    Exception: FM in own MT sign keeps all boosts regardless
+        // 2. Sun-like boosts (+25% each). A planet in its own MT sign takes
+        //    the MT-sign boost ALONE — being a sun-like planet and/or sitting
+        //    in a sun-like house is the same placement fact (its MT sign
+        //    occupies a sun-like house), not additive. K.R. Chaudhary's
+        //    "Aries rising, Jupiter in the 9th in its own MT sign" example:
+        //    one 25%, not three. Otherwise:
+        //    sun-like planet: +25% (never suppressed) — h2/h3/h9: +25% —
+        //    Leo (non-Sun): +25%. The h2/h3/h9 and Leo boosts are suppressed
+        //    when the planet is itself a functional malefic AND any FM is
+        //    within 1° of its occupied house MEP (benefics never suppressed;
+        //    an FM in its own MT sign keeps its boost regardless).
         const mepHouseAfflicted = (() => {
           if (!isFM) return false;
           if (inOwnMT) return false;
           return occAfflictions.some(a => a.orb < 1);
         })();
         let sunLikeBoost = false;
-        if (isSunLikePlanet)                      { strengthPct *= 1.25; sunLikeBoost = true; }
-        if (inOwnMT        && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
-        if (inSunLikeHouse && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
-        if (inLeo          && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
+        if (inOwnMT) {
+          strengthPct *= 1.25; sunLikeBoost = true;
+        } else {
+          if (isSunLikePlanet)                      { strengthPct *= 1.25; sunLikeBoost = true; }
+          if (inSunLikeHouse && !mepHouseAfflicted) { strengthPct *= 1.25; sunLikeBoost = true; }
+        }
+        if (inLeo && !mepHouseAfflicted)           { strengthPct *= 1.25; sunLikeBoost = true; }
         // 3. D9 exaltation +25% — skip if planet is in dushtana in D9
         if (d9Exalted && !d9InDushtana) strengthPct *= 1.25;
 
@@ -3075,24 +3081,28 @@
           html += `<div class="an-item c-brown">Strength from ${a.rashiName} (house ${a.house}) ${run()}</div>`;
         }
 
-        // Step 9: Sun-like boosts (suppressed if FM within 1° of MEP; FM in own MT exempt)
-        if (a.isSunLikePlanet) {
-          cur *= 1.25;
-          html += `<div class="an-item c-green">Sun-like planet: +25% ${run()}</div>`;
-        }
-        if (a.inOwnMT && !a.mepHouseAfflicted) {
+        // Step 9: Sun-like boosts. Own MT sign takes the boost alone —
+        // sun-like-planet / sun-like-house describe the same placement and
+        // are not added on top. (suppressed if FM within 1° of MEP; FM in
+        // own MT exempt)
+        if (a.inOwnMT) {
           cur *= 1.25;
           html += `<div class="an-item c-green">Own MT sign (${a.rashiName}): +25% ${run()}</div>`;
-        }
-        if (a.inSunLikeHouse && !a.mepHouseAfflicted) {
-          cur *= 1.25;
-          html += `<div class="an-item c-green">Sun-like house (h${a.house}): +25% ${run()}</div>`;
+        } else {
+          if (a.isSunLikePlanet) {
+            cur *= 1.25;
+            html += `<div class="an-item c-green">Sun-like planet: +25% ${run()}</div>`;
+          }
+          if (a.inSunLikeHouse && !a.mepHouseAfflicted) {
+            cur *= 1.25;
+            html += `<div class="an-item c-green">Sun-like house (h${a.house}): +25% ${run()}</div>`;
+          }
         }
         if (a.inLeo && !a.mepHouseAfflicted) {
           cur *= 1.25;
           html += `<div class="an-item c-green">In Leo: +25% ${run()}</div>`;
         }
-        if (a.mepHouseAfflicted && (a.inOwnMT || a.inSunLikeHouse || a.inLeo)) {
+        if (a.mepHouseAfflicted && (a.inSunLikeHouse || a.inLeo)) {
           html += `<div class="an-item c-muted">Sun-like boost suppressed — FM within 1° of MEP</div>`;
         }
         // Step 9b: D9 exaltation boost (nodes: informational only)
