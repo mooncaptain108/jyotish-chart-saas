@@ -3046,6 +3046,10 @@
           html += `<div class="an-item c-green">MT lord of ${a.rashiName}</div>`;
         }
 
+        // Marks where the strength-adjustment steps begin, so the dispositor-cap
+        // note below can tell whether any adjustment line was actually printed.
+        const breakdownMark = html.length;
+
         // Step 1: Degree weakness — nodes exempt; only show if actually reducing strength
         if (!a.isNode && a.weakByDeg) {
           const degLabel = a.deg <= 5 ? 'Infancy' : (a.deg >= 25 ? 'Old Age' : 'Degrees');
@@ -3234,6 +3238,11 @@
           const capNote = a.dispCapChain.length > 1 ? ` via ${a.dispCapChain.join('→')}` : '';
           const wasCapped = disp && (disp.strengthPct - a.strengthPct) < 0.001;
           if (wasCapped) {
+            // Only state "Nominal strength" explicitly when no adjustment line
+            // above already showed how the pre-cap value was reached.
+            if (html.length === breakdownMark) {
+              html += `<div class="an-item c-gray">Nominal strength ${run()}</div>`;
+            }
             cur = disp.strengthPct;
             html += `<div class="an-item ${dClass}">Capped by dispositor ${a.dispositor} (${pct(disp.strengthPct)})${capNote} ${run()}</div>`;
           }
