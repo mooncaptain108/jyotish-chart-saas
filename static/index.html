@@ -2313,17 +2313,32 @@
     // E.g. Saturn at 0:17 in house 6 bleeds into house 5's MEP (mechanism b);
     // its 3rd-house aspect lands at 0:17 in house 8 and, by the same logic,
     // bleeds into house 7's MEP (mechanism c).
-    function mepOrb(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
+    // Same as mepOrb(), but also reports which of the three mechanisms won —
+    // 'Conj.' or 'Nth Aspect' for a genuine hit on targetHouse itself (mechanism a),
+    // plain 'Cusp' when it's the planet's own position bleeding across a boundary
+    // with no aspect involved (mechanism b), or '<Nth Aspect> (Cusp)' when it's
+    // that aspect's projection (landing in a different house) bleeding across a
+    // further boundary into targetHouse (mechanism c) — so a display can say *which*
+    // of the planet's aspects (or its bare position) is actually responsible instead
+    // of collapsing every boundary-bleed case into an undifferentiated 'Cusp'.
+    function mepOrbDetail(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
       const targetMepRashi = mepRashi(lagnaRashi, targetHouse);
       const aspected = fmAspectedHouses(grahaName, fromHouse); // includes fromHouse itself
       let orb = absDiffDeg(rashi, deg, targetMepRashi, mepDeg);
+      let via = (fromHouse === targetHouse) ? 'Conj.' : 'Cusp';
       for (const h of aspected) {
         if (h === fromHouse) continue; // already covered by the direct-rashi candidate above
-        orb = Math.min(orb, absDiffDeg(mepRashi(lagnaRashi, h), deg, targetMepRashi, mepDeg));
+        const cand = absDiffDeg(mepRashi(lagnaRashi, h), deg, targetMepRashi, mepDeg);
+        if (cand < orb) { orb = cand; via = aspectAbbrev(grahaName, fromHouse, h) + ' (Cusp)'; }
       }
-      if (aspected.has(targetHouse))
-        orb = Math.min(orb, Math.abs(deg - mepDeg));
-      return orb;
+      if (aspected.has(targetHouse)) {
+        const cand = Math.abs(deg - mepDeg);
+        if (cand < orb) { orb = cand; via = aspectAbbrev(grahaName, fromHouse, targetHouse); }
+      }
+      return { orb, via };
+    }
+    function mepOrb(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
+      return mepOrbDetail(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi).orb;
     }
 
     function ordinal(n) {
@@ -2337,13 +2352,13 @@
       return 'aspect';
     }
     // Short form for the "<planet> <via> <orb>° over <target>" cross-analysis
-    // phrasing — 'Bound.' covers mepOrb's physical-boundary-adjacency case,
+    // phrasing — 'Cusp' covers mepOrb's physical-boundary-adjacency case,
     // where a small orb exists to a house's MEP with no classical drishti.
     function aspectAbbrev(grahaName, fromHouse, toHouse) {
       if (fromHouse === toHouse) return 'Conj.';
       for (const off of (ASPECT_OFFSETS[grahaName] || ASPECT_OFFSETS.default))
         if (((fromHouse - 1 + off) % 12) + 1 === toHouse) return ordinal(off + 1) + ' Aspect';
-      return 'Bound.';
+      return 'Cusp';
     }
 
     function isStrong(deg) { return deg >= 5 && deg <= 25; }
@@ -2637,14 +2652,14 @@
           const mtRaw = [];
           for (const fm of fmData) {
             if (fm.graha === g.graha) continue;
-            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, mtHouse, mepDeg, lr);
+            const { orb, via } = mepOrbDetail(fm.graha, fm.house, fm.deg, fm.rashi, mtHouse, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMnode  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
             const isFMconj  = fm.house === mtHouse;
             const fmDusht   = DUSHTANA.has(fm.house) && MOOLA_LORD[fm.rashi] !== fm.graha;
             const fmChain   = chainSpecialFMs.has(fm.graha);
             const mtSpecFM  = fm.graha === mmp || (isFMnode && isFMconj) || fmDusht || fmChain;
-            mtRaw.push({ fm: fm.graha, orb, special: mtSpecFM, inMtHouse: isFMconj, mtHouse });
+            mtRaw.push({ fm: fm.graha, orb, special: mtSpecFM, inMtHouse: isFMconj, mtHouse, via });
           }
           // Ra-Ke axis merge: if both nodes afflict the MT house, consolidate into one entry
           {
@@ -2655,7 +2670,8 @@
               const lo = Math.min(raIdx, keIdx), hi = Math.max(raIdx, keIdx);
               mtRaw.splice(hi, 1); mtRaw.splice(lo, 1);
               mtRaw.unshift({ fm:'Ra-Ke', orb:Math.min(raE.orb, keE.orb), special:true,
-                              inMtHouse:raE.inMtHouse || keE.inMtHouse, mtHouse, isRaKe:true });
+                              inMtHouse:raE.inMtHouse || keE.inMtHouse, mtHouse, isRaKe:true,
+                              via: raE.orb <= keE.orb ? raE.via : keE.via });
             }
           }
           const mtCond5 = mtRaw.length >= 2;
@@ -2678,14 +2694,14 @@
           const isMtSign  = !!occMtLord;
           const occRaw    = [];
           for (const fm of fmData) {
-            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, house, mepDeg, lr);
+            const { orb, via } = mepOrbDetail(fm.graha, fm.house, fm.deg, fm.rashi, house, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMnode2  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
             const isFMconj2  = fm.house === house;
             const fmDusht2   = DUSHTANA.has(fm.house) && MOOLA_LORD[fm.rashi] !== fm.graha;
             const fmChain2   = chainSpecialFMs.has(fm.graha);
             const occSpecFM  = fm.graha === mmp || (isFMnode2 && isFMconj2) || fmDusht2 || fmChain2;
-            occRaw.push({ fm: fm.graha, orb, special: occSpecFM, isMtSign });
+            occRaw.push({ fm: fm.graha, orb, special: occSpecFM, isMtSign, via });
           }
           // Ra-Ke axis merge for occupied house
           {
@@ -2696,7 +2712,7 @@
               const lo = Math.min(raIdx, keIdx), hi = Math.max(raIdx, keIdx);
               occRaw.splice(hi, 1); occRaw.splice(lo, 1);
               occRaw.unshift({ fm:'Ra-Ke', orb:Math.min(raE.orb, keE.orb), special:true,
-                               isMtSign, isRaKe:true });
+                               isMtSign, isRaKe:true, via: raE.orb <= keE.orb ? raE.via : keE.via });
             }
           }
           const occCond5 = occRaw.length >= 2;
@@ -2915,7 +2931,7 @@
           // Use fmData (not fms) — fms excludes Rahu/Ketu which are always FM
           // Nodes are special only when conjunct (in the house); a pure 5th/9th aspect is regular.
           for (const fm of fmData) {
-            const orb = mepOrb(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr);
+            const { orb, via } = mepOrbDetail(fm.graha, fm.house, fm.deg, fm.rashi, h, mepDeg, lr);
             if (orb >= 5) continue;
             const isFMconj  = fm.house === h;
             const isFMnode  = fm.graha === 'Rahu' || fm.graha === 'Ketu';
@@ -2923,7 +2939,7 @@
             const loss = (isSpecial ? 0.75 : 0.5) * (1 - orb / 5);
             if (loss <= 0) continue;
             sp -= loss;
-            afflictions.push({ planet:fm.graha, orb, loss, isSpecial, isFMconj });
+            afflictions.push({ planet:fm.graha, orb, loss, isSpecial, isFMconj, via });
           }
           // If all afflictions are nodes (Rahu+Ketu), consolidate into one graduated loss.
           // Special only when one node is conjunct (length===2, one conjunct + 7th aspect).
@@ -3114,7 +3130,7 @@
           const lossPct = Math.round(mta.loss * 100);
           cur *= (1 - mta.loss);
           const mtFmLabel = mta.isRaKe ? 'Rahu-Ketu axis' : mta.fm;
-          html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mtFmLabel}${specTag}${c5tag} — ${mta.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+          html += `<div class="an-item c-brown">MT house (h${mta.mtHouse}) afflicted by ${mtFmLabel}${specTag}${c5tag} — ${mta.orb.toFixed(2)}° via ${mta.via} from MEP → −${lossPct}% ${run()}</div>`;
         }
 
         // Step 7b: House of occupation MEP afflictions
@@ -3125,7 +3141,7 @@
           const lossPct = Math.round(oa.loss * 100);
           cur *= (1 - oa.loss);
           const occFmLabel = oa.isRaKe ? 'Rahu-Ketu axis' : oa.fm;
-          html += `<div class="an-item c-brown">Occ house (h${a.house}) afflicted by ${occFmLabel}${specTag}${c5tag}${mtTag} — ${oa.orb.toFixed(2)}° from MEP → −${lossPct}% ${run()}</div>`;
+          html += `<div class="an-item c-brown">Occ house (h${a.house}) afflicted by ${occFmLabel}${specTag}${c5tag}${mtTag} — ${oa.orb.toFixed(2)}° via ${oa.via} from MEP → −${lossPct}% ${run()}</div>`;
         }
 
         // Step 8: Direct FM afflictions (nodes cannot be weakened by afflictions)
@@ -3294,16 +3310,16 @@
                   hcur -= rkL;
                   if (hs.afflictions.length === 1) {
                     const a = hs.afflictions[0];
-                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet} — ${a.orb.toFixed(2)}° → −${Math.round(rkL * 100)}% ${hrun()}</div>`;
+                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet} — ${a.orb.toFixed(2)}° via ${a.via} → −${Math.round(rkL * 100)}% ${hrun()}</div>`;
                   } else {
-                    const orbStr = hs.afflictions.map(a => `${a.planet} ${a.orb.toFixed(2)}°`).join(', ');
+                    const orbStr = hs.afflictions.map(a => `${a.planet} ${a.orb.toFixed(2)}° via ${a.via}`).join(', ');
                     html += `<div class="an-item c-brown" style="padding-left:1.5rem;">Ra-Ke axis — ${orbStr} → −${Math.round(rkL * 100)}% ${hrun()}</div>`;
                   }
                 } else {
                   for (const a of hs.afflictions) {
                     hcur -= a.loss;
                     const specTag = a.isSpecial ? '*' : '';
-                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet}${specTag} — ${a.orb.toFixed(2)}° → −${Math.round(a.loss * 100)}% ${hrun()}</div>`;
+                    html += `<div class="an-item c-brown" style="padding-left:1.5rem;">afflicted by ${a.planet}${specTag} — ${a.orb.toFixed(2)}° via ${a.via} → −${Math.round(a.loss * 100)}% ${hrun()}</div>`;
                   }
                 }
               }
@@ -3404,9 +3420,9 @@
       for (let house = 1; house <= 12; house++) {
         for (const sName of PLANET_ORDER) {
           const s = sources[sName]; if (!s || !s.graha) continue;
-          const orb = mepOrb(s.graha, s.house, s.deg, s.rashi, house, mepDeg, lagnaRashi);
+          const { orb, via } = mepOrbDetail(s.graha, s.house, s.deg, s.rashi, house, mepDeg, lagnaRashi);
           if (orb >= 5) continue;
-          hits.push({ source: s.graha, orb, via: aspectAbbrev(s.graha, s.house, house), house, kind: 'mep' });
+          hits.push({ source: s.graha, orb, via, house, kind: 'mep' });
         }
       }
       return hits;

@@ -97,16 +97,34 @@ def mep_orb(graha: str, from_house: int, deg: float, rashi: int,
     E.g. Saturn at 0:17 in house 6 bleeds into house 5's MEP (mechanism b);
     its 3rd-house aspect lands at 0:17 in house 8 and, by the same logic,
     bleeds into house 7's MEP (mechanism c)."""
+    return mep_orb_detail(graha, from_house, deg, rashi, target_house, mep_deg, lagna_rashi)[0]
+
+
+def mep_orb_detail(graha: str, from_house: int, deg: float, rashi: int,
+                    target_house: int, mep_deg: float, lagna_rashi: int) -> tuple[float, str]:
+    """Same as mep_orb(), but also reports which mechanism won: 'Conj.'/'Nth Aspect'
+    for a genuine hit on target_house itself (mechanism a), plain 'Cusp' when it's
+    the planet's own position bleeding across a boundary with no aspect involved
+    (mechanism b), or '<Nth Aspect> (Cusp)' when it's that aspect's projection
+    (landing in a different house) bleeding across a further boundary into
+    target_house (mechanism c)."""
     target_mep_rashi = mep_rashi(lagna_rashi, target_house)
     aspected = fm_aspected_houses(graha, from_house)  # includes from_house itself
-    candidates = [abs_diff_deg(rashi, deg, target_mep_rashi, mep_deg)]
+    orb = abs_diff_deg(rashi, deg, target_mep_rashi, mep_deg)
+    via = 'Conj.' if from_house == target_house else 'Cusp'
     for h in aspected:
         if h == from_house:
             continue  # already covered by the direct-rashi candidate above
-        candidates.append(abs_diff_deg(mep_rashi(lagna_rashi, h), deg, target_mep_rashi, mep_deg))
+        cand = abs_diff_deg(mep_rashi(lagna_rashi, h), deg, target_mep_rashi, mep_deg)
+        if cand < orb:
+            orb = cand
+            via = aspect_abbrev(graha, from_house, h) + ' (Cusp)'
     if target_house in aspected:
-        candidates.append(abs(deg - mep_deg))
-    return min(candidates)
+        cand = abs(deg - mep_deg)
+        if cand < orb:
+            orb = cand
+            via = aspect_abbrev(graha, from_house, target_house)
+    return orb, via
 
 
 def aspect_label(graha: str, from_house: int, to_house: int) -> str:
@@ -120,6 +138,17 @@ def aspect_label(graha: str, from_house: int, to_house: int) -> str:
             if n == 4: return '4th aspect'
             return f'{n}th aspect'
     return 'aspect'
+
+
+def aspect_abbrev(graha: str, from_house: int, to_house: int) -> str:
+    if from_house == to_house:
+        return 'Conj.'
+    for off in ASPECT_OFFSETS.get(graha, ASPECT_OFFSETS['default']):
+        if ((from_house - 1 + off) % 12) + 1 == to_house:
+            n = off + 1
+            ord_str = {1: '1st', 2: '2nd', 3: '3rd'}.get(n, f'{n}th')
+            return f'{ord_str} Aspect'
+    return 'Cusp'
 
 
 def is_strong(deg: float) -> bool:
@@ -388,7 +417,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             for fm in fm_data:
                 if fm['graha'] == name:
                     continue
-                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], mt_house, mep_deg, lr)
+                orb, via = mep_orb_detail(fm['graha'], fm['house'], fm['deg'], fm['rashi'], mt_house, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_fn  = fm['graha'] in ('Rahu', 'Ketu')
@@ -397,7 +426,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 fm_ch  = fm['graha'] in chain_special
                 spec   = fm['graha'] == mmp or (is_fn and is_fc) or fm_dt or fm_ch
                 mt_raw.append({'fm': fm['graha'], 'orb': orb, 'special': spec,
-                               'inMtHouse': is_fc, 'mtHouse': mt_house})
+                               'inMtHouse': is_fc, 'mtHouse': mt_house, 'via': via})
             # Ra-Ke merge
             ra_i = next((i for i, a in enumerate(mt_raw) if a['fm'] == 'Rahu'), -1)
             ke_i = next((i for i, a in enumerate(mt_raw) if a['fm'] == 'Ketu'), -1)
@@ -407,7 +436,8 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 del mt_raw[hi]; del mt_raw[lo]
                 mt_raw.insert(0, {'fm': 'Ra-Ke', 'orb': min(re['orb'], ke_e['orb']),
                     'special': True, 'inMtHouse': re['inMtHouse'] or ke_e['inMtHouse'],
-                    'mtHouse': mt_house, 'isRaKe': True})
+                    'mtHouse': mt_house, 'isRaKe': True,
+                    'via': re['via'] if re['orb'] <= ke_e['orb'] else ke_e['via']})
             mt_c5 = len(mt_raw) >= 2
             for mta in mt_raw:
                 s = mta['special'] or mt_c5
@@ -423,7 +453,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             is_mt = bool(MOOLA_LORD.get(g['rashi']))
             occ_raw = []
             for fm in fm_data:
-                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], house, mep_deg, lr)
+                orb, via = mep_orb_detail(fm['graha'], fm['house'], fm['deg'], fm['rashi'], house, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_fn2 = fm['graha'] in ('Rahu', 'Ketu')
@@ -431,7 +461,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 fm_dt2 = fm['house'] in DUSHTANA and MOOLA_LORD.get(fm['rashi']) != fm['graha']
                 fm_ch2 = fm['graha'] in chain_special
                 spec2  = fm['graha'] == mmp or (is_fn2 and is_fc2) or fm_dt2 or fm_ch2
-                occ_raw.append({'fm': fm['graha'], 'orb': orb, 'special': spec2, 'isMtSign': is_mt})
+                occ_raw.append({'fm': fm['graha'], 'orb': orb, 'special': spec2, 'isMtSign': is_mt, 'via': via})
             # Ra-Ke merge
             ra_i = next((i for i, a in enumerate(occ_raw) if a['fm'] == 'Rahu'), -1)
             ke_i = next((i for i, a in enumerate(occ_raw) if a['fm'] == 'Ketu'), -1)
@@ -440,7 +470,8 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 lo, hi = min(ra_i, ke_i), max(ra_i, ke_i)
                 del occ_raw[hi]; del occ_raw[lo]
                 occ_raw.insert(0, {'fm': 'Ra-Ke', 'orb': min(re['orb'], ke_e['orb']),
-                    'special': True, 'isMtSign': is_mt, 'isRaKe': True})
+                    'special': True, 'isMtSign': is_mt, 'isRaKe': True,
+                    'via': re['via'] if re['orb'] <= ke_e['orb'] else ke_e['via']})
             occ_c5 = len(occ_raw) >= 2
             for oa in occ_raw:
                 s = oa['special'] or occ_c5
@@ -614,7 +645,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             # FM afflictions to house (nodes special only when conjunct; a
             # pure 5th/9th aspect is regular)
             for fm in fm_data:
-                orb = mep_orb(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr)
+                orb, via = mep_orb_detail(fm['graha'], fm['house'], fm['deg'], fm['rashi'], h, mep_deg, lr)
                 if orb >= 5:
                     continue
                 is_fm_conj = fm['house'] == h
@@ -625,7 +656,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                     continue
                 sp -= loss
                 aff_h.append({'planet': fm['graha'], 'orb': orb, 'loss': loss,
-                              'isSpecial': is_sp, 'isFMconj': is_fm_conj})
+                              'isSpecial': is_sp, 'isFMconj': is_fm_conj, 'via': via})
             # Ra-Ke axis: single consolidated loss (special only if one node is conjunct)
             only_nodes = bool(aff_h) and all(a['planet'] in ('Rahu', 'Ketu') for a in aff_h)
             rk_loss = None
