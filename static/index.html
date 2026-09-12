@@ -38,6 +38,27 @@
     #drBtn:hover { background:#22407a; border-color:#5a7ab0; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
     .tb-select:hover { background:#1e2a48; border-color:#1a4a80; }
+    /* #tbDate/#tbTime, by ID: the generic dialog-field rule below
+       (input[type="date"], input[type="time"] { width:100% ... }) ties or
+       beats a class selector's specificity, so it was winning here -- 100%
+       width, larger padding/font -- and stretching these two toward the
+       Help menu. ID selectors always outrank it, and every property it sets
+       is respelled here (matching plain .tb-select) rather than left to
+       cascade, so nothing leaks through. Sized to their fixed-format content
+       (YYYY-MM-DD / HH:MM:SS, plus a little slack for a locale that renders
+       time with AM/PM) rather than a guess at "compact enough". */
+    #tbDate, #tbTime {
+      flex:none; width:auto; padding:0.35rem 0.5rem; font-size:0.85rem;
+      background:transparent; color:#906030; border:1px solid #0f3460;
+      border-radius:4px; cursor:pointer;
+    }
+    #tbDate:hover, #tbTime:hover { background:#1e2a48; border-color:#1a4a80; }
+    #tbDate { width:8.5rem; }
+    #tbTime { width:9rem; }
+    /* Label + Now button text match the chart's own gold (house numbers /
+       chart title, see getTheme()) rather than the toolbar's own accent
+       gold -- "the gold of the letters on the main screen" per the user. */
+    #tbTransitLabel, #transitNowBtn { color:#906030; }
     #divChartSelect { padding:0.25rem 0.45rem; font-size:1.0rem; }
     #testsWrapper { display:contents; }
 
@@ -216,6 +237,12 @@
     body.light #drBtn:hover { background:#d8d0bc; border-color:#7a6a40; }
     body.light .tb-select { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-select:hover { background: #d8d0bc; border-color: #a09060; }
+    /* Same ID-specificity requirement as the dark-theme #tbDate/#tbTime rule
+       above -- a bare .tb-select here would lose to the generic dialog-
+       field input rule's color/border, not just in dark theme. */
+    body.light #tbDate, body.light #tbTime { color:#6a4808; border-color:#c0a870; }
+    body.light #tbTransitLabel, body.light #transitNowBtn { color:#6a4808; }
+    body.light #tbDate:hover, body.light #tbTime:hover { background:#d8d0bc; border-color:#a09060; }
     body.light #chartTitle { color: #5a5860; }
     body.light #dashaPanel { background: #ede8d8; }
     body.light #dashaInner { background: #f8f4e8; border-color: #c09040; }
@@ -457,7 +484,6 @@
     <button class="tb-btn" id="muhurtaBtn" onclick="openMuhurtaDialog()" disabled>Muhurta</button>
     <span id="muhurtaStatus" style="display:none;font-size:0.82rem;color:#a0c870;white-space:nowrap;margin-left:0.3rem;font-family:monospace;"></span>
     <div class="sep"></div>
-    <button class="tb-btn" id="transitNowBtn" onclick="setTransitToNow()" style="display:none" title="Set the transit to the current date &amp; time">Now</button>
     <div class="tb-dropdown" id="helpDropdown">
       <button class="tb-btn" onclick="toggleHelpMenu(event)">Help &#9662;</button>
       <ul class="tb-menu" id="helpMenu">
@@ -470,6 +496,13 @@
         <li><button onclick="openAbout(); closeHelpMenu();">About</button></li>
       </ul>
     </div>
+    <!-- Optional/conditional items live to the right of Help, in this order;
+         Tests (below) is always rightmost of the optional group. -->
+    <div class="sep" id="tbTransitSep" style="display:none"></div>
+    <span id="tbTransitLabel" style="display:none;font-size:0.85rem;">Transit:</span>
+    <button class="tb-btn" id="transitNowBtn" onclick="setTransitToNow()" style="display:none" title="Set the transit to the current date &amp; time">Now</button>
+    <input type="date" id="tbDate" class="tb-select" style="display:none" title="Transit date" onchange="tbTransitDateChanged()">
+    <input type="time" id="tbTime" step="1" class="tb-select" style="display:none" title="Transit time" onchange="tbTransitTimeChanged()">
     <div class="sep" id="mNavSep" style="display:none"></div>
     <button class="tb-btn" id="mPrevBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(-1)">&#9664;</button>
     <span id="mNavLabel" style="display:none;font-size:0.88rem;color:#a0a0b0;min-width:2.2rem;text-align:center;"></span>
@@ -3707,7 +3740,7 @@
       const d9Svg  = document.getElementById('d9Chart');
       const sel = document.getElementById('divChartSelect');
       const chartType = sel ? sel.value : 'D9';
-      updateTransitNowBtn();
+      updateTransitToolbarControls();
       // Transit is not one of data.divisional_charts — it's the currently
       // configured chart from the Transits popover (module-scope transitData/
       // transitAnalysis), and unlike every other entry here it shows degrees.
@@ -4651,6 +4684,7 @@
       const tz   = parseFloat(document.getElementById('tTz').value);
       const errEl = document.getElementById('transitErrMsg');
       if (!date || !time || isNaN(lat) || isNaN(lon) || isNaN(tz)) return;
+      syncTransitToolbarFields(date, time);
       try {
         const res = await fetch('/api/v1/chart/transit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -4679,16 +4713,51 @@
       }
     }
 
-    // Shows the toolbar 'Now' button whenever a transit is on screen --
-    // either view mode (Transits/Chart & Transits) or the Divisional
-    // Chart dropdown's Transit entry -- so the transit time can be reset
-    // to the current moment without opening Transits Control.
-    function updateTransitNowBtn() {
+    // Copies the Transits Control dialog's Date/Time (tDate/tTime -- the
+    // canonical fields) into the toolbar's quick-edit mirrors, so the two
+    // stay in sync no matter which one last changed. Args are optional
+    // (fetchAndRenderTransit already has the values in hand); omit to read
+    // straight from tDate/tTime instead (e.g. when just toggling visibility).
+    function syncTransitToolbarFields(date, time) {
+      const tbD = document.getElementById('tbDate'), tbT = document.getElementById('tbTime');
+      if (!tbD || !tbT) return;
+      tbD.value = date !== undefined ? date : document.getElementById('tDate').value;
+      tbT.value = time !== undefined ? time : document.getElementById('tTime').value;
+    }
+
+    // Toolbar Date/Time inputs changed directly -- push into the dialog's
+    // canonical tDate/tTime and re-fetch, mirroring tDate/tTime's own
+    // onchange handlers (tDate also re-resolves tz for DST; tTime doesn't).
+    function tbTransitDateChanged() {
+      document.getElementById('tDate').value = document.getElementById('tbDate').value;
+      transitUpdateTz();
+      fetchAndRenderTransit();
+    }
+    function tbTransitTimeChanged() {
+      document.getElementById('tTime').value = document.getElementById('tbTime').value;
+      fetchAndRenderTransit();
+    }
+
+    // Shows the toolbar 'Transit:' label, 'Now' button, and quick Date/Time
+    // inputs whenever a transit is on screen -- either view mode (Transits/
+    // Chart & Transits) or the Divisional Chart dropdown's Transit entry --
+    // so the transit can be reset or nudged without opening Transits
+    // Control. Sits to the right of Help, ahead of Tests (see the comment
+    // in the toolbar markup for the optional-item ordering rule).
+    function updateTransitToolbarControls() {
       const btn = document.getElementById('transitNowBtn');
+      const tbD = document.getElementById('tbDate'), tbT = document.getElementById('tbTime');
+      const sep = document.getElementById('tbTransitSep'), lbl = document.getElementById('tbTransitLabel');
       if (!btn) return;
       const sel = document.getElementById('divChartSelect');
       const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
-      btn.style.display = show ? '' : 'none';
+      const disp = show ? '' : 'none';
+      btn.style.display = disp;
+      if (tbD) tbD.style.display = disp;
+      if (tbT) tbT.style.display = disp;
+      if (sep) sep.style.display = disp;
+      if (lbl) lbl.style.display = disp;
+      if (show) syncTransitToolbarFields();
     }
 
     function setTransitToNow() {
@@ -4703,7 +4772,7 @@
     function setChartViewMode(mode) {
       if (!lastData) return;
       chartViewMode = mode;
-      updateTransitNowBtn();
+      updateTransitToolbarControls();
       if (mode === 'chart') {
         const dlg = document.getElementById('dlgTransits');
         if (dlg.open) dlg.close();
