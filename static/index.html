@@ -49,16 +49,16 @@
        time with AM/PM) rather than a guess at "compact enough". */
     #tbDate, #tbTime {
       flex:none; width:auto; padding:0.35rem 0.5rem; font-size:0.85rem;
-      background:transparent; color:#906030; border:1px solid #0f3460;
+      background:transparent; color:#ffffff; border:1px solid #0f3460;
       border-radius:4px; cursor:pointer;
     }
     #tbDate:hover, #tbTime:hover { background:#1e2a48; border-color:#1a4a80; }
     #tbDate { width:8.5rem; }
     #tbTime { width:9rem; }
-    /* Label + Now button text match the chart's own gold (house numbers /
-       chart title, see getTheme()) rather than the toolbar's own accent
-       gold -- "the gold of the letters on the main screen" per the user. */
-    #tbTransitLabel, #transitNowBtn { color:#906030; }
+    /* The chart-gold text (getTheme()'s house-number/chart-title color) read
+       too light/washed-out here -- switched to plain white; the "Transit:"
+       label alone is enough to flag these as active, no color coding needed. */
+    #tbTransitLabel, #transitNowBtn { color:#ffffff; }
     #divChartSelect { padding:0.25rem 0.45rem; font-size:1.0rem; }
     #testsWrapper { display:contents; }
 
@@ -240,8 +240,11 @@
     /* Same ID-specificity requirement as the dark-theme #tbDate/#tbTime rule
        above -- a bare .tb-select here would lose to the generic dialog-
        field input rule's color/border, not just in dark theme. */
-    body.light #tbDate, body.light #tbTime { color:#6a4808; border-color:#c0a870; }
-    body.light #tbTransitLabel, body.light #transitNowBtn { color:#6a4808; }
+    /* White reads as washed-out on a light background, so the corresponding
+       high-contrast choice here is near-black -- the same plain text color
+       already used for .tb-select/.tb-menu in light theme, not a new one. */
+    body.light #tbDate, body.light #tbTime { color:#2a2a3e; border-color:#c0a870; }
+    body.light #tbTransitLabel, body.light #transitNowBtn { color:#2a2a3e; }
     body.light #tbDate:hover, body.light #tbTime:hover { background:#d8d0bc; border-color:#a09060; }
     body.light #chartTitle { color: #5a5860; }
     body.light #dashaPanel { background: #ede8d8; }
