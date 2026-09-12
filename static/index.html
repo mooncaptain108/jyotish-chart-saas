@@ -84,6 +84,9 @@
     #rashiBox { display:none; width:min(57.2vw,57.2vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 5% 3%; container-type:inline-size; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
     #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#182038; overflow-x:auto; }
+    /* "Mobile display" setting also swaps these two panel titles' gold for
+       plain menu-item text color, same reasoning as getTheme()'s chartTitle. */
+    body.chart-bold #dashaShadowTitle, body.chart-bold #rashiTitle { color:#c0c0d0; }
     #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:min(1.09rem, 1.60vh); }
     #rashiTable td { padding:1px 5px; white-space:nowrap; }
     .dasha-hdr-btns { display:flex; gap:3px; justify-content:center; padding:4px 0; flex-shrink:0; }
@@ -253,6 +256,7 @@
     body.light #rashiBox { background: #ede8d8; }
     body.light #rashiTitle { color: #7a5808; }
     body.light #rashiInner { background: #f8f4e8; border-color: #c09040; }
+    body.light.chart-bold #dashaShadowTitle, body.light.chart-bold #rashiTitle { color:#2a2a3e; }
     body.light .dasha-hdr-btns button { background: #e8e2d0; color: #2a2a3e; border-color: #c0a870; }
     body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #222240; }
     body.light .dr.dr-now { background: #d0ead0; border-left-color: #208020; color: #204820; }
@@ -590,7 +594,7 @@
       <label class="stg-check"><input type="checkbox" id="chkDegMin"> Degrees: deg:min</label>
       <label class="stg-check"><input type="checkbox" id="chkDecimal"> Degrees: decimal</label>
       <hr class="stg-divider">
-      <label class="stg-check"><input type="checkbox" id="chkChartBold"> Bold planet &amp; degree text</label>
+      <label class="stg-check"><input type="checkbox" id="chkChartBold"> Mobile display</label>
       <label class="stg-check"><input type="checkbox" id="chkGlyphs"> Planet glyphs (instead of Su/Mo/…)</label>
       <label class="stg-check"><input type="checkbox" id="chkSignGlyphs"> Sign glyphs (instead of Ar/Ta/… and 1–12)</label>
 
@@ -1654,9 +1658,26 @@
     document.getElementById('chkTransitManualOnly').addEventListener('change', function() {
       localStorage.setItem(TRANSIT_DLG_MANUAL_KEY, this.checked ? '1' : '0');
     });
+    // Bold text (body.chart-bold svg text.pl { font-weight: 700; }) is a live
+    // CSS rule, so toggling the class alone repaints it immediately. The
+    // panel-title color isn't -- getTheme().chartTitle and the D-chart
+    // dropdown's sel.style.color are only read once, at render time, and
+    // baked into an SVG fill/inline-style attribute, which does NOT track a
+    // later class change on its own. So without an explicit repaint here,
+    // toggling the checkbox updates the bold text live but leaves whatever
+    // title/dropdown color was last rendered stuck until the next unrelated
+    // render (e.g. a reload) happens to run with the new state.
+    function repaintForChartBoldToggle() {
+      if (!lastData) return;
+      renderChart(lastData, currentMuhurtaIdx >= 0);
+      if (chartViewMode === 'transits') renderTransitsView();
+      else if (chartViewMode === 'both') renderBothView();
+      renderD9Chart(lastData, lastAnalysis);
+    }
     document.getElementById('chkChartBold').addEventListener('change', function() {
       localStorage.setItem(CHART_BOLD_KEY, this.checked ? '1' : '0');
       document.body.classList.toggle('chart-bold', this.checked);
+      repaintForChartBoldToggle();
     });
     document.body.classList.toggle('chart-bold', localStorage.getItem(CHART_BOLD_KEY) === '1');
 
@@ -2411,12 +2432,19 @@
     // ═══════════════════════════════════════════════════
     function getTheme() {
       const light = document.body.classList.contains('light');
+      // "Mobile display" setting (chkChartBold/.chart-bold -- also bolds
+      // planet/degree text, see body.chart-bold svg text.pl in CSS) swaps
+      // the panel-title gold (chart title, D-chart dropdown -- both read
+      // chartTitle) for plain menu-item text color instead, per the user:
+      // easier to read on mobile without being "too bright" like pure white.
+      const mobileHi = document.body.classList.contains('chart-bold');
+      const menuFg = light ? '#2a2a3e' : '#c0c0d0';
       return light ? {
         chartBg:     '#ede8d8',
         houseFill:   '#f8f4e8',
         houseStroke: '#c09040',
         houseNum:    '#6a4808',
-        chartTitle:  '#6a4808',
+        chartTitle:  mobileHi ? menuFg : '#6a4808',
         asColor:     '#222240',
         colorCombust:'#2040c0',
         colorFM:     '#c02020',
@@ -2429,7 +2457,7 @@
         houseFill:   '#182038',
         houseStroke: '#7a5a20',
         houseNum:    '#906030',
-        chartTitle:  '#906030',
+        chartTitle:  mobileHi ? menuFg : '#906030',
         asColor:     '#e0e0c0',
         colorCombust:'#6090ff',
         colorFM:     '#e06060',
