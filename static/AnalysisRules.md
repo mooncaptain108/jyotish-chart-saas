@@ -2,6 +2,8 @@
 
 Each planet's strength is calculated as a percentage (0%–100%+). The following states are evaluated in sequence — reductions multiply together, so a combust and debilitated planet is weaker than either condition alone.
 
+NOTE: The analysis of Orb of influence is used for benefic, malefic, and combust influences and will include the word "Cusp" if the influence is from another house.
+
 ### Degree-Based Strength (Infancy and Old Age)
 
 Every planet has a degree within its sign (0°–30°). The middle range, 5°–25°, is full strength. Outside that range the planet is in infancy (early degrees) or old age (late degrees) and its strength is reduced proportionally.

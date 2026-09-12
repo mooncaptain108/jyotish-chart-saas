@@ -631,7 +631,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 if g['graha'] in ('Rahu', 'Ketu') or g['graha'] in fms:
                     continue
                 gh  = ((g['rashi'] - lr + 12) % 12) + 1
-                orb = mep_orb(g['graha'], gh, g['degree_in_rashi'], g['rashi'], h, mep_deg, lr)
+                orb, via = mep_orb_detail(g['graha'], gh, g['degree_in_rashi'], g['rashi'], h, mep_deg, lr)
                 an  = analysis.get(g['graha'])
                 ps  = isinstance(an, dict) and an.get('strengthPct', 0) >= 0.70
                 boost = 0.0
@@ -641,7 +641,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                     if orb < 1:  boost = 0.125 * (1 - orb)
                 if boost > 0:
                     sp += boost
-                    boosts_h.append({'planet': g['graha'], 'orb': orb, 'boost': boost})
+                    boosts_h.append({'planet': g['graha'], 'orb': orb, 'boost': boost, 'via': via})
             # FM afflictions to house (nodes special only when conjunct; a
             # pure 5th/9th aspect is regular)
             for fm in fm_data:

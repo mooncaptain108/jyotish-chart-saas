@@ -2914,7 +2914,7 @@
           for (const g of data.grahas) {
             if (g.graha === 'Rahu' || g.graha === 'Ketu' || fms.has(g.graha)) continue;
             const gHouse = ((g.rashi - lr + 12) % 12) + 1;
-            const orb = mepOrb(g.graha, gHouse, g.degree_in_rashi, g.rashi, h, mepDeg, lr);
+            const { orb, via } = mepOrbDetail(g.graha, gHouse, g.degree_in_rashi, g.rashi, h, mepDeg, lr);
             const an = analysis[g.graha];
             const planetStrong = an && an.strengthPct >= 0.70;
             let boost = 0;
@@ -2925,7 +2925,7 @@
             }
             if (boost <= 0) continue;
             sp += boost;
-            boosts.push({ planet:g.graha, orb, boost });
+            boosts.push({ planet:g.graha, orb, boost, via });
           }
           // FM afflictions (including Rahu/Ketu 5th and 9th aspects)
           // Use fmData (not fms) — fms excludes Rahu/Ketu which are always FM
@@ -3080,7 +3080,12 @@
           let d = Math.abs(pLon - sunLon); if (d > 180) d = 360 - d;
           const combustLoss = sunIsFM ? 75 : 50;
           cur *= sunIsFM ? 0.25 : 0.5;
-          html += `<div class="an-item c-blue">Combust: −${combustLoss}% (${d.toFixed(2)}° from Sun) ${run()}</div>`;
+          // Combustion is pure Sun-to-planet longitude separation -- house
+          // placement never blocks it, so flag it with the same 'Cusp' word
+          // used for MEP boundary-bleed whenever the Sun sits in a different
+          // house than this planet, to make that explicit to the reader.
+          const cuspTag = (sunA && sunA.house !== a.house) ? ' via Cusp' : '';
+          html += `<div class="an-item c-blue">Combust: −${combustLoss}% (${d.toFixed(2)}° from Sun${cuspTag}) ${run()}</div>`;
         }
 
         // Step 3: Exaltation boost +25% (nodes: informational only)
@@ -3301,7 +3306,7 @@
               if (hs.boosts) {
                 for (const b of hs.boosts) {
                   hcur += b.boost;
-                  html += `<div class="an-item c-green" style="padding-left:1.5rem;">${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}°) ${hrun()}</div>`;
+                  html += `<div class="an-item c-green" style="padding-left:1.5rem;">${b.planet} +${pct(b.boost)} (${b.orb.toFixed(2)}° via ${b.via}) ${hrun()}</div>`;
                 }
               }
               if (hasAff) {
