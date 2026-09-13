@@ -126,6 +126,11 @@
     dialog::backdrop { background:rgba(0,0,0,0.15); }
     .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
+    /* "Mobile display" setting also swaps the Analysis/Chart & Transits and
+       Muhurta Evaluation dialog titles' gold for plain menu-item text color
+       -- scoped to just these two dialogs, not every dialog's title. */
+    body.chart-bold #dlgAnalysis .dlg-header h2,
+    body.chart-bold #dlgMuhurtaEval .dlg-header h2 { color:#c0c0d0; }
     .dlg-body { padding:1.25rem; }
     .dlg-body-md { color:#c0c0d0; }
     .dlg-footer { display:flex; gap:0.5rem; justify-content:flex-end; padding:0.75rem 1.25rem; border-top:1px solid #0f3460; }
@@ -190,6 +195,13 @@
     .c-green { color:#70c070; }
     .c-muted { color:#606070; }
     .c-gold  { color:#c9a84c; }
+    /* "Mobile display" setting also swaps this gold (Analysis/Chart & Transits
+       popovers -- overall/MT-lord strength labels, section headers) AND
+       c-brown -- #c8a060 reads as the same gold/tan family, and it's the
+       dominant color for affliction/debilitation/dushtana/etc. detail lines
+       there, all 25 uses of which are within these same two dialogs -- for
+       the same plain menu-item text color used for the main-screen panel titles. */
+    body.chart-bold .c-gold, body.chart-bold .c-brown { color:#c0c0d0; }
     .tcbs-table { width:100%; border-collapse:collapse; font-family:monospace; font-size:12px; }
     .tcbs-table td { padding:2px 6px; }
     .tcbs-lbl  { color:#a0a0b0; width:75px; }
@@ -282,6 +294,8 @@
     }
     body.light .dlg-header { border-bottom-color: #c0a870; }
     body.light .dlg-header h2 { color: #7a5808; }
+    body.light.chart-bold #dlgAnalysis .dlg-header h2,
+    body.light.chart-bold #dlgMuhurtaEval .dlg-header h2 { color:#2a2a3e; }
     .fm-q-btn { background:#0d1f4a;border:1px solid #2a4a8e;border-radius:50%;color:#dde8ff;font-size:0.72rem;width:1.15rem;height:1.15rem;line-height:1;padding:0;cursor:pointer;flex-shrink:0; }
     body.light .fm-q-btn { background:#2244aa;border:1px solid #1133aa;color:#ffffff;font-weight:bold; }
     body.light .dlg-footer { border-top-color: #c0a870; }
@@ -329,6 +343,7 @@
     body.light .an-section-head { color: #5a5860; border-bottom-color: #c0a870; }
     body.light .an-loc, body.light .an-run { color: #6a6a80; }
     body.light .c-gold { color: #7a5808; }
+    body.light.chart-bold .c-gold { color: #2a2a3e; }
     body.light .md-content h1, body.light .md-content h2, body.light .md-content h3, body.light .md-content h4 { color: #7a5808; }
     body.light .md-content a { color: #2060a0; }
     body.light .tcb-exp-table th { color: #5a5878; }
@@ -339,6 +354,7 @@
     body.light .c-red   { color: #c02020; }
     body.light .c-blue  { color: #2040c0; }
     body.light .c-brown { color: #7a5010; }
+    body.light.chart-bold .c-brown { color: #2a2a3e; }
     body.light .c-green { color: #206020; }
     body.light .an-item.c-gray  { color: #606070; }
   </style>
@@ -3094,7 +3110,7 @@
       const bd   = data.birth_data;
 
       let html = `<div class="an-lagna">
-        <strong style="color:#c9a84c">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) &nbsp;·&nbsp;
+        <strong class="c-gold">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) &nbsp;·&nbsp;
         MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
         ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
       </div>`;
@@ -3536,7 +3552,7 @@
       const natalHits    = sortCrossHits(crossPlanetHits(an, tAn));
 
       let html = `<div class="an-lagna">
-        <strong style="color:#c9a84c">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna
+        <strong class="c-gold">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna
       </div>`;
       html += section('Transit over Natal', transitHits, tAn, an);
       html += section('Natal over Transit', natalHits, an, tAn);
