@@ -2336,6 +2336,9 @@
     const MOOLA_LORD    = { 1:'Mars',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',9:'Jupiter',11:'Saturn' };
     const SIGN_LORD     = { 1:'Mars',2:'Venus',3:'Mercury',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',8:'Mars',9:'Jupiter',10:'Saturn',11:'Saturn',12:'Jupiter' };
     const RASHI_NAME    = ['','Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    // Per-sign "Lucky Number", from yournetastrologer.com/learn_astrology72.htm
+    // through .../learn_astrology83.htm (Aries..Pisces, one page per sign).
+    const LUCKY_NUMBER  = { 1:6, 2:5, 3:8, 4:1, 5:8, 6:9, 7:9, 8:2, 9:5, 10:7, 11:1, 12:7 };
     const FUNC_MALEFICS = {
        1:new Set(['Mercury']),        2:new Set(['Mars','Venus','Jupiter']),
        3:new Set([]),                 4:new Set(['Jupiter','Saturn']),
@@ -3110,7 +3113,7 @@
       const bd   = data.birth_data;
 
       let html = `<div class="an-lagna">
-        <strong class="c-gold">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) &nbsp;·&nbsp;
+        <strong class="c-gold">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) Lucky Number ${LUCKY_NUMBER[lr]} &nbsp;·&nbsp;
         MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
         ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
       </div>`;
