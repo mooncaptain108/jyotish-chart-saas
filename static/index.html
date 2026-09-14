@@ -511,6 +511,7 @@
     <div class="tb-dropdown" id="helpDropdown">
       <button class="tb-btn" onclick="toggleHelpMenu(event)">Help &#9662;</button>
       <ul class="tb-menu" id="helpMenu">
+        <li><button onclick="openHelpViews(); closeHelpMenu();">Views</button></li>
         <li><button onclick="openHelpMuhurta(); closeHelpMenu();">Muhurta</button></li>
         <li><button onclick="openHelpCalc(); closeHelpMenu();">Calculations</button></li>
         <li><button onclick="openHelpAnalysis(); closeHelpMenu();">Analysis Rules</button></li>
@@ -646,6 +647,19 @@
     </div>
   </dialog>
 
+
+  <!-- ════ Help: Views dialog ════ -->
+  <dialog id="dlgHelpViews" style="max-width:600px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpViews').close()">✕</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="helpViewsContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpViews').close()">Close</button>
+    </div>
+  </dialog>
 
   <!-- ════ Help: Muhurta dialog ════ -->
   <dialog id="dlgHelpMuhurta" style="max-width:600px;">
@@ -872,10 +886,6 @@
         </div>
       </div>
       <p id="transitErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
-      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:#a0a0b0;cursor:pointer;margin-top:0.3rem;">
-        <input type="checkbox" id="chkTransitManualOnly">
-        Only load this dialog from View / Transits Control
-      </label>
     </div>
     <div class="dlg-footer">
       <button class="btn-primary" id="transitsAnalysisBtn" onclick="openAnalysisDialog()">Analyze</button>
@@ -1377,7 +1387,6 @@
     const TESTS_KEY    = 'jyotish_tests_visible';
     const NEW_FORM_KEY = 'jyotish_new_form';
     const WELCOME_KEY  = 'jyotish_hide_welcome';
-    const TRANSIT_DLG_MANUAL_KEY = 'jyotish_transit_dlg_manual_only';
     const CHART_BOLD_KEY = 'jyotish_chart_bold';
     const GLYPH_KEY      = 'jyotish_planet_glyphs';
 
@@ -1540,7 +1549,7 @@
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd' }[dlgId];
+      const cached  = { dlgHelpViews: '_helpViewsMd', dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1552,6 +1561,7 @@
         .then(md => { window[cached] = md; content.innerHTML = marked.parse(md); })
         .catch(() => { content.innerHTML = '<p>Content not available.</p>'; });
     }
+    function openHelpViews()   { _openHelpDoc('dlgHelpViews',   'helpViewsContent',   'static/Views.md'); }
     function openHelpMuhurta() { _openHelpDoc('dlgHelpMuhurta', 'helpMuhurtaContent', 'static/Muhurta.md'); }
     function openNotRecommended() {
       fetch('static/NotRecommendedSigns.md?v=' + Date.now()).then(r=>r.text()).then(t=>{ _notRecommendedMd = marked.parse(t); document.getElementById('notRecommendedContent').innerHTML = _notRecommendedMd; document.getElementById('dlgNotRecommended').showModal(); }).catch(()=>{ document.getElementById('dlgNotRecommended').showModal(); });
@@ -1670,10 +1680,6 @@
       } else {
         this.checked = true;
       }
-    });
-    document.getElementById('chkTransitManualOnly').checked = localStorage.getItem(TRANSIT_DLG_MANUAL_KEY) === '1';
-    document.getElementById('chkTransitManualOnly').addEventListener('change', function() {
-      localStorage.setItem(TRANSIT_DLG_MANUAL_KEY, this.checked ? '1' : '0');
     });
     // Bold text (body.chart-bold svg text.pl { font-weight: 700; }) is a live
     // CSS rule, so toggling the class alone repaints it immediately. The
@@ -4671,9 +4677,10 @@
       fetchAndRenderTransit();
     }
 
-    // Called by setChartViewMode('transits'|'both'). Opens the popover (with
+    // Called by setChartViewMode('transits'|'both'). Seeds transitData (with
     // defaults: current date/time, natal chart's own location) the first
-    // time; if already open, just re-renders in the newly-selected mode.
+    // time — without opening the popover; if already seeded, just re-renders
+    // in the newly-selected mode.
     // Seeds the Transits popover's fields from lastData's own birth location
     // and "now", then fetches — so transitData/transitAnalysis are populated
     // (and the Divisional Chart panel's Transit entry has something to show)
@@ -4713,10 +4720,10 @@
       }
     }
 
-    // explicit=true means this call came from View > Transits Control itself
-    // (always opens the dialog); otherwise it's the implicit open triggered by
-    // setChartViewMode('transits'/'both'), which respects the "only load this
-    // dialog from View / Transits Control" checkbox.
+    // explicit=true means this call came from View > Transits Control itself,
+    // which is the only way this dialog is shown. setChartViewMode('transits'/
+    // 'both') also calls this (explicit falsy) to seed/refresh transitData for
+    // rendering the view, but that call never opens the dialog itself.
     function openTransitsPopover(explicit) {
       const dlg = document.getElementById('dlgTransits');
       if (!transitSeeded) {
@@ -4729,8 +4736,7 @@
         if (chartViewMode === 'transits') renderTransitsView();
         else if (chartViewMode === 'both') renderBothView();
       }
-      const manualOnly = localStorage.getItem(TRANSIT_DLG_MANUAL_KEY) === '1';
-      if (!dlg.open && (explicit || !manualOnly)) dlg.showModal();
+      if (!dlg.open && explicit) dlg.showModal();
     }
 
     async function fetchAndRenderTransit() {
@@ -5843,7 +5849,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpViews','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
