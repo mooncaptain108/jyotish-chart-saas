@@ -12,6 +12,7 @@ class LagnaResponse(BaseModel):
     nakshatra: int
     nakshatra_name: str
     pada: int
+    pada_syllable: str
 
 
 class GrahaPosition(BaseModel):

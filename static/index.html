@@ -178,6 +178,7 @@
     /* ── Analysis dialog ── */
     #dlgAnalysis { min-width:500px; }
     .an-lagna { font-size:0.8rem; color:#a0a0b0; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid #0f3460; }
+    .an-lagna div + div { margin-top:0.25rem; }
     .an-planet { margin-bottom:0.9rem; border-left:3px solid #1a4a80; padding-left:0.75rem; }
     .an-phead { display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.3rem; }
     .an-abbr { font-family:monospace; font-size:1rem; font-weight:bold; min-width:2rem; }
@@ -3113,9 +3114,16 @@
       const bd   = data.birth_data;
 
       let html = `<div class="an-lagna">
-        <strong class="c-gold">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) Lucky Number ${LUCKY_NUMBER[lr]} &nbsp;·&nbsp;
-        MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
-        ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
+        <div>
+          <strong class="c-gold">${signLabel(lr, RASHI_NAME[lr])}</strong> lagna (${lr}) &nbsp;·&nbsp;
+          MEP ${fmtDeg(data.lagna.degree_in_rashi)}° &nbsp;·&nbsp;
+          ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
+        </div>
+        <div>
+          Lucky Number ${LUCKY_NUMBER[lr]} &nbsp;·&nbsp;
+          Pada ${data.lagna.pada} &nbsp;·&nbsp;
+          Sound ${data.lagna.pada_syllable}
+        </div>
       </div>`;
 
       // Fixed canonical order

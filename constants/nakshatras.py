@@ -68,6 +68,39 @@ NAKSHATRA_LORDS = {
 }
 
 
+# Naming syllable (akshara) for each of the 108 padas, per the traditional
+# Nama-Nakshatra table used for Vedic baby-naming (Namakaran).
+PADA_SYLLABLES = {
+    1: ["Chu", "Che", "Cho", "Laa"],       # Ashwini
+    2: ["Lee", "Loo", "Le", "Lo"],         # Bharani
+    3: ["A", "Ee", "U", "E"],              # Krittika
+    4: ["O", "Vaa", "Vee", "Vu"],          # Rohini
+    5: ["Ve", "Vo", "Kaa", "Kee"],         # Mrigashira
+    6: ["Ku", "Gha", "Ing", "Chha"],       # Ardra
+    7: ["Ke", "Ko", "Haa", "Hee"],         # Punarvasu
+    8: ["Hu", "He", "Ho", "Daa"],          # Pushya
+    9: ["Dee", "Doo", "De", "Do"],         # Ashlesha
+    10: ["Maa", "Mee", "Moo", "Me"],       # Magha
+    11: ["Mo", "Taa", "Tee", "Too"],       # Purva Phalguni
+    12: ["Te", "To", "Paa", "Pee"],        # Uttara Phalguni
+    13: ["Poo", "Sha", "Na", "Tha"],       # Hasta
+    14: ["Pe", "Po", "Raa", "Ree"],        # Chitra
+    15: ["Roo", "Re", "Ro", "Taa"],        # Swati
+    16: ["Tee", "Too", "Te", "To"],        # Vishakha
+    17: ["Naa", "Nee", "Noo", "Ne"],       # Anuradha
+    18: ["No", "Yaa", "Yee", "Yoo"],       # Jyeshtha
+    19: ["Ye", "Yo", "Bhaa", "Bhee"],      # Moola
+    20: ["Bhoo", "Dhaa", "Phaa", "Dha"],   # Purva Ashadha
+    21: ["Bhe", "Bho", "Jaa", "Jee"],      # Uttara Ashadha
+    22: ["Khee", "Khoo", "Khe", "Kho"],    # Shravana
+    23: ["Gaa", "Gee", "Gu", "Ge"],        # Dhanishtha
+    24: ["Go", "Saa", "See", "Soo"],       # Shatabhisha
+    25: ["Se", "So", "Daa", "Dee"],        # Purva Bhadrapada
+    26: ["Doo", "Tha", "Jha", "Yna"],      # Uttara Bhadrapada
+    27: ["De", "Do", "Cha", "Chee"],       # Revati
+}
+
+
 def longitude_to_nakshatra(longitude: float) -> int:
     """Convert sidereal longitude (0–360) to nakshatra number (1–27)."""
     return int(longitude / NAKSHATRA_SPAN) % 27 + 1
@@ -78,6 +111,13 @@ def longitude_to_pada(longitude: float) -> int:
     nak_start = (longitude_to_nakshatra(longitude) - 1) * NAKSHATRA_SPAN
     offset = longitude - nak_start
     return int(offset / PADA_SPAN) % 4 + 1
+
+
+def longitude_to_pada_syllable(longitude: float) -> str:
+    """Naming syllable for the pada (1 of 4) at this sidereal longitude."""
+    nakshatra = longitude_to_nakshatra(longitude)
+    pada = longitude_to_pada(longitude)
+    return PADA_SYLLABLES[nakshatra][pada - 1]
 
 
 def nakshatra_traversed_fraction(longitude: float) -> float:

@@ -2,7 +2,7 @@
 
 from constants.rashis import longitude_to_rashi, longitude_to_rashi_degree, RASHI_NAMES
 from constants.nakshatras import (
-    longitude_to_nakshatra, longitude_to_pada, NAKSHATRA_NAMES,
+    longitude_to_nakshatra, longitude_to_pada, longitude_to_pada_syllable, NAKSHATRA_NAMES,
 )
 
 
@@ -26,4 +26,5 @@ def compute_lagna(ascendant_longitude: float) -> dict:
         "nakshatra": nakshatra,
         "nakshatra_name": NAKSHATRA_NAMES[nakshatra],
         "pada": longitude_to_pada(ascendant_longitude),
+        "pada_syllable": longitude_to_pada_syllable(ascendant_longitude),
     }
