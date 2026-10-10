@@ -21,7 +21,11 @@
     #appWrap { display:flex; flex-direction:column; min-height:100vh; }
 
     /* ── Toolbar ── */
-    .toolbar { display:flex; align-items:center; gap:0.4rem; background:#141a2a; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
+    /* flex-wrap, not nowrap: body has overflow-x:hidden, so a toolbar
+       that merely overflowed instead of wrapping would clip its rightmost
+       buttons off-screen with no way to reach them on a narrow viewport --
+       not removed, just unreachable. */
+    .toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; background:#141a2a; border-bottom:1px solid #0f3460; padding:0.5rem 1rem; flex-shrink:0; }
     .toolbar .app-title { color:#c9a84c; font-weight:bold; font-size:1rem; margin-right:0.75rem; }
     .toolbar .sep { width:1px; height:1.4rem; background:#3a5a8a; margin:0 0.25rem; }
     .tb-dropdown { position:relative; display:inline-block; }
@@ -38,37 +42,59 @@
     #drBtn:hover { background:#22407a; border-color:#5a7ab0; }
     .tb-select { padding:0.35rem 0.5rem; background:transparent; color:#c0c0d0; border:1px solid #0f3460; border-radius:4px; font-size:0.85rem; cursor:pointer; width:auto; }
     .tb-select:hover { background:#1e2a48; border-color:#1a4a80; }
-    /* #tbDate/#tbTime, by ID: the generic dialog-field rule below
-       (input[type="date"], input[type="time"] { width:100% ... }) ties or
-       beats a class selector's specificity, so it was winning here -- 100%
-       width, larger padding/font -- and stretching these two toward the
-       Help menu. ID selectors always outrank it, and every property it sets
-       is respelled here (matching plain .tb-select) rather than left to
-       cascade, so nothing leaks through. Sized to their fixed-format content
-       (YYYY-MM-DD / HH:MM:SS, plus a little slack for a locale that renders
-       time with AM/PM) rather than a guess at "compact enough". */
-    #tbDate, #tbTime {
-      flex:none; width:auto; padding:0.35rem 0.5rem; font-size:0.85rem;
-      background:transparent; color:#ffffff; border:1px solid #0f3460;
-      border-radius:4px; cursor:pointer;
-    }
-    #tbDate:hover, #tbTime:hover { background:#1e2a48; border-color:#1a4a80; }
-    #tbDate { width:8.5rem; }
-    #tbTime { width:9rem; }
-    /* The chart-gold text (getTheme()'s house-number/chart-title color) read
-       too light/washed-out here -- switched to plain white; the "Transit:"
-       label alone is enough to flag these as active, no color coding needed. */
-    #tbTransitLabel, #transitNowBtn { color:#ffffff; }
     #divChartSelect { padding:0.25rem 0.45rem; font-size:1.0rem; }
     #testsWrapper { display:contents; }
 
     /* ── Chart area ── */
     /* #chartArea managed by #mainRow */
     #chartTitle { color:#a0a0b0; font-size:0.85rem; margin:0 0 0.4rem; min-height:1.2em; }
+    /* ── Transit control bar ──
+       Sits in #chartTitle's place above the main wheel rather than in the
+       toolbar: on a phone/tablet the toolbar's right-hand end is unreachable
+       and its dropdowns are too small to hit, which is what moved these down
+       here. Squeezed to #chartArea's own width (not the page width) so it
+       reads as part of the chart, not a second toolbar -- margin-left/width
+       are runtime-set inline styles, pinned to #chartArea's rendered box by
+       alignTransitBarToChart() (JS-measured, same approach as
+       alignRashiBoxToChart(): a hand-tuned vw/vh formula here would have to
+       exactly reproduce #mainRow's padding plus #chartArea's own box model,
+       and would drift the moment either one changes). The CSS below is only
+       the per-row layout and vertical spacing. Rows wrap rather than
+       overflow, and the slider eats whatever width is left over on its row.
+       The generic dialog-field rule below (input[type="date"] ... {
+       width:100% }) matches these fields too, so each one's width is
+       respelled by ID to outrank it. */
+    #transitBar { display:none; padding:0.25rem 0 0.5rem; }
+    #transitBar .tr-row { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
+    #transitBar .tr-row + .tr-row { margin-top:0.35rem; }
+    #transitBar input[type="date"], #transitBar input[type="time"], #transitBar select {
+      padding:0.35rem 0.5rem; font-size:0.9rem; background:#162040;
+      border:1px solid #0f3460; border-radius:4px; color:#e0e0e0; cursor:pointer;
+    }
+    #transitBar #trDate { flex:none; width:9rem; }
+    #transitBar #trTime { flex:none; width:9.5rem; }
+    #transitBar #trUnit { flex:none; width:7rem; }
+    #transitBar #trLoc  { flex:1 1 16rem; min-width:0; max-width:30rem; }
+    #transitBar #trSlider { flex:1 1 7rem; width:auto; min-width:5rem; height:1.7rem; margin:0 0.15rem; accent-color:#c9a84c; cursor:pointer; }
     #chart { display:block; width:min(88vw,88vh); height:auto; }
 
     /* ── Main row (chart + dasha panel) ── */
-    #mainRow { display:flex; flex:1; overflow:hidden; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; }
+    /* overflow:auto, not :hidden -- chartArea/d9Area/dashaPanel's widths are
+       vw/vh formulas tuned for a landscape-ish aspect ratio, and on a
+       portrait tablet/phone their sum can exceed the viewport. :hidden
+       silently clipped that excess with no way to reach it at all (not even
+       via pinch-zoom, which only rescales the render, not these CSS widths);
+       :auto makes it an honest horizontal scroll/swipe area instead -- a
+       plain swipe (or trackpad/scroll-wheel shift) is enough to reach it,
+       no extra on-screen control needed (a dedicated pan slider was tried
+       and dropped -- see [[mainrow_portrait_overflow]] -- it dominated the
+       UI and swiping alone already did the job).
+       (overflow-x:auto forces overflow-y to also compute as auto per the CSS
+       spec's visible+non-visible rule -- harmless here: #mainRow's own box
+       height is flex-allocated and content is sized to fit it in the normal
+       case, so an inner vertical scrollbar is a rare fallback, not the usual
+       path; the page's own vertical scroll is unaffected either way.) */
+    #mainRow { display:flex; flex:1; overflow:auto; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
     #chartArea { flex:0 0 auto; min-width:0; }
     #dashaPanel { width:calc(min(8.8vw,8.8vh) + 200px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
     #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
@@ -168,6 +194,14 @@
     .btn-danger:hover { background:#2a1010; }
 
     /* ── Chart library / atlas tables ── */
+    /* Chart Library search row -- #chartSearchBox by ID, same reason as
+       every other ID-scoped field rule in this file: the generic
+       input[type="text"] { width:100% } rule ties/beats a bare class, which
+       would stretch it full-width and push the Search/Clear buttons off the
+       dialog's edge. */
+    .chart-search-row { display:flex; gap:0.4rem; align-items:center; margin-bottom:0.6rem; }
+    #chartSearchBox { flex:1 1 auto; width:auto; min-width:0; }
+    #chartSearchStatus { font-size:0.82rem; color:#a0a0b0; margin:-0.3rem 0 0.6rem; }
     .chart-list, .atlas-list { width:100%; border-collapse:collapse; font-size:0.85rem; }
     .chart-list th, .atlas-list th { text-align:left; color:#a0a0b0; font-weight:normal; padding:0.3rem 0.5rem; border-bottom:1px solid #0f3460; }
     .chart-list td, .atlas-list td { padding:0.4rem 0.5rem; border-bottom:1px solid #182038; vertical-align:middle; }
@@ -253,16 +287,14 @@
     body.light #drBtn:hover { background:#d8d0bc; border-color:#7a6a40; }
     body.light .tb-select { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-select:hover { background: #d8d0bc; border-color: #a09060; }
-    /* Same ID-specificity requirement as the dark-theme #tbDate/#tbTime rule
-       above -- a bare .tb-select here would lose to the generic dialog-
-       field input rule's color/border, not just in dark theme. */
-    /* White reads as washed-out on a light background, so the corresponding
-       high-contrast choice here is near-black -- the same plain text color
-       already used for .tb-select/.tb-menu in light theme, not a new one. */
-    body.light #tbDate, body.light #tbTime { color:#2a2a3e; border-color:#c0a870; }
-    body.light #tbTransitLabel, body.light #transitNowBtn { color:#2a2a3e; }
-    body.light #tbDate:hover, body.light #tbTime:hover { background:#d8d0bc; border-color:#a09060; }
     body.light #chartTitle { color: #5a5860; }
+    /* #transitBar's fields: same light-theme treatment as any other dialog
+       field (they share that rule's look, not .tb-select's transparent one),
+       respelled under #transitBar so it outranks the generic rule rather than
+       tying with it. The slider's gold accent darkens to match the rest of
+       the light palette -- the dark-theme #c9a84c washes out on cream. */
+    body.light #transitBar input[type="date"], body.light #transitBar input[type="time"], body.light #transitBar select { background:#faf8f0; border-color:#a09060; color:#222240; }
+    body.light #transitBar #trSlider { accent-color:#7a5808; }
     body.light #dashaPanel { background: #ede8d8; }
     body.light #dashaInner { background: #f8f4e8; border-color: #c09040; }
     body.light #dashaShadowTitle { color: #7a5808; }
@@ -339,6 +371,7 @@
     body.light .chart-list td, body.light .atlas-list td { border-bottom-color: #d8d0bc; }
     body.light .chart-list tr.data-row:hover td { background: #e8e2d0; }
     body.light .no-records { color: #7a7890; }
+    body.light #chartSearchStatus { color: #5a5860; }
     body.light .an-lagna { color: #5a5860; border-bottom-color: #c0a870; }
     body.light .an-planet { border-left-color: #a09060; }
     body.light .an-section-head { color: #5a5860; border-bottom-color: #c0a870; }
@@ -522,12 +555,10 @@
       </ul>
     </div>
     <!-- Optional/conditional items live to the right of Help, in this order;
-         Tests (below) is always rightmost of the optional group. -->
-    <div class="sep" id="tbTransitSep" style="display:none"></div>
-    <span id="tbTransitLabel" style="display:none;font-size:0.85rem;">Transit:</span>
-    <button class="tb-btn" id="transitNowBtn" onclick="setTransitToNow()" style="display:none" title="Set the transit to the current date &amp; time">Now</button>
-    <input type="date" id="tbDate" class="tb-select" style="display:none" title="Transit date" onchange="tbTransitDateChanged()">
-    <input type="time" id="tbTime" step="1" class="tb-select" style="display:none" title="Transit time" onchange="tbTransitTimeChanged()">
+         Tests (below) is always rightmost of the optional group. The transit
+         quick controls (Transit:/Now/Date/Time) used to sit here -- they now
+         live in #transitBar above the chart, which keeps them reachable at
+         phone/tablet widths and the toolbar itself narrow. -->
     <div class="sep" id="mNavSep" style="display:none"></div>
     <button class="tb-btn" id="mPrevBtn" style="display:none;padding:0.35rem 0.5rem;" onclick="muhurtaNavStep(-1)">&#9664;</button>
     <span id="mNavLabel" style="display:none;font-size:0.88rem;color:#a0a0b0;min-width:2.2rem;text-align:center;"></span>
@@ -543,6 +574,32 @@
 
   <!-- ── Chart area ── -->
   <p id="chartTitle" style="padding:0.5rem 1.5rem 0">Enter New Location to get started. See <strong style="color:#c9a84c">Atlas/New Location</strong>.</p>
+  <!-- ── Transit control bar ──
+       Takes #chartTitle's place above the main wheel whenever a transit is on
+       screen (Transits / Chart & Transits view, or the Divisional panel's
+       Transit entry) -- see updateTransitToolbarControls(). Everything needed
+       to move the transit moment around while reading the chart is here;
+       Transits Control (View menu) remains the full form, and is still the
+       only place latitude/longitude/UTC offset are shown. -->
+  <div id="transitBar">
+    <div class="tr-row">
+      <button class="tb-btn" id="trNowBtn" onclick="setTransitToNow()" title="Set the transit to the current date &amp; time">Now</button>
+      <input type="time" id="trTime" step="1" title="Transit time" onchange="trTimeChanged()">
+      <input type="date" id="trDate" title="Transit date" onchange="trDateChanged()">
+      <input type="range" id="trSlider" min="-10" max="10" step="1" value="0"
+             title="Drag right to move the transit forward, left to move it back, in units of the list alongside. Springs back to centre on release, so it can be dragged again without limit."
+             oninput="trSliderInput()" onchange="trSliderCommit()">
+      <select id="trUnit" title="Unit the slider moves the transit by">
+        <option value="second">Second</option>
+        <option value="day" selected>Day</option>
+        <option value="month">Month</option>
+        <option value="year">Year</option>
+      </select>
+    </div>
+    <div class="tr-row">
+      <select id="trLoc" title="Transit location" onchange="trLocChanged()"></select>
+    </div>
+  </div>
   <p id="errorMsg" style="padding:0 1.5rem; color:#e08080; font-size:0.9rem"></p>
   <div id="mainRow">
   <div id="chartArea">
@@ -944,6 +1001,19 @@
       <button class="dlg-close-x" onclick="document.getElementById('dlgOpen').close()">✕</button>
     </div>
     <div class="dlg-body" style="max-height:60vh;overflow-y:auto;padding-bottom:0;">
+      <!-- Full-text search: name/date/time/location, matched as substrings
+           (not prefix-only like typing into a <select> jumps to an option) --
+           see searchChartText() for how. The plain scrollable list below
+           stays the default way to browse/open a chart; search only narrows
+           what's shown in it, on demand (Search button or Enter), not live
+           on every keystroke. -->
+      <div class="chart-search-row">
+        <input type="text" id="chartSearchBox" placeholder="Search name, date, time, location…"
+               onkeydown="if (event.key === 'Enter') { event.preventDefault(); searchCharts(); }">
+        <button class="btn-sec" onclick="searchCharts()">Search</button>
+        <button class="btn-sec" id="chartSearchClearBtn" style="display:none" onclick="clearChartSearch()">Clear</button>
+      </div>
+      <p id="chartSearchStatus" style="display:none"></p>
       <div id="chartListWrap"></div>
     </div>
     <div class="dlg-footer">
@@ -2186,10 +2256,33 @@
     // ═══════════════════════════════════════════════════
     function openOpenDialog() { rebuildChartList(); document.getElementById('dlgOpen').showModal(); }
 
+    // Resets the Chart Library to its default, unfiltered view -- the plain
+    // scrollable list, in getCharts()'s own order (already roughly
+    // name-sorted, since saveNewFormState's save path sorts the persisted
+    // array). Search narrows what renderChartRows() shows without touching
+    // this; see searchCharts()/clearChartSearch() below.
     function rebuildChartList() {
-      const charts = getCharts();
+      const box = document.getElementById('chartSearchBox');
+      if (box) box.value = '';
+      renderChartRows(getCharts(), false);
+    }
+
+    // Shared by the unfiltered list and a search's results -- isSearch only
+    // controls the empty-state wording and whether the match-count line /
+    // Clear button show, not how rows themselves are built.
+    function renderChartRows(charts, isSearch) {
       const wrap = document.getElementById('chartListWrap');
-      if (!charts.length) { wrap.innerHTML = '<p class="no-records">No saved charts yet.</p>'; return; }
+      const clearBtn = document.getElementById('chartSearchClearBtn');
+      const statusEl = document.getElementById('chartSearchStatus');
+      if (clearBtn) clearBtn.style.display = isSearch ? '' : 'none';
+      if (statusEl) {
+        statusEl.style.display = isSearch ? '' : 'none';
+        if (isSearch) statusEl.textContent = charts.length === 1 ? '1 chart matches.' : charts.length + ' charts match.';
+      }
+      if (!charts.length) {
+        wrap.innerHTML = `<p class="no-records">${isSearch ? 'No charts match that search.' : 'No saved charts yet.'}</p>`;
+        return;
+      }
       let html = '<table class="chart-list"><thead><tr><th>Name</th><th>Date</th><th>Time</th><th>Location</th><th></th></tr></thead><tbody>';
       for (const c of charts) {
         const loc = c.locationName || (c.lat + ', ' + c.lon);
@@ -2201,6 +2294,33 @@
           </td></tr>`;
       }
       wrap.innerHTML = html + '</tbody></table>';
+    }
+
+    // Full-text search over the saved charts: the query is split into
+    // whitespace-separated tokens, and a chart matches only if EVERY token
+    // appears somewhere in its combined name/date/time/location text --
+    // each token a plain substring match, not anchored to the start of a
+    // field. That's deliberately more than a first-letters/prefix filter
+    // (what typing into a plain <select> gives you for free): "john 1990"
+    // matches a chart named "John Smith" born in 1990 regardless of which
+    // field each word is in or where in that field it falls. Triggered by
+    // the Search button or Enter in the box -- not live on every keystroke,
+    // per the user's own spec ("type text and click search").
+    function searchCharts() {
+      const q = (document.getElementById('chartSearchBox').value || '').trim();
+      if (!q) { clearChartSearch(); return; }
+      const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+      const matches = getCharts().filter(c => {
+        const loc = c.locationName || (c.lat + ', ' + c.lon);
+        const hay = `${c.name} ${c.date} ${c.time} ${loc}`.toLowerCase();
+        return tokens.every(t => hay.includes(t));
+      });
+      renderChartRows(matches, true);
+    }
+
+    function clearChartSearch() {
+      document.getElementById('chartSearchBox').value = '';
+      renderChartRows(getCharts(), false);
     }
 
     async function loadChart(id) {
@@ -2257,7 +2377,11 @@
       const c = getCharts().find(ch => ch.id === id); if (!c) return;
       if (!confirm('Delete "' + c.name + '"?')) return;
       setCharts(getCharts().filter(ch => ch.id !== id));
-      rebuildChartList();
+      // Re-apply whatever's currently showing rather than always resetting to
+      // the full list -- deleting a row out of a search's results should
+      // leave the rest of that search's results in place, not jump back out.
+      const box = document.getElementById('chartSearchBox');
+      if (box && box.value.trim()) searchCharts(); else rebuildChartList();
     }
 
     function editChart(id) {
@@ -4063,10 +4187,35 @@
         rashiEl.style.paddingBottom = (baselinePx + deficit) + 'px';
       }
     }
+
+    // Same measured-not-guessed approach: #transitBar sits above #mainRow, a
+    // sibling of #chartArea rather than a child of it, so there is no single
+    // CSS box it can inherit its width from -- it has to be pinned to
+    // #chartArea's own rendered left edge/width explicitly. A hand-written
+    // vw/vh formula here would have to exactly reproduce #mainRow's padding
+    // plus #chartArea's own box model, and would silently drift the moment
+    // either one changes; measuring is correct by construction instead.
+    // Margin/width are reset to the CSS baseline first so a stale inline
+    // value from a smaller previous viewport can't throw off the new
+    // measurement (mirrors alignRashiBoxToChart's paddingBottom reset).
+    function alignTransitBarToChart() {
+      const bar = document.getElementById('transitBar');
+      const chartArea = document.getElementById('chartArea');
+      if (!bar || !chartArea) return;
+      if (getComputedStyle(bar).display === 'none') return;
+      bar.style.marginLeft = '';
+      bar.style.width = '';
+      const barRect = bar.getBoundingClientRect();
+      const chartRect = chartArea.getBoundingClientRect();
+      if (!chartRect.width) return;
+      const leftDelta = chartRect.left - barRect.left;
+      if (leftDelta > 0) bar.style.marginLeft = leftDelta + 'px';
+      bar.style.width = chartRect.width + 'px';
+    }
     let _alignResizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(_alignResizeTimer);
-      _alignResizeTimer = setTimeout(alignRashiBoxToChart, 150);
+      _alignResizeTimer = setTimeout(() => { alignRashiBoxToChart(); alignTransitBarToChart(); }, 150);
     });
 
     // ═══════════════════════════════════════════════════
@@ -4635,20 +4784,21 @@
 
     function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); } // m: 0-11
 
-    // Stepper buttons below the Date/Time row. 'month'/'year' clamp the day
-    // to the target month's length (e.g. Jan 31 + 1mo -> Feb 28) instead of
-    // JS Date's native roll-over behavior; 'day'/'hour'/'minute' roll over
-    // into neighboring days naturally via Date arithmetic. 'ampm' flips
-    // 12 hours (up: +12, down: -12 — numerically identical mod 24, but the
-    // sign is kept so the button's direction matches the delta passed in).
-    // Seconds (tTime now supports them) are carried through untouched except
-    // by the day/hour/minute/ampm branch's own Date arithmetic.
-    function stepTransitField(field, delta) {
-      const dateEl = document.getElementById('tDate');
-      const timeEl = document.getElementById('tTime');
-      if (!dateEl.value || !timeEl.value) return;
-      let [y, mo, d] = dateEl.value.split('-').map(Number);
-      let [h, mi, se] = timeEl.value.split(':').map(Number);
+    // Shifts a {date:'YYYY-MM-DD', time:'HH:MM:SS'} pair by `delta` units of
+    // `field` and returns a new pair, leaving the DOM alone — shared by the
+    // Transits Control stepper buttons (stepTransitField, below) and
+    // #transitBar's slider scrubber, so the two can't drift apart.
+    // 'month'/'year' clamp the day to the target month's length (e.g. Jan 31
+    // + 1mo -> Feb 28) instead of JS Date's native roll-over behavior;
+    // 'day'/'hour'/'minute' roll over into neighboring days naturally via
+    // Date arithmetic. 'ampm' flips 12 hours (up: +12, down: -12 —
+    // numerically identical mod 24, but the sign is kept so the caller's
+    // direction matches the delta passed in). Seconds (tTime supports them)
+    // are carried through untouched except by the day/hour/minute/ampm
+    // branch's own Date arithmetic.
+    function offsetTransitMoment(moment, field, delta) {
+      let [y, mo, d] = moment.date.split('-').map(Number);
+      let [h, mi, se] = moment.time.split(':').map(Number);
       se = se || 0;
       mo -= 1; // 0-indexed for Date math below
       if (field === 'month') {
@@ -4671,8 +4821,16 @@
         h = dt.getHours(); mi = dt.getMinutes(); se = dt.getSeconds();
       }
       const pad = n => String(n).padStart(2, '0');
-      dateEl.value = `${y}-${pad(mo + 1)}-${pad(d)}`;
-      timeEl.value = `${pad(h)}:${pad(mi)}:${pad(se)}`;
+      return { date: `${y}-${pad(mo + 1)}-${pad(d)}`, time: `${pad(h)}:${pad(mi)}:${pad(se)}` };
+    }
+
+    function stepTransitField(field, delta) {
+      const dateEl = document.getElementById('tDate');
+      const timeEl = document.getElementById('tTime');
+      if (!dateEl.value || !timeEl.value) return;
+      const moved = offsetTransitMoment({ date: dateEl.value, time: timeEl.value }, field, delta);
+      dateEl.value = moved.date;
+      timeEl.value = moved.time;
       transitUpdateTz();
       fetchAndRenderTransit();
     }
@@ -4739,6 +4897,12 @@
       if (!dlg.open && explicit) dlg.showModal();
     }
 
+    // Guarded against itself the same way transitUpdateTz() is: a date edit,
+    // the tz re-resolve that follows it and a slider scrub can each have a
+    // request in flight at once, and the tz re-resolve -- the one carrying the
+    // correct offset -- is always issued last but need not finish last. Only
+    // the apply step is gated; the request itself is harmless either way.
+    let _transitFetchReqId = 0;
     async function fetchAndRenderTransit() {
       if (!lastData) return;
       const date = document.getElementById('tDate').value;
@@ -4749,13 +4913,17 @@
       const errEl = document.getElementById('transitErrMsg');
       if (!date || !time || isNaN(lat) || isNaN(lon) || isNaN(tz)) return;
       syncTransitToolbarFields(date, time);
+      const reqId = ++_transitFetchReqId;
       try {
         const res = await fetch('/api/v1/chart/transit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date, time: ensureSeconds(time), latitude: lat, longitude: lon, timezone_offset: tz }),
         });
+        if (reqId !== _transitFetchReqId) return; // a newer call superseded this one
         if (!res.ok) throw new Error('Server error ' + res.status);
-        transitData = await res.json();
+        const payload = await res.json();
+        if (reqId !== _transitFetchReqId) return;
+        transitData = payload;
         // Transit planets analyzed against the NATAL lagna (same ascendant),
         // so afflictions/combustion/colors reflect the transit-time positions
         // relative to the natal houses — per the Transit Views spec.
@@ -4772,64 +4940,133 @@
         const divSel = document.getElementById('divChartSelect');
         if (divSel && divSel.value === 'Transit' && lastData) renderD9Chart(lastData, lastAnalysis);
       } catch (err) {
+        if (reqId !== _transitFetchReqId) return;
         if (errEl) errEl.textContent = 'Error: ' + err.message;
         console.warn('[transit] fetch failed:', err);
       }
     }
 
-    // Copies the Transits Control dialog's Date/Time (tDate/tTime -- the
-    // canonical fields) into the toolbar's quick-edit mirrors, so the two
-    // stay in sync no matter which one last changed. Args are optional
+    // Copies the Transits Control dialog's Date/Time/Location (tDate/tTime/
+    // tAtlas -- the canonical fields) into #transitBar's mirrors of them, so
+    // the two stay in sync no matter which one last changed. Args are optional
     // (fetchAndRenderTransit already has the values in hand); omit to read
     // straight from tDate/tTime instead (e.g. when just toggling visibility).
     function syncTransitToolbarFields(date, time) {
-      const tbD = document.getElementById('tbDate'), tbT = document.getElementById('tbTime');
-      if (!tbD || !tbT) return;
-      tbD.value = date !== undefined ? date : document.getElementById('tDate').value;
-      tbT.value = time !== undefined ? time : document.getElementById('tTime').value;
+      const trD = document.getElementById('trDate'), trT = document.getElementById('trTime');
+      if (!trD || !trT) return;
+      trD.value = date !== undefined ? date : document.getElementById('tDate').value;
+      trT.value = time !== undefined ? time : document.getElementById('tTime').value;
+      // trLoc's options are copied from tAtlas rather than built separately:
+      // rebuildTransitAtlasSelect() refills tAtlas on every chart load, and a
+      // second list maintained alongside it would drift as locations are
+      // added or removed.
+      const trL = document.getElementById('trLoc'), tA = document.getElementById('tAtlas');
+      if (trL && tA) {
+        if (trL.innerHTML !== tA.innerHTML) trL.innerHTML = tA.innerHTML;
+        trL.value = tA.value;
+      }
     }
 
-    // Toolbar Date/Time inputs changed directly -- push into the dialog's
-    // canonical tDate/tTime and re-fetch, mirroring tDate/tTime's own
+    // #transitBar's Date/Time inputs changed directly -- push into the
+    // dialog's canonical tDate/tTime and re-fetch, mirroring tDate/tTime's own
     // onchange handlers (tDate also re-resolves tz for DST; tTime doesn't).
-    function tbTransitDateChanged() {
-      document.getElementById('tDate').value = document.getElementById('tbDate').value;
+    function trDateChanged() {
+      document.getElementById('tDate').value = document.getElementById('trDate').value;
       transitUpdateTz();
       fetchAndRenderTransit();
     }
-    function tbTransitTimeChanged() {
-      document.getElementById('tTime').value = document.getElementById('tbTime').value;
+    function trTimeChanged() {
+      document.getElementById('tTime').value = document.getElementById('trTime').value;
       fetchAndRenderTransit();
     }
 
-    // Shows the toolbar 'Transit:' label, 'Now' button, and quick Date/Time
-    // inputs whenever a transit is on screen -- either view mode (Transits/
-    // Chart & Transits) or the Divisional Chart dropdown's Transit entry --
-    // so the transit can be reset or nudged without opening Transits
-    // Control. Sits to the right of Help, ahead of Tests (see the comment
-    // in the toolbar markup for the optional-item ordering rule).
-    function updateTransitToolbarControls() {
-      const btn = document.getElementById('transitNowBtn');
-      const tbD = document.getElementById('tbDate'), tbT = document.getElementById('tbTime');
-      const sep = document.getElementById('tbTransitSep'), lbl = document.getElementById('tbTransitLabel');
-      if (!btn) return;
-      const sel = document.getElementById('divChartSelect');
-      const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
-      const disp = show ? '' : 'none';
-      btn.style.display = disp;
-      if (tbD) tbD.style.display = disp;
-      if (tbT) tbT.style.display = disp;
-      if (sep) sep.style.display = disp;
-      if (lbl) lbl.style.display = disp;
-      if (show) syncTransitToolbarFields();
+    // #transitBar's location dropdown is a mirror of the Transits Control
+    // dialog's tAtlas, so hand the choice straight to that dialog's own loader
+    // -- it fills tLat/tLon, re-resolves the tz for the transit date, and
+    // fetches. The empty value is the "- pick a saved location -" placeholder.
+    function trLocChanged() {
+      const tA = document.getElementById('tAtlas');
+      tA.value = document.getElementById('trLoc').value;
+      if (!tA.value) return;
+      transitAtlasLoad();
     }
 
+    // ── Slider scrubber ──
+    // Relative, not absolute: centre (0) is "the moment currently set", and
+    // the thumb moves that many trUnit steps forward (right) or back (left).
+    // On release the scrubbed-to moment becomes the new base and the thumb
+    // springs back to centre, so it can be dragged the same way again without
+    // ever hitting an end stop -- which is the point on a phone, where the
+    // Transits Control stepper columns are awkward to tap repeatedly.
+    // _trSliderBase is captured on the drag's first event and every later
+    // event re-derives from it, rather than stepping the live field, so a
+    // drag is idempotent and reversible within the gesture.
+    let _trSliderBase = null;
+
+    function trSliderInput() {
+      const dateEl = document.getElementById('tDate'), timeEl = document.getElementById('tTime');
+      if (!dateEl.value || !timeEl.value) return;
+      if (!_trSliderBase) _trSliderBase = { date: dateEl.value, time: timeEl.value };
+      const n = parseInt(document.getElementById('trSlider').value, 10) || 0;
+      const moved = offsetTransitMoment(_trSliderBase, document.getElementById('trUnit').value, n);
+      dateEl.value = moved.date;
+      timeEl.value = moved.time;
+      syncTransitToolbarFields(moved.date, moved.time);
+      trSliderFetchSoon(false);
+    }
+
+    // Release -- or an arrow-key press, which fires input then change -- so
+    // adopt whatever the drag landed on as the new base and re-centre.
+    // Assigning .value here fires no events, so this can't re-enter.
+    function trSliderCommit() {
+      _trSliderBase = null;
+      document.getElementById('trSlider').value = 0;
+      trSliderFetchSoon(true);
+    }
+
+    // A drag fires one input event per step, so fetching on each would queue
+    // a dozen chart requests for moments nobody ends up looking at. Coalesce:
+    // the tz re-resolve plus /api/v1/chart/transit run once the thumb has been
+    // still briefly, and immediately on release.
+    let _trSliderFetchTimer = null;
+    function trSliderFetchSoon(immediate) {
+      clearTimeout(_trSliderFetchTimer);
+      const run = () => {
+        _trSliderFetchTimer = null;
+        transitUpdateTz();          // no-ops without a resolvable atlas entry...
+        fetchAndRenderTransit();    // ...so the fetch can't be left to it alone
+      };
+      if (immediate) run();
+      else _trSliderFetchTimer = setTimeout(run, 180);
+    }
+
+    // Shows #transitBar in #chartTitle's place above the main wheel whenever a
+    // transit is on screen -- either view mode (Transits / Chart & Transits)
+    // or the Divisional Chart dropdown's Transit entry -- so the transit can
+    // be reset, retimed, relocated or scrubbed without opening Transits
+    // Control. #chartTitle is already blank in all of those states (renderChart
+    // /renderTransitsView/renderBothView each clear it; the natal title lines
+    // live inside the SVG header), so hiding it reclaims its reserved
+    // min-height rather than suppressing anything readable.
+    function updateTransitToolbarControls() {
+      const bar = document.getElementById('transitBar');
+      if (!bar) return;
+      const sel = document.getElementById('divChartSelect');
+      const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
+      bar.style.display = show ? 'block' : 'none';
+      const title = document.getElementById('chartTitle');
+      if (title) title.style.display = show ? 'none' : '';
+      if (show) { syncTransitToolbarFields(); alignTransitBarToChart(); }
+    }
+
+    // #transitBar's Now button. Same as the Transits Control dialog's own Now
+    // (which re-resolves the tz, so jumping across a DST boundary lands on the
+    // right offset), plus the unconditional fetch that dialog doesn't need --
+    // transitUpdateTz() silently no-ops without a resolvable atlas entry, and
+    // this bar has to work on a chart whose location was never saved to one.
     function setTransitToNow() {
       if (!lastData) return;
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      document.getElementById('tDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-      document.getElementById('tTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      setTransitNow();
       fetchAndRenderTransit();
     }
 
