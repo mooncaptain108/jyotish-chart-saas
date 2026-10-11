@@ -4251,6 +4251,13 @@
       return parts.join(' ');
     }
 
+    // YYYY-MM-DD -> DD-MMM-YYYY (e.g. 11-Oct-2026), for the Muhurta summary
+    // report. Month names from EPHEM_MONTH3 (Ephemeris Report).
+    function fmtDateDMY(ymd) {
+      const [y, m, d] = ymd.split('-');
+      return `${d}-${EPHEM_MONTH3[parseInt(m, 10) - 1]}-${y}`;
+    }
+
     function fmtTimeAmPm(hhmm) {
       const [hStr, mStr] = hhmm.split(':');
       let h = parseInt(hStr, 10);
@@ -5635,7 +5642,7 @@
     }
 
     function generateSummaryReport() {
-      const results = getMuhurtaResults();
+      const results = sortMuhurtaResults(getMuhurtaResults());
       const ta = document.getElementById('mStrReport');
       if (!results.length) { ta.style.display = 'block'; ta.value = 'No results.'; return; }
 
@@ -5656,13 +5663,20 @@
       }
 
       const lines = [];
+      // Location is printed once as a header line rather than on every row;
+      // repeated whenever it changes, in case results from searches at
+      // different places are mixed together.
+      let lastLoc = null;
       for (const g of groups) {
         const r    = results[g.from];
         const rEnd = results[g.to];
         const loc  = getAtlas()[r.loc] || {};
         const [date, time] = r.dt.split(' ');
-        const lon  = loc.lon !== undefined ? parseFloat(loc.lon).toFixed(4) : '?';
-        const lat  = loc.lat !== undefined ? parseFloat(loc.lat).toFixed(4) : '?';
+        if (r.loc !== lastLoc) {
+          if (lastLoc !== null) lines.push('');
+          lines.push(`Location: ${r.loc}`);
+          lastLoc = r.loc;
+        }
         const rawOff = (loc.tzName && date) ? getOffsetForDate(loc.tzName, date) : (loc.tz !== undefined ? parseFloat(loc.tz) : null);
         let utcStr = '';
         if (rawOff !== null) {
@@ -5676,7 +5690,7 @@
         const excStr = (r.exceptionsUsed && r.exceptionsUsed.length) ? `  [! ${r.exceptionsUsed.join(', ')}]` : '';
         const prefix = (r.exceptionsUsed && r.exceptionsUsed.length) ? '! ' : '';
         const durMin = hhmmToMinutes(rEnd.dt.split(' ')[1]) - hhmmToMinutes(time);
-        lines.push(`${prefix}${date}  ${fmtTimeAmPm(time)}  ${utcStr}  ${r.loc}  ${lon}  ${lat}  ${r.signName}${antarStr}${excStr} (lasts for ${durMin} minute${durMin === 1 ? '' : 's'})`);
+        lines.push(`${prefix}${fmtDateDMY(date)}  ${fmtTimeAmPm(time)}  ${utcStr}  ${r.signName}${antarStr}${excStr} (lasts for ${durMin} minute${durMin === 1 ? '' : 's'})`);
       }
       ta.style.display = 'block';
       ta.value = lines.join('\n');
@@ -5757,14 +5771,26 @@
       ta.value = lines.join('\n');
     }
 
+    // Display order shared by the results list and the summary Report:
+    // Gemini by dt first, then all other signs by dt. Stored order is just
+    // arrival order (parallel worker chunks finish out of order, and new
+    // searches append), so both views must sort -- the Report's same-date/
+    // same-sign grouping also depends on those rows being adjacent.
+    function sortMuhurtaResults(rawResults) {
+      const byDt = (a,b) => a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0;
+      const geminiRaw = rawResults.filter(r => r.sign === 3).sort(byDt);
+      const othersRaw = rawResults.filter(r => r.sign !== 3).sort(byDt);
+      return [...geminiRaw, ...othersRaw];
+    }
+
     function renderMuhurtaResults() {
-      // Sort: Gemini by dt first, then all other signs by dt
-      const rawResults = getMuhurtaResults();
-      const geminiRaw = rawResults.filter(r => r.sign === 3).sort((a,b) => a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0);
-      const othersRaw = rawResults.filter(r => r.sign !== 3).sort((a,b) => a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0);
       // Rebuild flat results with new indices for loadMuhurtaChart compatibility
-      const results = [...geminiRaw, ...othersRaw];
+      const results = sortMuhurtaResults(getMuhurtaResults());
       muhurtaRenderedResults = results;
+      // Section split for rendering (Gemini block, then the rest); filter
+      // keeps the sorted order within each.
+      const geminiRaw = results.filter(r => r.sign === 3);
+      const othersRaw = results.filter(r => r.sign !== 3);
 
       const el = document.getElementById('mResults');
       if (!results.length) {
