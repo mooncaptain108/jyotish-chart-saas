@@ -49,22 +49,21 @@
     /* #chartArea managed by #mainRow */
     #chartTitle { color:#a0a0b0; font-size:0.85rem; margin:0 0 0.4rem; min-height:1.2em; }
     /* ── Transit control bar ──
-       Sits in #chartTitle's place above the main wheel rather than in the
-       toolbar: on a phone/tablet the toolbar's right-hand end is unreachable
-       and its dropdowns are too small to hit, which is what moved these down
-       here. Squeezed to #chartArea's own width (not the page width) so it
-       reads as part of the chart, not a second toolbar -- margin-left/width
-       are runtime-set inline styles, pinned to #chartArea's rendered box by
-       alignTransitBarToChart() (JS-measured, same approach as
-       alignRashiBoxToChart(): a hand-tuned vw/vh formula here would have to
-       exactly reproduce #mainRow's padding plus #chartArea's own box model,
-       and would drift the moment either one changes). The CSS below is only
-       the per-row layout and vertical spacing. Rows wrap rather than
-       overflow, and the slider eats whatever width is left over on its row.
+       Sits directly below the main wheel, inside #chartArea, rather than in
+       the toolbar: on a phone/tablet the toolbar's right-hand end is
+       unreachable and its dropdowns are too small to hit. Below rather than
+       above the chart (user feedback) so the wheel stays exactly where it is
+       in Chart view -- #chartTitle is left in place, nothing above the chart
+       changes when a transit view is selected.
+       width:0 + min-width:100% makes it exactly #chartArea's width without
+       contributing to it: #chartArea is shrink-to-fit (flex:0 0 auto), so a
+       plain block here would widen it to the controls' single-line width and
+       shove #d9Area/#dashaPanel right. Rows wrap rather than overflow, and the
+       slider eats whatever width is left over on its row.
        The generic dialog-field rule below (input[type="date"] ... {
        width:100% }) matches these fields too, so each one's width is
        respelled by ID to outrank it. */
-    #transitBar { display:none; padding:0.25rem 0 0.5rem; }
+    #transitBar { display:none; width:0; min-width:100%; padding:0.5rem 0 0.25rem; }
     #transitBar .tr-row { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
     #transitBar .tr-row + .tr-row { margin-top:0.35rem; }
     #transitBar input[type="date"], #transitBar input[type="time"], #transitBar select {
@@ -574,36 +573,36 @@
 
   <!-- ── Chart area ── -->
   <p id="chartTitle" style="padding:0.5rem 1.5rem 0">Enter New Location to get started. See <strong style="color:#c9a84c">Atlas/New Location</strong>.</p>
-  <!-- ── Transit control bar ──
-       Takes #chartTitle's place above the main wheel whenever a transit is on
-       screen (Transits / Chart & Transits view, or the Divisional panel's
-       Transit entry) -- see updateTransitToolbarControls(). Everything needed
-       to move the transit moment around while reading the chart is here;
-       Transits Control (View menu) remains the full form, and is still the
-       only place latitude/longitude/UTC offset are shown. -->
-  <div id="transitBar">
-    <div class="tr-row">
-      <button class="tb-btn" id="trNowBtn" onclick="setTransitToNow()" title="Set the transit to the current date &amp; time">Now</button>
-      <input type="time" id="trTime" step="1" title="Transit time" onchange="trTimeChanged()">
-      <input type="date" id="trDate" title="Transit date" onchange="trDateChanged()">
-      <input type="range" id="trSlider" min="-10" max="10" step="1" value="0"
-             title="Drag right to move the transit forward, left to move it back, in units of the list alongside. Springs back to centre on release, so it can be dragged again without limit."
-             oninput="trSliderInput()" onchange="trSliderCommit()">
-      <select id="trUnit" title="Unit the slider moves the transit by">
-        <option value="second">Second</option>
-        <option value="day" selected>Day</option>
-        <option value="month">Month</option>
-        <option value="year">Year</option>
-      </select>
-    </div>
-    <div class="tr-row">
-      <select id="trLoc" title="Transit location" onchange="trLocChanged()"></select>
-    </div>
-  </div>
   <p id="errorMsg" style="padding:0 1.5rem; color:#e08080; font-size:0.9rem"></p>
   <div id="mainRow">
   <div id="chartArea">
     <svg id="chart" viewBox="25 10 450 465" style="display:none"></svg>
+    <!-- ── Transit control bar ──
+         Directly below the main wheel whenever a transit is on
+         screen (Transits / Chart & Transits view, or the Divisional panel's
+         Transit entry) -- see updateTransitToolbarControls(). Everything needed
+         to move the transit moment around while reading the chart is here;
+         Transits Control (View menu) remains the full form, and is still the
+         only place latitude/longitude/UTC offset are shown. -->
+    <div id="transitBar">
+      <div class="tr-row">
+        <button class="tb-btn" id="trNowBtn" onclick="setTransitToNow()" title="Set the transit to the current date &amp; time">Now</button>
+        <input type="time" id="trTime" step="1" title="Transit time" onchange="trTimeChanged()">
+        <input type="date" id="trDate" title="Transit date" onchange="trDateChanged()">
+        <input type="range" id="trSlider" min="-10" max="10" step="1" value="0"
+               title="Drag right to move the transit forward, left to move it back, in units of the list alongside. Springs back to centre on release, so it can be dragged again without limit."
+               oninput="trSliderInput()" onchange="trSliderCommit()">
+        <select id="trUnit" title="Unit the slider moves the transit by">
+          <option value="second">Second</option>
+          <option value="day" selected>Day</option>
+          <option value="month">Month</option>
+          <option value="year">Year</option>
+        </select>
+      </div>
+      <div class="tr-row">
+        <select id="trLoc" title="Transit location" onchange="trLocChanged()"></select>
+      </div>
+    </div>
   </div>
 
   <div id="d9Area">
@@ -4188,34 +4187,10 @@
       }
     }
 
-    // Same measured-not-guessed approach: #transitBar sits above #mainRow, a
-    // sibling of #chartArea rather than a child of it, so there is no single
-    // CSS box it can inherit its width from -- it has to be pinned to
-    // #chartArea's own rendered left edge/width explicitly. A hand-written
-    // vw/vh formula here would have to exactly reproduce #mainRow's padding
-    // plus #chartArea's own box model, and would silently drift the moment
-    // either one changes; measuring is correct by construction instead.
-    // Margin/width are reset to the CSS baseline first so a stale inline
-    // value from a smaller previous viewport can't throw off the new
-    // measurement (mirrors alignRashiBoxToChart's paddingBottom reset).
-    function alignTransitBarToChart() {
-      const bar = document.getElementById('transitBar');
-      const chartArea = document.getElementById('chartArea');
-      if (!bar || !chartArea) return;
-      if (getComputedStyle(bar).display === 'none') return;
-      bar.style.marginLeft = '';
-      bar.style.width = '';
-      const barRect = bar.getBoundingClientRect();
-      const chartRect = chartArea.getBoundingClientRect();
-      if (!chartRect.width) return;
-      const leftDelta = chartRect.left - barRect.left;
-      if (leftDelta > 0) bar.style.marginLeft = leftDelta + 'px';
-      bar.style.width = chartRect.width + 'px';
-    }
     let _alignResizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(_alignResizeTimer);
-      _alignResizeTimer = setTimeout(() => { alignRashiBoxToChart(); alignTransitBarToChart(); }, 150);
+      _alignResizeTimer = setTimeout(alignRashiBoxToChart, 150);
     });
 
     // ═══════════════════════════════════════════════════
@@ -5047,23 +5022,17 @@
       else _trSliderFetchTimer = setTimeout(run, 180);
     }
 
-    // Shows #transitBar in #chartTitle's place above the main wheel whenever a
-    // transit is on screen -- either view mode (Transits / Chart & Transits)
-    // or the Divisional Chart dropdown's Transit entry -- so the transit can
-    // be reset, retimed, relocated or scrubbed without opening Transits
-    // Control. #chartTitle is already blank in all of those states (renderChart
-    // /renderTransitsView/renderBothView each clear it; the natal title lines
-    // live inside the SVG header), so hiding it reclaims its reserved
-    // min-height rather than suppressing anything readable.
+    // Shows #transitBar below the main wheel whenever a transit is on screen
+    // -- either view mode (Transits / Chart & Transits) or the Divisional
+    // Chart dropdown's Transit entry -- so the transit can be reset, retimed,
+    // relocated or scrubbed without opening Transits Control.
     function updateTransitToolbarControls() {
       const bar = document.getElementById('transitBar');
       if (!bar) return;
       const sel = document.getElementById('divChartSelect');
       const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
       bar.style.display = show ? 'block' : 'none';
-      const title = document.getElementById('chartTitle');
-      if (title) title.style.display = show ? 'none' : '';
-      if (show) { syncTransitToolbarFields(); alignTransitBarToChart(); }
+      if (show) syncTransitToolbarFields();
     }
 
     // #transitBar's Now button. Same as the Transits Control dialog's own Now
