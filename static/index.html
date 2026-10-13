@@ -82,9 +82,8 @@
     /* Settings > Transit Control Position (placeTransitBar moves the element):
        above = inside #chartArea before the wheel, so only that panel's
        content moves down; dasha = bottom of #dashaPanel, one control per
-       line at the panel's width. #dashaPanel has a fixed height and
-       #dashaInner is flex:1, so the list gives up the room and the page
-       keeps its width and height. */
+       line at the panel's width; syncDashaPanelHeight grows the panel by
+       the controls' height so the dasha list keeps its Chart-view size. */
     #transitBar.tr-above { padding:0 0 0.5rem; }
     #dashaPanel > #transitBar { flex:none; padding:0.5rem 0 0; }
     #transitBar.tr-stacked .tr-row { flex-direction:column; align-items:stretch; }
@@ -4383,20 +4382,38 @@
         h = chartEl ? chartEl.getBoundingClientRect().height : 0;
       }
       // Transit controls stacked inside the panel (Settings > Transit Control
-      // Position > Below Dasha Periods): #dashaInner is the flex:1 part that
-      // gives up the room, so on a phone, where the Divisional chart is short,
-      // it was squeezed to nothing and the controls sat right under the title
-      // with no dasha list. Grow the panel to fit title + controls + a usable
-      // stretch of the list (~9rem) instead.
+      // Position > Below Dasha Periods). In order of preference:
+      //  1. grow the panel into the free space below it, down to the bottom
+      //     of the tallest neighbouring panel (chart, or Divisional + Rashi
+      //     Data) -- the dasha list keeps its Chart-view size;
+      //  2. past that, the list gives up room so nothing hangs below the
+      //     other panels -- but never below MIN_ROWS rows, or it vanishes
+      //     (the original phone bug);
+      //  3. only if even that doesn't fit, extend below the other panels by
+      //     just what the controls + minimum list need.
       const bar = document.getElementById('transitBar');
       if (bar && bar.parentElement === panel && bar.style.display !== 'none') {
+        const MIN_ROWS = 4;
+        const r = el => el ? el.getBoundingClientRect() : null;
+        const barH = r(bar).height;
+        const full = h + barH;
+        let floor = 0;
+        for (const id of ['chartArea', 'd9Area']) {
+          const el = document.getElementById(id);
+          if (el && getComputedStyle(el).display !== 'none') floor = Math.max(floor, r(el).bottom);
+        }
+        const room = floor ? floor - r(panel).top : full;
+        // Smallest panel that still shows MIN_ROWS rows: title + list header
+        // buttons + rows + borders/padding + controls + panel padding.
         const title = document.getElementById('dashaShadowTitle');
+        const btns = panel.querySelector('.dasha-hdr-btns');
+        const row = panel.querySelector('#dashaList .dr');
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-        const need = (title ? title.getBoundingClientRect().height : 0)
-                   + bar.getBoundingClientRect().height
-                   + (parseFloat(getComputedStyle(panel).paddingBottom) || 0)
-                   + 9 * rem;
-        h = Math.max(h, need);
+        const rowH = row ? r(row).height : 1.5 * rem;
+        const minH = (title ? r(title).height : 0) + (btns ? r(btns).height : 0)
+                   + MIN_ROWS * rowH + 8
+                   + barH + (parseFloat(getComputedStyle(panel).paddingBottom) || 0);
+        h = Math.max(Math.min(full, room), minH);
       }
       if (h > 0) panel.style.height = h + 'px';
     }
