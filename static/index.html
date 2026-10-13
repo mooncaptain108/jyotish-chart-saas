@@ -612,6 +612,8 @@
                oninput="trSliderInput()" onchange="trSliderCommit()">
         <select id="trUnit" title="Unit the slider moves the transit by">
           <option value="second">Second</option>
+          <option value="minute">Minute</option>
+          <option value="hour">Hour</option>
           <option value="day" selected>Day</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
@@ -2617,6 +2619,18 @@
     // Per-sign "Lucky Number", from yournetastrologer.com/learn_astrology72.htm
     // through .../learn_astrology83.htm (Aries..Pisces, one page per sign).
     const LUCKY_NUMBER  = { 1:6, 2:5, 3:8, 4:1, 5:8, 6:9, 7:9, 8:2, 9:5, 10:7, 11:1, 12:7 };
+
+    // Completed years from a YYYY-MM-DD birth date to today (device date);
+    // null when the date is missing/invalid or in the future.
+    function ageInYears(birthDate) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthDate || '');
+      if (!m) return null;
+      const [by, bm, bd] = [+m[1], +m[2], +m[3]];
+      const now = new Date();
+      const ty = now.getFullYear(), tm = now.getMonth() + 1, td = now.getDate();
+      const age = ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+      return age >= 0 ? age : null;
+    }
     const FUNC_MALEFICS = {
        1:new Set(['Mercury']),        2:new Set(['Mars','Venus','Jupiter']),
        3:new Set([]),                 4:new Set(['Jupiter','Saturn']),
@@ -3389,6 +3403,9 @@
       const lr   = data.lagna.rashi;
       const sunIsFM = an._sunIsFM;
       const bd   = data.birth_data;
+      // Natal birth date even in Transits view (where bd is the transit
+      // moment); no age for a Muhurta result chart -- it's an event, not a person.
+      const age = currentMuhurtaIdx >= 0 ? null : ageInYears(lastData.birth_data && lastData.birth_data.date);
 
       let html = `<div class="an-lagna">
         <div>
@@ -3397,6 +3414,7 @@
           ${bd.date} ${bd.time} &nbsp;·&nbsp; Lat ${fmtCoord(bd.latitude, true)} Lon ${fmtCoord(bd.longitude, false)}
         </div>
         <div>
+          ${age !== null ? `Age: ${age} &nbsp;·&nbsp;` : ''}
           Lucky Number ${LUCKY_NUMBER[lr]} &nbsp;·&nbsp;
           Pada ${data.lagna.pada} &nbsp;·&nbsp;
           Sound ${data.lagna.pada_syllable}
@@ -4960,14 +4978,17 @@
         y += delta;
         d = Math.min(d, daysInMonth(y, mo));
       } else {
-        const dt = new Date(
+        // UTC, not the browser's local zone: these are wall-clock fields of
+        // the transit location, and local Date math would skip/repeat an
+        // hour across the *device's* own DST changes.
+        const dt = new Date(Date.UTC(
           y, mo, d + (field === 'day' ? delta : 0),
           h + (field === 'hour' ? delta : 0) + (field === 'ampm' ? delta : 0),
           mi + (field === 'minute' ? delta : 0),
           se + (field === 'second' ? delta : 0)
-        );
-        y = dt.getFullYear(); mo = dt.getMonth(); d = dt.getDate();
-        h = dt.getHours(); mi = dt.getMinutes(); se = dt.getSeconds();
+        ));
+        y = dt.getUTCFullYear(); mo = dt.getUTCMonth(); d = dt.getUTCDate();
+        h = dt.getUTCHours(); mi = dt.getUTCMinutes(); se = dt.getUTCSeconds();
       }
       const pad = n => String(n).padStart(2, '0');
       return { date: `${y}-${pad(mo + 1)}-${pad(d)}`, time: `${pad(h)}:${pad(mi)}:${pad(se)}` };
