@@ -79,6 +79,18 @@
     #transitBar #trUnit { flex:none; width:7rem; }
     #transitBar #trLoc  { flex:1 1 16rem; min-width:0; max-width:30rem; }
     #transitBar #trSlider { flex:1 1 7rem; width:auto; min-width:5rem; height:1.7rem; margin:0 0.15rem; accent-color:#c9a84c; cursor:pointer; }
+    /* Settings > Transit Control Position (placeTransitBar moves the element):
+       above = inside #chartArea before the wheel, so only that panel's
+       content moves down; dasha = bottom of #dashaPanel, one control per
+       line at the panel's width. #dashaPanel has a fixed height and
+       #dashaInner is flex:1, so the list gives up the room and the page
+       keeps its width and height. */
+    #transitBar.tr-above { padding:0 0 0.5rem; }
+    #dashaPanel > #transitBar { flex:none; padding:0.5rem 0 0; }
+    #transitBar.tr-stacked .tr-row { flex-direction:column; align-items:stretch; }
+    #transitBar.tr-stacked #trDate, #transitBar.tr-stacked #trTime,
+    #transitBar.tr-stacked #trUnit, #transitBar.tr-stacked #trLoc { flex:none; width:100%; max-width:none; }
+    #transitBar.tr-stacked #trSlider { flex:none; width:100%; margin:0; }
     #chart { display:block; width:min(88vw,88vh); height:auto; }
 
     /* ── Main row (chart + dasha panel) ── */
@@ -149,6 +161,7 @@
     body.chart-bold svg text.pl { font-weight: 700; }
     .stg-check { display:flex; align-items:center; gap:0.55rem; color:#c0c0d0; font-size:0.88rem; cursor:pointer; user-select:none; }
     .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
+    .stg-select { display:flex; flex-direction:column; gap:0.3rem; color:#c0c0d0; font-size:0.88rem; }
 
     /* ── Dialogs (shared) ── */
     dialog { background:#1e2a48; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
@@ -314,6 +327,7 @@
     body.light .stg-hdr { border-bottom-color: #c0a870; }
     body.light .stg-hdr-title { color: #7a5808; }
     body.light .stg-check { color: #2a2a3e; }
+    body.light .stg-select { color: #2a2a3e; }
     body.light .stg-check input[type=checkbox] { accent-color: #7a5808; }
     body.light .stg-divider { border-top-color: #c0a870; }
     body.light dialog { background: #f5f0e4; border-color: #a09060; color: #222240; }
@@ -675,6 +689,13 @@
       <label class="stg-check"><input type="checkbox" id="chkChartBold"> Mobile display</label>
       <label class="stg-check"><input type="checkbox" id="chkGlyphs"> Planet glyphs (instead of Su/Mo/…)</label>
       <label class="stg-check"><input type="checkbox" id="chkSignGlyphs"> Sign glyphs (instead of Ar/Ta/… and 1–12)</label>
+      <label class="stg-select">Transit Control Position
+        <select id="selTransitBarPos">
+          <option value="above">Above Transit Chart</option>
+          <option value="below">Below Transit Chart</option>
+          <option value="dasha">Below Dasha Periods Chart</option>
+        </select>
+      </label>
 
     </div>
   </div>
@@ -1709,6 +1730,7 @@
       document.getElementById('chkChartBold').checked = localStorage.getItem(CHART_BOLD_KEY) === '1';
       document.getElementById('chkGlyphs').checked = glyphsOn();
       document.getElementById('chkSignGlyphs').checked = signGlyphsOn();
+      document.getElementById('selTransitBarPos').value = transitBarPos();
       document.getElementById('settingsPanel').classList.add('open');
       document.getElementById('settingsOverlay').classList.add('open');
       document.getElementById('appWrap').classList.add('settings-open');
@@ -1720,6 +1742,10 @@
       document.getElementById('appWrap').classList.remove('settings-open');
       document.getElementById('gearBtn').classList.remove('active');
     }
+    document.getElementById('selTransitBarPos').addEventListener('change', function() {
+      localStorage.setItem(TRANSIT_BAR_POS_KEY, this.value);
+      placeTransitBar();
+    });
     document.getElementById('chkShowWelcome').addEventListener('change', function() {
       localStorage.setItem('jyotish_hide_welcome', this.checked ? '0' : '1');
       // keep in-dialog checkbox in sync
@@ -4680,6 +4706,7 @@
         panel.style.marginTop = '0';
         if (!_isTestChart) panel.style.display = 'flex';
         syncDashaPanelHeight();
+        placeTransitBar();
         dashaScrollNow();
       });
     }
@@ -5166,6 +5193,38 @@
     // -- either view mode (Transits / Chart & Transits) or the Divisional
     // Chart dropdown's Transit entry -- so the transit can be reset, retimed,
     // relocated or scrubbed without opening Transits Control.
+    // Settings > Transit Control Position: 'above' | 'below' (default) | 'dasha'.
+    const TRANSIT_BAR_POS_KEY = 'jyotish_transit_bar_pos';
+    function transitBarPos() {
+      const v = localStorage.getItem(TRANSIT_BAR_POS_KEY);
+      return v === 'above' || v === 'dasha' ? v : 'below';
+    }
+
+    // Moves #transitBar to the chosen spot. 'dasha' falls back to 'below'
+    // while the Dasha panel isn't showing (test charts, or before the first
+    // render reveals it), so the controls are never hidden along with it --
+    // renderChart re-runs this once the panel is up. Moving it shifts the
+    // wheel in 'above' mode, so Rashi Data's bottom alignment is redone.
+    function placeTransitBar() {
+      const bar = document.getElementById('transitBar');
+      const chartArea = document.getElementById('chartArea');
+      const chart = document.getElementById('chart');
+      const dasha = document.getElementById('dashaPanel');
+      if (!bar || !chartArea || !chart || !dasha) return;
+      let pos = transitBarPos();
+      if (pos === 'dasha' && getComputedStyle(dasha).display === 'none') pos = 'below';
+      if (pos === 'above') {
+        if (chart.previousElementSibling !== bar) chartArea.insertBefore(bar, chart);
+      } else if (pos === 'dasha') {
+        if (bar.parentElement !== dasha) dasha.appendChild(bar);
+      } else if (chart.nextElementSibling !== bar) {
+        chart.after(bar);
+      }
+      bar.classList.toggle('tr-above', pos === 'above');
+      bar.classList.toggle('tr-stacked', pos === 'dasha');
+      alignRashiBoxToChart();
+    }
+
     function updateTransitToolbarControls() {
       const bar = document.getElementById('transitBar');
       if (!bar) return;
@@ -5173,6 +5232,7 @@
       const show = chartViewMode === 'transits' || chartViewMode === 'both' || (sel && sel.value === 'Transit');
       bar.style.display = show ? 'block' : 'none';
       if (show) syncTransitToolbarFields();
+      placeTransitBar();
     }
 
     // #transitBar's Now button. Same as the Transits Control dialog's own Now
