@@ -48,6 +48,10 @@
     /* ── Chart area ── */
     /* #chartArea managed by #mainRow */
     #chartTitle { color:#a0a0b0; font-size:0.85rem; margin:0 0 0.4rem; min-height:1.2em; }
+    /* Blank once a chart is on screen (the title lines live inside the SVG);
+       collapse it then so the panels sit right under the toolbar -- its
+       padding/min-height/margin were a ~23px dead band on phones/tablets. */
+    #chartTitle:empty { display:none; }
     /* ── Transit control bar ──
        Sits directly below the main wheel, inside #chartArea, rather than in
        the toolbar: on a phone/tablet the toolbar's right-hand end is
@@ -93,7 +97,7 @@
        height is flex-allocated and content is sized to fit it in the normal
        case, so an inner vertical scrollbar is a rare fallback, not the usual
        path; the page's own vertical scroll is unaffected either way.) */
-    #mainRow { display:flex; flex:1; overflow:auto; align-items:flex-start; padding:0 1.5rem 1rem; gap:0; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
+    #mainRow { display:flex; flex:1; overflow:auto; align-items:flex-start; padding:2px 1.5rem 1rem 2px; gap:0; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
     #chartArea { flex:0 0 auto; min-width:0; }
     #dashaPanel { width:calc(min(8.8vw,8.8vh) + 200px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
     #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
@@ -606,7 +610,7 @@
   </div>
 
   <div id="d9Area">
-    <p id="d9Label"><select id="divChartSelect" class="tb-select" onchange="renderD9Chart(lastData, lastAnalysis)">
+    <p id="d9Label"><select id="divChartSelect" class="tb-select" autocomplete="off" onchange="renderD9Chart(lastData, lastAnalysis)">
         <option value="D1">D1 — Rasi</option>
         <option value="Transit" id="divChartTransitOpt">Transit — (none)</option>
         <option value="D2">D2 — Hora</option>
@@ -4121,6 +4125,7 @@
       // No in-SVG title text — divChartSelect (embedded in #d9Label, right
       // above this SVG with a matching background) already labels the chart.
       d9Area.style.display = 'block';
+      syncDashaPanelHeight();
     }
     // Renders the currently-configured transit (see fetchAndRenderTransit)
     // into the Divisional Chart panel, WITH degrees — the one entry in the
@@ -4196,6 +4201,7 @@
         }
       }
       d9Area.style.display = 'block';
+      syncDashaPanelHeight();
     }
     function fmtDeg(d) {
       if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
@@ -4316,6 +4322,24 @@
     // ═══════════════════════════════════════════════════
     // ── Dasha panel ──────────────────────────────────────────
     let dashaVisible = false;
+
+    // Dasha Periods matches the Divisional chart's height; with no Divisional
+    // chart showing (e.g. its Transit entry before the transit data has
+    // arrived) it falls back to the main chart's, so it never runs the full
+    // length of the list. Re-run whenever the Divisional chart is (re)drawn --
+    // the transit one in particular appears only after its fetch lands.
+    function syncDashaPanelHeight() {
+      const panel = document.getElementById('dashaPanel');
+      if (!panel || panel.style.display === 'none') return;
+      const d9Area = document.getElementById('d9Area');
+      const d9Svg = document.getElementById('d9Chart');
+      let h = (d9Area && d9Area.style.display !== 'none' && d9Svg) ? d9Svg.getBoundingClientRect().height : 0;
+      if (!h) {
+        const chartEl = document.getElementById('chart');
+        h = chartEl ? chartEl.getBoundingClientRect().height : 0;
+      }
+      if (h > 0) panel.style.height = h + 'px';
+    }
 
     function toggleDashaPanel() {
       dashaVisible = !dashaVisible;
@@ -4652,12 +4676,10 @@
       }
       populateDashaPanel(data);
       requestAnimationFrame(() => {
-        const d9Svg = document.getElementById('d9Chart');
         const panel = document.getElementById('dashaPanel');
         panel.style.marginTop = '0';
         if (!_isTestChart) panel.style.display = 'flex';
-        const d9h = d9Svg ? d9Svg.getBoundingClientRect().height : 0;
-        if (d9h > 0) panel.style.height = d9h + 'px';
+        syncDashaPanelHeight();
         dashaScrollNow();
       });
     }
