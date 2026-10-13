@@ -4358,7 +4358,7 @@
     let _alignResizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(_alignResizeTimer);
-      _alignResizeTimer = setTimeout(alignRashiBoxToChart, 150);
+      _alignResizeTimer = setTimeout(() => { alignRashiBoxToChart(); syncDashaPanelHeight(); }, 150);
     });
 
     // ═══════════════════════════════════════════════════
@@ -4381,6 +4381,22 @@
       if (!h) {
         const chartEl = document.getElementById('chart');
         h = chartEl ? chartEl.getBoundingClientRect().height : 0;
+      }
+      // Transit controls stacked inside the panel (Settings > Transit Control
+      // Position > Below Dasha Periods): #dashaInner is the flex:1 part that
+      // gives up the room, so on a phone, where the Divisional chart is short,
+      // it was squeezed to nothing and the controls sat right under the title
+      // with no dasha list. Grow the panel to fit title + controls + a usable
+      // stretch of the list (~9rem) instead.
+      const bar = document.getElementById('transitBar');
+      if (bar && bar.parentElement === panel && bar.style.display !== 'none') {
+        const title = document.getElementById('dashaShadowTitle');
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const need = (title ? title.getBoundingClientRect().height : 0)
+                   + bar.getBoundingClientRect().height
+                   + (parseFloat(getComputedStyle(panel).paddingBottom) || 0)
+                   + 9 * rem;
+        h = Math.max(h, need);
       }
       if (h > 0) panel.style.height = h + 'px';
     }
@@ -5244,6 +5260,7 @@
       bar.classList.toggle('tr-above', pos === 'above');
       bar.classList.toggle('tr-stacked', pos === 'dasha');
       alignRashiBoxToChart();
+      syncDashaPanelHeight(); // the panel's height depends on whether the bar is inside it
     }
 
     function updateTransitToolbarControls() {
