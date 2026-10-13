@@ -1852,31 +1852,138 @@
       pendingImportObj = null;
       document.getElementById('dlgImportConfirm').close();
     }
-    function applyImport() {
+    // Identity used to spot a chart that's already saved (or repeated within
+    // the import file): same name (case/whitespace-insensitive), date, time
+    // (seconds normalized) and birthplace to 2 decimals (~1 km).
+    function chartDupKey(c) {
+      const n = String(c.name || '').trim().toLowerCase();
+      const t = c.time ? ensureSeconds(String(c.time)) : '';
+      const la = parseFloat(c.lat), lo = parseFloat(c.lon);
+      return [n, c.date || '', t, Number.isFinite(la) ? la.toFixed(2) : '', Number.isFinite(lo) ? lo.toFixed(2) : ''].join('|');
+    }
+
+    // Gives every imported chart's locationName a matching atlas entry, so
+    // bulk imports (e.g. thousands of charts built outside the app) don't
+    // leave Charts/Transits/Muhurta without the place. Mutates `charts`
+    // (locationName may be pointed at an existing entry) and `atlas`.
+    // - Name already in the atlas at roughly the same spot: nothing to do.
+    // - Name not in the atlas, but an existing entry within ~2 km: reuse that
+    //   entry's name rather than adding a near-duplicate place.
+    // - Otherwise a new entry. If the name is taken by a far-away place
+    //   (same city name, different state/country), the new one is suffixed
+    //   with its coordinates instead of overwriting.
+    // New entries get an IANA tzName from /api/v1/tz-lookup (DST-correct
+    // offsets later); tz is that zone's standard offset. Without a tzName
+    // (lookup failed / no zone), tz falls back to the chart's own offset.
+    async function addImportedLocationsToAtlas(charts, atlas) {
+      const NEAR = 0.02, SAME = 0.1;
+      const entries = Object.entries(atlas).map(([name, v]) => ({ name, lat: parseFloat(v.lat), lon: parseFloat(v.lon) }));
+      const close = (e, la, lo, d) => Math.abs(e.lat - la) < d && Math.abs(e.lon - lo) < d;
+      const pending = [];   // new entries awaiting a tzName: {name, lat, lon, tz}
+      const pendingByName = {};
+      let reused = 0, noName = 0;
+      for (const c of charts) {
+        const la = parseFloat(c.lat), lo = parseFloat(c.lon);
+        let name = String(c.locationName || '').trim();
+        if (!name) { noName++; continue; }
+        if (!Number.isFinite(la) || !Number.isFinite(lo)) continue;
+        const existing = atlas[name];
+        if (existing && close({ lat: parseFloat(existing.lat), lon: parseFloat(existing.lon) }, la, lo, SAME)) continue;
+        const pend = pendingByName[name];
+        if (pend && close(pend, la, lo, SAME)) { c.locationName = name; continue; }
+        const near = entries.find(e => close(e, la, lo, NEAR));
+        if (near) { c.locationName = near.name; reused++; continue; }
+        if (existing || pend) {
+          name = `${name} (${la.toFixed(2)}, ${lo.toFixed(2)})`;
+          if (atlas[name] || pendingByName[name]) { c.locationName = name; continue; }
+        }
+        const rec = { name, lat: la, lon: lo, tz: parseFloat(c.tz) };
+        pending.push(rec);
+        pendingByName[name] = rec;
+        entries.push(rec);
+        c.locationName = name;
+      }
+
+      let zones = [];
+      let lookupFailed = false;
+      for (let i = 0; i < pending.length; i += 5000) {
+        const chunk = pending.slice(i, i + 5000);
+        try {
+          const res = await fetch('/api/v1/tz-lookup', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ points: chunk.map(p => ({ lat: p.lat, lon: p.lon })) }),
+          });
+          if (!res.ok) throw new Error('Server error ' + res.status);
+          zones = zones.concat((await res.json()).zones);
+        } catch (err) {
+          console.warn('[import] tz lookup failed:', err);
+          lookupFailed = true;
+          zones = zones.concat(chunk.map(() => null));
+        }
+      }
+      pending.forEach((p, i) => {
+        const tzName = zones[i] || '';
+        let tz = p.tz;
+        if (tzName) {
+          try {
+            tz = Math.min(getOffsetForDate(tzName, '2000-01-15'), getOffsetForDate(tzName, '2000-07-15'));
+          } catch { /* unknown to this browser's Intl: keep the chart's own offset */ }
+        }
+        if (!Number.isFinite(tz)) tz = 0;
+        atlas[p.name] = { lat: p.lat.toFixed(4), lon: p.lon.toFixed(4), tz, ...(tzName && { tzName }) };
+      });
+      return { added: pending.length, reused, noName, lookupFailed };
+    }
+
+    async function applyImport() {
       const obj = pendingImportObj;
       if (!obj) return;
       const mode = document.querySelector('input[name="importMode"]:checked').value;
+      pendingImportObj = null;
+      document.getElementById('dlgImportConfirm').close();
       let imported = 0;
+      let chartStats = null, atlasStats = null;
+      // Atlas first, so locations the file brings along are there for the
+      // chart pass to match against. Merge adds only names not already saved
+      // -- it never replaces the user's whole atlas or edits their entries.
+      let incomingAtlas = obj[ATLAS_KEY];
+      if (typeof incomingAtlas === 'string') { try { incomingAtlas = JSON.parse(incomingAtlas); } catch { incomingAtlas = null; } }
+      if (incomingAtlas && typeof incomingAtlas === 'object' && !Array.isArray(incomingAtlas)) {
+        setAtlas(mode === 'overwrite' ? incomingAtlas : { ...incomingAtlas, ...getAtlas() });
+        imported++;
+      }
       for (const [k, v] of Object.entries(obj)) {
-        if (!k.startsWith('jyotish_')) continue;
+        if (!k.startsWith('jyotish_') || k === ATLAS_KEY) continue;
         if (k === CHARTS_KEY) {
           const importedCharts = Array.isArray(v) ? v : [];
-          let charts;
-          if (mode === 'overwrite') {
-            charts = importedCharts;
-          } else {
-            const remapped = importedCharts.map(c => ({ ...c, id: genChartId() }));
-            charts = getCharts().concat(remapped);
+          const base = mode === 'overwrite' ? [] : getCharts();
+          const seen = new Set(base.map(chartDupKey));
+          const fresh = [];
+          let dups = 0;
+          for (const c of importedCharts) {
+            const key = chartDupKey(c);
+            if (seen.has(key)) { dups++; continue; }
+            seen.add(key);
+            fresh.push({ ...c, id: genChartId() });
           }
+          const atlas = getAtlas();
+          // Saved charts whose locationName has no atlas entry get the same
+          // treatment as new ones -- e.g. charts brought in by an older Import
+          // that never built the atlas. Re-importing the same file then fills
+          // the atlas even though every chart in it is skipped as a duplicate.
+          const orphaned = base.filter(c => String(c.locationName || '').trim() && !atlas[String(c.locationName).trim()]);
+          atlasStats = await addImportedLocationsToAtlas(fresh.concat(orphaned), atlas);
+          atlasStats.repaired = orphaned.length;
+          setAtlas(atlas);
+          const charts = base.concat(fresh);
           charts.sort((a,b) => a.name.localeCompare(b.name));
           setCharts(charts);
+          chartStats = { added: fresh.length, dups };
         } else {
           localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
         }
         imported++;
       }
-      pendingImportObj = null;
-      document.getElementById('dlgImportConfirm').close();
       if (imported === 0) { alert('No Jyotish data found in the file — nothing imported.'); return; }
       rawVisible   = localStorage.getItem(RAW_KEY) === '1';
       testsVisible = localStorage.getItem(TESTS_KEY) !== '0';
@@ -1884,8 +1991,19 @@
       document.getElementById('chkTests').checked     = testsVisible;
       applyRawState();
       applyTestsState();
+      rebuildAtlasList();
+      rebuildNewAtlasSelect();
       updateMenuState();
-      alert('Import complete. Reload the page to restore saved charts and atlas.');
+      const lines = ['Import complete.'];
+      if (chartStats) {
+        lines.push(`Charts added: ${chartStats.added}` + (chartStats.dups ? `  (duplicates skipped: ${chartStats.dups})` : ''));
+        lines.push(`New atlas locations: ${atlasStats.added}` + (atlasStats.reused ? `  (matched to existing nearby locations: ${atlasStats.reused})` : ''));
+        if (atlasStats.repaired) lines.push(`Existing charts whose location was missing from the atlas, now linked: ${atlasStats.repaired}`);
+        if (atlasStats.noName) lines.push(`Charts with no location name (not added to the atlas): ${atlasStats.noName}`);
+        if (atlasStats.lookupFailed) lines.push('Time zone lookup failed for some new locations — they use each chart\'s own UTC offset with no DST rules.');
+      }
+      lines.push('Reload the page to restore saved charts and atlas.');
+      alert(lines.join('\n'));
     }
 
     // ═══════════════════════════════════════════════════

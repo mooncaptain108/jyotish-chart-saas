@@ -10,3 +10,10 @@ Since the browser keeps the data in its cache the browser settings for cache man
 To move data to another location and to prevent loss of data use the Export button found in Settings (click the Gear icon). From there you can restore the data or load the file using the Import button into another browser or copy it to another computer to be loaded there.
 
 No data is stored on the server that is running Jyotish Query.
+
+When importing with **Merge**:
+- Charts you already have (same name, date, time and birthplace) are skipped, as are repeats within the file, so importing the same file twice does not create duplicates.
+- Any chart whose location is not yet in your Atlas gets an Atlas entry created for it automatically, with its time zone looked up from the coordinates. If an existing Atlas location is within about 2 km, the chart is pointed at that one instead of adding a near-duplicate. A different place that happens to share a name with an existing entry is added with its coordinates in brackets after the name.
+- Locations carried in the file are added to your Atlas, but never replace ones you already have.
+
+A summary at the end shows how many charts were added, how many duplicates were skipped and how many Atlas locations were created.

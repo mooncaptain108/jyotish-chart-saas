@@ -66,3 +66,19 @@ def geocode_place(place: str) -> dict | None:
         "timezone": tz_name,
         "timezone_offset": offset_hours,
     }
+
+
+def tz_names_for_points(points: list[tuple[float, float]]) -> list[str | None]:
+    """IANA timezone name for each (lat, lon) point, offline via timezonefinder.
+
+    Used by chart Import to give auto-created atlas entries a DST-aware
+    tzName. None where no zone is found (e.g. open ocean) or the point is
+    out of range.
+    """
+    out: list[str | None] = []
+    for lat, lon in points:
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            out.append(None)
+            continue
+        out.append(_tf.timezone_at(lat=lat, lng=lon))
+    return out

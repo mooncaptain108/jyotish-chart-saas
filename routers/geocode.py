@@ -1,8 +1,9 @@
 """Geocode API router — /api/v1/geocode and /api/v1/tz-offset endpoints."""
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
-from services.geocode_service import geocode_place, tz_offset_for_date
+from services.geocode_service import geocode_place, tz_names_for_points, tz_offset_for_date
 
 router = APIRouter(prefix="/api/v1", tags=["geocode"])
 
@@ -27,3 +28,18 @@ def tz_offset(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"timezone": iana_tz, "date": date, **result}
+
+
+class TzLookupPoint(BaseModel):
+    lat: float
+    lon: float
+
+
+class TzLookupRequest(BaseModel):
+    points: list[TzLookupPoint] = Field(..., max_length=20000)
+
+
+@router.post("/tz-lookup")
+def tz_lookup(req: TzLookupRequest):
+    """Batch lat/lon -> IANA timezone name (null where none), in request order."""
+    return {"zones": tz_names_for_points([(p.lat, p.lon) for p in req.points])}
