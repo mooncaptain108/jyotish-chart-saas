@@ -162,6 +162,13 @@
     /* Bold chart text — overrides the inline font-weight on planet/degree SVG labels
        (CSS beats SVG presentation attributes, so this needs no changes to renderChart). */
     body.chart-bold svg text.pl { font-weight: 700; }
+    /* ...and the planet glyphs to match. They're SVG line drawings shown
+       through <use>, so neither font-weight nor selectors reaching into the
+       sprite apply -- but inherited custom properties do. The g-* symbols
+       read their line widths from these; filled parts (Moon crescent,
+       Sun/Rahu/Ketu dots) get a same-colour outline of --gph-fill-sw.
+       2.9 keeps every stroke inside the 24x24 viewBox. */
+    body.chart-bold { --gph-sw: 2.9px; --gph-sw-node: 3.1px; --gph-fill-sw: 0.9px; }
     .stg-check { display:flex; align-items:center; gap:0.55rem; color:#c0c0d0; font-size:0.88rem; cursor:pointer; user-select:none; }
     .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
     .stg-select { display:flex; flex-direction:column; gap:0.3rem; color:#c0c0d0; font-size:0.88rem; }
@@ -422,49 +429,49 @@
   <svg width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true" focusable="false">
     <defs>
       <symbol id="g-sun" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/>
-        <circle cx="12" cy="12" r="2.1" fill="currentColor"/>
+        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"/>
+        <circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)"/>
       </symbol>
       <symbol id="g-moon" viewBox="0 0 24 24">
-        <path fill="currentColor" d="M7.5 3A9 9 0 0 1 7.5 21A10 10 0 0 0 7.5 3Z"/>
+        <path fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)" d="M7.5 3A9 9 0 0 1 7.5 21A10 10 0 0 0 7.5 3Z"/>
       </symbol>
       <symbol id="g-mars" viewBox="0 0 24 24">
-        <circle cx="10.5" cy="13.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="10.5" cy="13.5" r="6" fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"/>
         <path d="M14.9 9.1 20 4 M15 4H20V9" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          style="stroke-width:var(--gph-sw,2px)" stroke-linecap="round" stroke-linejoin="round"/>
       </symbol>
       <symbol id="g-mercury" viewBox="0 0 24 24">
         <path d="M8.4 4a3.6 3.6 0 0 0 7.2 0" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round"/>
-        <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 16.5V22 M8.6 19.2H15.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          style="stroke-width:var(--gph-sw,2px)" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"/>
+        <path d="M12 16.5V22 M8.6 19.2H15.4" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)" stroke-linecap="round"/>
       </symbol>
       <symbol id="g-jupiter" viewBox="0 0 24 24">
         <path d="M6 8c0-4 6-4 6 0 0 5-5 8-8 12h13 M15 5V21.5"
-          fill="none" stroke="currentColor" stroke-width="2"
+          fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"
           stroke-linecap="round" stroke-linejoin="round"/>
       </symbol>
       <symbol id="g-venus" viewBox="0 0 24 24">
-        <circle cx="12" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14.5V22 M8.2 18.3H15.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="8.5" r="6" fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"/>
+        <path d="M12 14.5V22 M8.2 18.3H15.8" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)" stroke-linecap="round"/>
       </symbol>
       <symbol id="g-saturn" viewBox="0 0 24 24">
         <path d="M7 4V20 M7 13C7 9 15.5 9 15.5 13.5L15.5 22"
-          fill="none" stroke="currentColor" stroke-width="2"
+          fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)"
           stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M4.8 6.8H9.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4.8 6.8H9.2" stroke="currentColor" style="stroke-width:var(--gph-sw,2px)" stroke-linecap="round"/>
       </symbol>
       <symbol id="g-rahu" viewBox="0 0 24 24">
         <path d="M8 19.7A7.5 7.5 0 1 1 16 19.7"
-          fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
-        <circle cx="8" cy="19.7" r="2.1" fill="currentColor"/>
-        <circle cx="16" cy="19.7" r="2.1" fill="currentColor"/>
+          fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw-node,2.3px)" stroke-linecap="round"/>
+        <circle cx="8" cy="19.7" r="2.1" fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)"/>
+        <circle cx="16" cy="19.7" r="2.1" fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)"/>
       </symbol>
       <symbol id="g-ketu" viewBox="0 0 24 24">
         <path d="M8 4.3A7.5 7.5 0 1 0 16 4.3"
-          fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
-        <circle cx="8" cy="4.3" r="2.1" fill="currentColor"/>
-        <circle cx="16" cy="4.3" r="2.1" fill="currentColor"/>
+          fill="none" stroke="currentColor" style="stroke-width:var(--gph-sw-node,2.3px)" stroke-linecap="round"/>
+        <circle cx="8" cy="4.3" r="2.1" fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)"/>
+        <circle cx="16" cy="4.3" r="2.1" fill="currentColor" stroke="currentColor" stroke-linejoin="round" style="stroke-width:var(--gph-fill-sw,0)"/>
       </symbol>
 
       <!-- ══ Rashi (zodiac sign) glyphs — Settings › Sign glyphs ══ -->
