@@ -17,3 +17,5 @@ When importing with **Merge**:
 - Locations carried in the file are added to your Atlas, but never replace ones you already have.
 
 A summary at the end shows how many charts were added, how many duplicates were skipped and how many Atlas locations were created.
+
+**Backup reminder:** the opening screen shows a green line when charts or Atlas locations have been added, changed or deleted since your last full export (an export with every chart ticked), with the date of that export. It disappears after the next full export.

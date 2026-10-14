@@ -52,6 +52,10 @@
        collapse it then so the panels sit right under the toolbar -- its
        padding/min-height/margin were a ~23px dead band on phones/tablets. */
     #chartTitle:empty { display:none; }
+    /* Backup reminder, first line of the opening-screen message (see
+       refreshBackupReminder). Lives inside #chartTitle so it disappears with
+       the rest of that text once a chart is drawn. */
+    #backupReminder { display:block; color:#39ff14; margin-bottom:0.25rem; }
     /* ── Transit control bar ──
        Sits directly below the main wheel, inside #chartArea, rather than in
        the toolbar: on a phone/tablet the toolbar's right-hand end is
@@ -303,6 +307,7 @@
     body.light .tb-select { color: #2a2a3e; border-color: #c0a870; }
     body.light .tb-select:hover { background: #d8d0bc; border-color: #a09060; }
     body.light #chartTitle { color: #5a5860; }
+    body.light #backupReminder { color: #0a7a00; }
     /* #transitBar's fields: same light-theme treatment as any other dialog
        field (they share that rule's look, not .tb-select's transparent one),
        respelled under #transitBar so it outranks the generic rule rather than
@@ -1527,7 +1532,7 @@
     }
 
     function getAtlas()   { try { return JSON.parse(localStorage.getItem(ATLAS_KEY)  || '{}'); } catch { return {}; } }
-    function setAtlas(v)  { localStorage.setItem(ATLAS_KEY,  JSON.stringify(v)); }
+    function setAtlas(v)  { writeTracked(ATLAS_KEY, v); }
     function genChartId() {
       return (crypto.randomUUID ? crypto.randomUUID() : ('c_' + Date.now().toString(36) + Math.random().toString(36).slice(2)));
     }
@@ -1536,10 +1541,55 @@
       try { arr = JSON.parse(localStorage.getItem(CHARTS_KEY) || '[]'); } catch { arr = []; }
       let changed = false;
       for (const c of arr) { if (!c.id) { c.id = genChartId(); changed = true; } }
-      if (changed) setCharts(arr);
+      // Direct write: assigning ids isn't a user change, so it mustn't
+      // trip the backup reminder the way setCharts would.
+      if (changed) localStorage.setItem(CHARTS_KEY, JSON.stringify(arr));
       return arr;
     }
-    function setCharts(v) { localStorage.setItem(CHARTS_KEY, JSON.stringify(v)); }
+    function setCharts(v) { writeTracked(CHARTS_KEY, v); }
+
+    // ── Backup reminder ──
+    // LAST_CHANGE_KEY: when charts/atlas last actually changed (add, edit,
+    // delete, import). LAST_EXPORT_KEY: when the last FULL export was saved
+    // (every chart ticked; the atlas is always included). Both are left out
+    // of exports and ignored on import, so restoring an old backup can't
+    // roll them back.
+    const LAST_CHANGE_KEY = 'jyotish_last_data_change';
+    const LAST_EXPORT_KEY = 'jyotish_last_export';
+    const BACKUP_META_KEYS = new Set([LAST_CHANGE_KEY, LAST_EXPORT_KEY]);
+
+    function writeTracked(key, v) {
+      const json = JSON.stringify(v);
+      if (localStorage.getItem(key) === json) return; // no real change
+      localStorage.setItem(key, json);
+      localStorage.setItem(LAST_CHANGE_KEY, new Date().toISOString());
+      refreshBackupReminder();
+    }
+
+    function backupReminderText() {
+      if (!getCharts().length && !Object.keys(getAtlas()).length) return '';
+      const lastExport = localStorage.getItem(LAST_EXPORT_KEY);
+      if (!lastExport) return 'Data has been entered but has not been saved/exported yet.';
+      const lastChange = localStorage.getItem(LAST_CHANGE_KEY);
+      if (!lastChange || lastChange <= lastExport) return '';
+      const d = new Date(lastExport);
+      const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const when = String(d.getDate()).padStart(2, '0') + '-' + MON[d.getMonth()] + '-' + d.getFullYear();
+      return `Data has been entered since you last saved/exported on ${when}`;
+    }
+
+    // Shown only on the opening screen: as the first line of #chartTitle's
+    // "Enter New Location..." message. Drawing a chart clears #chartTitle,
+    // so it goes with it and never takes space next to a chart.
+    function refreshBackupReminder() {
+      const title = document.getElementById('chartTitle');
+      if (!title) return;
+      const old = document.getElementById('backupReminder');
+      if (!old && !/Enter New Location/.test(title.textContent)) return;
+      if (old) old.remove();
+      const text = backupReminderText();
+      if (text) title.insertAdjacentHTML('afterbegin', `<span id="backupReminder">${esc(text)}</span>`);
+    }
 
     // ═══════════════════════════════════════════════════
     // Draggable dialogs
@@ -1844,7 +1894,7 @@
     }
     function doExportSelected() {
       const selectedIds = new Set(Array.from(document.querySelectorAll('.export-chk:checked')).map(cb => cb.dataset.id));
-      const keys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_'));
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('jyotish_') && !BACKUP_META_KEYS.has(k));
       const obj = {};
       for (const k of keys) {
         const v = localStorage.getItem(k);
@@ -1858,6 +1908,10 @@
       a.click();
       URL.revokeObjectURL(a.href);
       document.getElementById('dlgExport').close();
+      if (selectedIds.size === getCharts().length) {
+        localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString());
+        refreshBackupReminder();
+      }
     }
 
     let pendingImportObj = null;
@@ -1984,7 +2038,7 @@
         imported++;
       }
       for (const [k, v] of Object.entries(obj)) {
-        if (!k.startsWith('jyotish_') || k === ATLAS_KEY) continue;
+        if (!k.startsWith('jyotish_') || k === ATLAS_KEY || BACKUP_META_KEYS.has(k)) continue;
         if (k === CHARTS_KEY) {
           const importedCharts = Array.isArray(v) ? v : [];
           const base = mode === 'overwrite' ? [] : getCharts();
@@ -6828,6 +6882,7 @@
       tcbRefreshDropdown();
       tcbExpRender();
       updateMenuState();
+      refreshBackupReminder();
     });
 
     // ── Theme toggle (DR button = light mode) ──
