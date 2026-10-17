@@ -128,9 +128,6 @@
     #rashiBox { display:none; width:min(57.2vw,57.2vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 5% 3%; container-type:inline-size; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
     #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#182038; overflow-x:auto; }
-    /* "Mobile display" setting also swaps these two panel titles' gold for
-       plain menu-item text color, same reasoning as getTheme()'s chartTitle. */
-    body.chart-bold #dashaShadowTitle, body.chart-bold #rashiTitle { color:#c0c0d0; }
     #rashiTable { width:100%; border-collapse:collapse; font-family:monospace; font-size:min(1.09rem, 1.60vh); }
     #rashiTable td { padding:1px 5px; white-space:nowrap; }
     .dasha-hdr-btns { display:flex; gap:3px; justify-content:center; padding:4px 0; flex-shrink:0; }
@@ -159,16 +156,10 @@
     .stg-body { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.7rem; overflow-y:auto; }
     .stg-divider { border:none; border-top:1px solid #0f3460; margin:0.2rem 0; }
     .stg-btn { width:100%; text-align:left; }
-    /* Bold chart text — overrides the inline font-weight on planet/degree SVG labels
-       (CSS beats SVG presentation attributes, so this needs no changes to renderChart). */
-    body.chart-bold svg text.pl { font-weight: 700; }
-    /* ...and the planet glyphs to match. They're SVG line drawings shown
-       through <use>, so neither font-weight nor selectors reaching into the
-       sprite apply -- but inherited custom properties do. The g-* symbols
-       read their line widths from these; filled parts (Moon crescent,
-       Sun/Rahu/Ketu dots) get a same-colour outline of --gph-fill-sw.
-       2.9 keeps every stroke inside the 24x24 viewBox. */
-    body.chart-bold { --gph-sw: 2.9px; --gph-sw-node: 3.1px; --gph-fill-sw: 0.9px; }
+    /* Interface Tweaks > Chart text bold — overrides the inline font-weight on
+       planet/degree SVG labels (CSS beats SVG presentation attributes, so
+       this needs no changes to renderChart). */
+    body.tw-chart-text-bold svg text.pl { font-weight: 700; }
     .stg-check { display:flex; align-items:center; gap:0.55rem; color:#c0c0d0; font-size:0.88rem; cursor:pointer; user-select:none; }
     .stg-check input[type=checkbox] { cursor:pointer; accent-color:#c9a84c; width:14px; height:14px; }
     .stg-select { display:flex; flex-direction:column; gap:0.3rem; color:#c0c0d0; font-size:0.88rem; }
@@ -178,11 +169,11 @@
     dialog::backdrop { background:rgba(0,0,0,0.15); }
     .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
-    /* "Mobile display" setting also swaps the Analysis/Chart & Transits and
+    /* Interface Tweaks > Analysis text plain swaps the Analysis/Chart & Transits and
        Muhurta Evaluation dialog titles' gold for plain menu-item text color
        -- scoped to just these two dialogs, not every dialog's title. */
-    body.chart-bold #dlgAnalysis .dlg-header h2,
-    body.chart-bold #dlgMuhurtaEval .dlg-header h2 { color:#c0c0d0; }
+    body.tw-analysis-plain #dlgAnalysis .dlg-header h2,
+    body.tw-analysis-plain #dlgMuhurtaEval .dlg-header h2 { color:#c0c0d0; }
     .dlg-body { padding:1.25rem; }
     .dlg-body-md { color:#c0c0d0; }
     .dlg-footer { display:flex; gap:0.5rem; justify-content:flex-end; padding:0.75rem 1.25rem; border-top:1px solid #0f3460; }
@@ -256,13 +247,13 @@
     .c-green { color:#70c070; }
     .c-muted { color:#606070; }
     .c-gold  { color:#c9a84c; }
-    /* "Mobile display" setting also swaps this gold (Analysis/Chart & Transits
+    /* Interface Tweaks > Analysis text plain swaps this gold (Analysis/Chart & Transits
        popovers -- overall/MT-lord strength labels, section headers) AND
        c-brown -- #c8a060 reads as the same gold/tan family, and it's the
        dominant color for affliction/debilitation/dushtana/etc. detail lines
        there, all 25 uses of which are within these same two dialogs -- for
        the same plain menu-item text color used for the main-screen panel titles. */
-    body.chart-bold .c-gold, body.chart-bold .c-brown { color:#c0c0d0; }
+    body.tw-analysis-plain .c-gold, body.tw-analysis-plain .c-brown { color:#c0c0d0; }
     .tcbs-table { width:100%; border-collapse:collapse; font-family:monospace; font-size:12px; }
     .tcbs-table td { padding:2px 6px; }
     .tcbs-lbl  { color:#a0a0b0; width:75px; }
@@ -328,7 +319,6 @@
     body.light #rashiBox { background: #ede8d8; }
     body.light #rashiTitle { color: #7a5808; }
     body.light #rashiInner { background: #f8f4e8; border-color: #c09040; }
-    body.light.chart-bold #dashaShadowTitle, body.light.chart-bold #rashiTitle { color:#2a2a3e; }
     body.light .dasha-hdr-btns button { background: #e8e2d0; color: #2a2a3e; border-color: #c0a870; }
     body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #222240; }
     body.light .dr.dr-now { background: #d0ead0; border-left-color: #208020; color: #204820; }
@@ -355,8 +345,8 @@
     }
     body.light .dlg-header { border-bottom-color: #c0a870; }
     body.light .dlg-header h2 { color: #7a5808; }
-    body.light.chart-bold #dlgAnalysis .dlg-header h2,
-    body.light.chart-bold #dlgMuhurtaEval .dlg-header h2 { color:#2a2a3e; }
+    body.light.tw-analysis-plain #dlgAnalysis .dlg-header h2,
+    body.light.tw-analysis-plain #dlgMuhurtaEval .dlg-header h2 { color:#2a2a3e; }
     .fm-q-btn { background:#0d1f4a;border:1px solid #2a4a8e;border-radius:50%;color:#dde8ff;font-size:0.72rem;width:1.15rem;height:1.15rem;line-height:1;padding:0;cursor:pointer;flex-shrink:0; }
     body.light .fm-q-btn { background:#2244aa;border:1px solid #1133aa;color:#ffffff;font-weight:bold; }
     body.light .dlg-footer { border-top-color: #c0a870; }
@@ -405,7 +395,7 @@
     body.light .an-section-head { color: #5a5860; border-bottom-color: #c0a870; }
     body.light .an-loc, body.light .an-run { color: #6a6a80; }
     body.light .c-gold { color: #7a5808; }
-    body.light.chart-bold .c-gold { color: #2a2a3e; }
+    body.light.tw-analysis-plain .c-gold { color: #2a2a3e; }
     body.light .md-content h1, body.light .md-content h2, body.light .md-content h3, body.light .md-content h4 { color: #7a5808; }
     body.light .md-content a { color: #2060a0; }
     body.light .tcb-exp-table th { color: #5a5878; }
@@ -416,9 +406,71 @@
     body.light .c-red   { color: #c02020; }
     body.light .c-blue  { color: #2040c0; }
     body.light .c-brown { color: #7a5010; }
-    body.light.chart-bold .c-brown { color: #2a2a3e; }
+    body.light.tw-analysis-plain .c-brown { color: #2a2a3e; }
     body.light .c-green { color: #206020; }
     body.light .an-item.c-gray  { color: #606070; }
+    /* ── Interface Tweaks (Settings > Interface Tweaks; body.tw-* classes,
+       see TWEAKS in the script) ──
+       Glyphs are SVG line drawings shown through <use>; selectors can't
+       reach into those clones, but inherited custom properties can, so the
+       g- and s- symbols read their line widths from these (fallbacks are the
+       original widths). "White" options use near-black in the light theme,
+       where white would vanish on the cream background. */
+    body.tw-pg-bold { --gph-sw: 2.9px; --gph-sw-node: 3.1px; --gph-fill-sw: 0.9px; }
+    body.tw-sg-bold { --sgh-sw: 2.8px; }
+    body.tw-pg-white svg use.gp, body.tw-sg-white svg use.gs { color:#ffffff !important; }
+    body.light.tw-pg-white svg use.gp, body.light.tw-sg-white svg use.gs { color:#1a1a2e !important; }
+    /* Planets/Signs Bold & White also cover the text forms: planet names
+       (tspan/text .pn, not the degree after them) and house sign numbers
+       (text.hn -- already bold weight, so Bold adds a same-colour outline).
+       Degrees bold (tw-chart-text-bold) bolds whole labels; names stay
+       normal under it unless Planets Bold is on too. */
+    body.tw-chart-text-bold:not(.tw-pg-bold) svg .pn { font-weight:normal; }
+    body.tw-pg-bold svg .pn { font-weight:700; }
+    body.tw-pg-white svg .pn { fill:#ffffff; }
+    body.light.tw-pg-white svg .pn { fill:#1a1a2e; }
+    body.tw-sg-bold svg text.hn { stroke-width:0.6px; stroke-linejoin:round; }
+    body.tw-sg-white svg text.hn { fill:#ffffff; stroke:#ffffff; }
+    body.light.tw-sg-white svg text.hn { fill:#1a1a2e; stroke:#1a1a2e; }
+    /* Text <-> glyph switch (the old checkbox, restyled; the whole row is
+       its <label>, so tapping either side flips it). */
+    .tw-mode { display:flex; align-items:center; gap:0.6rem; cursor:pointer; user-select:none; font-family:monospace; font-size:0.95rem; color:#606070; }
+    .tw-mode .gph { width:1.2em; height:1.2em; vertical-align:-0.25em; }
+    .tw-mode input { appearance:none; -webkit-appearance:none; margin:0; flex:none; width:2.4rem; height:1.3rem; border-radius:0.65rem; background:#0f3460; border:1px solid #3a5a8a; position:relative; cursor:pointer; transition:background 0.15s; }
+    .tw-mode input::before { content:''; position:absolute; top:2px; left:2px; width:calc(1.3rem - 6px); height:calc(1.3rem - 6px); border-radius:50%; background:#c0c0d0; transition:transform 0.15s; }
+    .tw-mode input:checked { background:#7a5a20; }
+    .tw-mode input:checked::before { transform:translateX(1.1rem); }
+    .tw-mode:not(:has(input:checked)) .tw-opt-text, .tw-mode:has(input:checked) .tw-opt-glyph { color:#c9a84c; }
+    body.light .tw-mode { color:#a09888; }
+    body.light .tw-mode input { background:#e8e2d0; border-color:#a09060; }
+    body.light .tw-mode input::before { background:#7a5808; }
+    body.light .tw-mode input:checked { background:#d0b070; }
+    body.light .tw-mode:not(:has(input:checked)) .tw-opt-text, body.light .tw-mode:has(input:checked) .tw-opt-glyph { color:#7a5808; }
+    body.tw-menu-bold .toolbar .tb-btn, body.tw-menu-bold .toolbar .tb-select,
+    body.tw-menu-bold .tb-menu li button { font-weight:600; color:#ffffff; }
+    body.light.tw-menu-bold .toolbar .tb-btn, body.light.tw-menu-bold .toolbar .tb-select,
+    body.light.tw-menu-bold .tb-menu li button { color:#1a1a2e; }
+    body.tw-panel-white #dashaShadowTitle, body.tw-panel-white #rashiTitle { color:#ffffff; }
+    body.light.tw-panel-white #dashaShadowTitle, body.light.tw-panel-white #rashiTitle { color:#1a1a2e; }
+    /* ...and, in Dasha Periods, the Now/Top buttons (bold, same size) and the
+       period dates (same size). */
+    body.tw-panel-white .dasha-hdr-btns button { font-weight:700; color:#ffffff; }
+    body.light.tw-panel-white .dasha-hdr-btns button { color:#1a1a2e; }
+    body.tw-panel-white .dr .dr-date { color:#ffffff; }
+    body.light.tw-panel-white .dr .dr-date { color:#1a1a2e; }
+    body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#ffffff; }
+    body.light.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#1a1a2e; }
+    /* White reads much heavier than gold at the same width (contrast), so
+       white lines are drawn thinner to look like the gold 1-unit default,
+       and Bold is the step up: gold 1 -> 1.5, white 0.65 -> 1. */
+    body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke-width:0.65px; }
+    body.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1.5px; }
+    body.tw-lines-white.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1px; }
+    #dlgTweaks .tw-body { display:flex; flex-direction:column; gap:0.7rem; }
+    .tw-group { border:1px solid #0f3460; border-radius:4px; padding:0.5rem 0.75rem 0.6rem; display:flex; flex-direction:column; gap:0.45rem; }
+    .tw-group-title { font-size:0.75rem; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.04em; }
+    body.light .tw-group { border-color:#c0a870; }
+    body.light .tw-group-title { color:#5a5860; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -476,53 +528,53 @@
 
       <!-- ══ Rashi (zodiac sign) glyphs — Settings › Sign glyphs ══ -->
       <symbol id="s-ari" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M12 21V10.5 M12 10.5C12 5 8 3.5 6.2 6 5.4 7.2 5.7 9 6 10.5 M12 10.5C12 5 16 3.5 17.8 6 18.6 7.2 18.3 9 18 10.5"/>
       </symbol>
       <symbol id="s-tau" viewBox="0 0 24 24">
-        <circle cx="12" cy="15.5" r="5.6" fill="none" stroke="currentColor" stroke-width="1.9"/>
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M4.5 5C5.5 12 18.5 12 19.5 5"/>
+        <circle cx="12" cy="15.5" r="5.6" fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)"/>
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round" d="M4.5 5C5.5 12 18.5 12 19.5 5"/>
       </symbol>
       <symbol id="s-gem" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M8 4.5V19.5 M16 4.5V19.5 M5.5 4.5H18.5 M5.5 19.5H18.5"/>
       </symbol>
       <symbol id="s-can" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M17.5 8C14.5 4 10.5 3.5 7.5 5 4 6.5 2.5 10 5 12.5 7.5 14.5 10.5 12.5 9.5 9.5 8.8 7.5 6.5 7.5 6 9.5"/>
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M6.5 16C9.5 20 13.5 20.5 16.5 19 20 17.5 21.5 14 19 11.5 16.5 9.5 13.5 11.5 14.5 14.5 15.2 16.5 17.5 16.5 18 14.5"/>
       </symbol>
       <symbol id="s-leo" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M4.5 15.5C4 18 5.5 19 7.5 18 9.5 15 7 11 5.5 8.5 5.5 4.5 8.8 2 12 2 15.2 2 18.5 4.5 18.5 8.5 17 11 14.5 15 16.5 18 18.5 19 20 18 19.5 15.5"/>
       </symbol>
       <symbol id="s-vir" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M4 19V9 M4 9C4 5.5 8 5.5 8 9V19 M8 9C8 5.5 12 5.5 12 9V17 C12 21 16 21 16.5 16 M14 12.5C18 12 19.5 15 18 18 16.8 20.4 13.5 20 13 17"/>
       </symbol>
       <symbol id="s-lib" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M4 19H20 M4 14H8.5C8.5 9 15.5 9 15.5 14H20"/>
       </symbol>
       <symbol id="s-sco" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round" stroke-linejoin="round"
           d="M4 19V9 M4 9C4 5.5 8 5.5 8 9V19 M8 9C8 5.5 12 5.5 12 9V17.5L18 12 M14.5 12H18V15.5"/>
       </symbol>
       <symbol id="s-sag" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round" stroke-linejoin="round"
           d="M5 19L18 6 M12 6H18V12 M8.5 12.5H14.5"/>
       </symbol>
       <symbol id="s-cap" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round" stroke-linejoin="round"
           d="M4 5 9 18 12.5 9.5 19.5 9.5 C20 6 19 3.8 17 4 C15.5 4.2 15 7 15.5 10 C18 11.5 18 14 15.5 15"/>
       </symbol>
       <symbol id="s-aqu" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round" stroke-linejoin="round"
           d="M3.5 10.5L7 8L10.5 10.5L14 8L17.5 10.5L21 8 M3.5 15.5L7 13L10.5 15.5L14 13L17.5 15.5L21 13"/>
       </symbol>
       <symbol id="s-pis" viewBox="0 0 24 24">
-        <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+        <path fill="none" stroke="currentColor" style="stroke-width:var(--sgh-sw,1.9px)" stroke-linecap="round"
           d="M7.5 4C11 8 11 16 7.5 20 M16.5 4C13 8 13 16 16.5 20 M7.5 12H16.5"/>
       </symbol>
     </defs>
@@ -696,12 +748,8 @@
       <label class="stg-check"><input type="checkbox" id="chkEphemeris"> Show API Data</label>
       <label class="stg-check"><input type="checkbox" id="chkTests"> Show Tests…</label>
       <label class="stg-check"><input type="checkbox" id="chkShowWelcome"> Show Welcome Message</label>
-      <label class="stg-check"><input type="checkbox" id="chkDegMin"> Degrees: deg:min</label>
-      <label class="stg-check"><input type="checkbox" id="chkDecimal"> Degrees: decimal</label>
       <hr class="stg-divider">
-      <label class="stg-check"><input type="checkbox" id="chkChartBold"> Mobile display</label>
-      <label class="stg-check"><input type="checkbox" id="chkGlyphs"> Planet glyphs (instead of Su/Mo/…)</label>
-      <label class="stg-check"><input type="checkbox" id="chkSignGlyphs"> Sign glyphs (instead of Ar/Ta/… and 1–12)</label>
+      <button class="btn-sec stg-btn" onclick="openTweaks()">Interface Tweaks</button>
       <label class="stg-select">Transit Control Position
         <select id="selTransitBarPos">
           <option value="above">Above Transit Chart</option>
@@ -712,6 +760,56 @@
 
     </div>
   </div>
+
+  <!-- ════ Interface Tweaks (from Settings) ════ -->
+  <dialog id="dlgTweaks" style="max-width:340px;">
+    <div class="dlg-header">
+      <h2>Interface Tweaks</h2>
+      <button class="dlg-close-x" onclick="document.getElementById('dlgTweaks').close()">✕</button>
+    </div>
+    <div class="dlg-body tw-body">
+      <div class="tw-group">
+        <span class="tw-group-title">Degrees</span>
+        <label class="tw-mode" title="Degrees as deg:min or decimal">
+          <span class="tw-opt-text">4:30</span>
+          <input type="checkbox" id="chkDegDecimal" aria-label="Decimal degrees">
+          <span class="tw-opt-glyph">4.50</span>
+        </label>
+        <label class="stg-check"><input type="checkbox" id="chkTwChartTextBold"> Degrees bold</label>
+      </div>
+      <div class="tw-group">
+        <span class="tw-group-title">Planets</span>
+        <label class="tw-mode" title="Planet names as text or glyphs">
+          <span class="tw-opt-text">Su Mo</span>
+          <input type="checkbox" id="chkGlyphs" aria-label="Planet glyphs">
+          <span class="tw-opt-glyph"><svg class="gph"><use href="#g-sun"/></svg> <svg class="gph"><use href="#g-moon"/></svg></span>
+        </label>
+        <label class="stg-check"><input type="checkbox" id="chkTwPgBold"> Bold</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwPgWhite"> White</label>
+      </div>
+      <div class="tw-group">
+        <span class="tw-group-title">Signs</span>
+        <label class="tw-mode" title="Signs as abbreviations/numbers or glyphs">
+          <span class="tw-opt-text">Ar 1</span>
+          <input type="checkbox" id="chkSignGlyphs" aria-label="Sign glyphs">
+          <span class="tw-opt-glyph"><svg class="gph"><use href="#s-ari"/></svg> <svg class="gph"><use href="#s-tau"/></svg></span>
+        </label>
+        <label class="stg-check"><input type="checkbox" id="chkTwSgBold"> Bold</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwSgWhite"> White</label>
+      </div>
+      <div class="tw-group">
+        <span class="tw-group-title">Menus &amp; panels</span>
+        <label class="stg-check"><input type="checkbox" id="chkTwMenuBold"> Menu labels bold</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwAnalysisPlain"> Analysis text plain</label>
+      </div>
+      <div class="tw-group">
+        <span class="tw-group-title">Chart lines</span>
+        <label class="stg-check"><input type="checkbox" id="chkTwLinesWhite"> Chart lines white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwLinesBold"> Chart lines bold</label>
+      </div>
+    </div>
+  </dialog>
 
   <!-- ════ About dialog ════ -->
   <dialog id="dlgAbout" style="max-width:480px;">
@@ -1782,10 +1880,7 @@
       document.getElementById('chkEphemeris').checked    = rawVisible;
       document.getElementById('chkTests').checked        = testsVisible;
       document.getElementById('chkShowWelcome').checked  = localStorage.getItem('jyotish_hide_welcome') !== '1';
-      const degFmt = localStorage.getItem('jyotish_deg_fmt') || 'degmin';
-      document.getElementById('chkDegMin').checked  = degFmt !== 'decimal';
-      document.getElementById('chkDecimal').checked = degFmt === 'decimal';
-      document.getElementById('chkChartBold').checked = localStorage.getItem(CHART_BOLD_KEY) === '1';
+      document.getElementById('chkDegDecimal').checked = localStorage.getItem('jyotish_deg_fmt') === 'decimal';
       document.getElementById('chkGlyphs').checked = glyphsOn();
       document.getElementById('chkSignGlyphs').checked = signGlyphsOn();
       document.getElementById('selTransitBarPos').value = transitBarPos();
@@ -1820,46 +1915,67 @@
       localStorage.setItem(TESTS_KEY, testsVisible ? '1' : '0');
       applyTestsState();
     });
-    document.getElementById('chkDegMin').addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById('chkDecimal').checked = false;
-        localStorage.setItem('jyotish_deg_fmt', 'degmin');
-        if (lastData) renderChart(lastData, currentMuhurtaIdx >= 0);
-      } else {
-        this.checked = true;
-      }
+    // Interface Tweaks > Degrees switch: deg:min (off) / decimal (on).
+    // Repaints whichever view is showing, not just the natal wheel.
+    document.getElementById('chkDegDecimal').addEventListener('change', function() {
+      localStorage.setItem('jyotish_deg_fmt', this.checked ? 'decimal' : 'degmin');
+      repaintAllViews();
     });
-    document.getElementById('chkDecimal').addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById('chkDegMin').checked = false;
-        localStorage.setItem('jyotish_deg_fmt', 'decimal');
-        if (lastData) renderChart(lastData, currentMuhurtaIdx >= 0);
-      } else {
-        this.checked = true;
-      }
-    });
-    // Bold text (body.chart-bold svg text.pl { font-weight: 700; }) is a live
-    // CSS rule, so toggling the class alone repaints it immediately. The
-    // panel-title color isn't -- getTheme().chartTitle and the D-chart
-    // dropdown's sel.style.color are only read once, at render time, and
-    // baked into an SVG fill/inline-style attribute, which does NOT track a
-    // later class change on its own. So without an explicit repaint here,
-    // toggling the checkbox updates the bold text live but leaves whatever
-    // title/dropdown color was last rendered stuck until the next unrelated
-    // render (e.g. a reload) happens to run with the new state.
-    function repaintForChartBoldToggle() {
+    // Most Interface Tweaks are live CSS rules, so toggling the body class
+    // repaints them immediately. The panel-title color isn't --
+    // getTheme().chartTitle and the D-chart dropdown's sel.style.color are
+    // read once, at render time, and baked into an SVG fill/inline-style
+    // attribute, which does NOT track a later class change. So Panel labels
+    // white (and the Degrees switch, which changes every label) re-render
+    // all the visible charts explicitly.
+    function repaintAllViews() {
       if (!lastData) return;
       renderChart(lastData, currentMuhurtaIdx >= 0);
       if (chartViewMode === 'transits') renderTransitsView();
       else if (chartViewMode === 'both') renderBothView();
       renderD9Chart(lastData, lastAnalysis);
     }
-    document.getElementById('chkChartBold').addEventListener('change', function() {
-      localStorage.setItem(CHART_BOLD_KEY, this.checked ? '1' : '0');
-      document.body.classList.toggle('chart-bold', this.checked);
-      repaintForChartBoldToggle();
-    });
-    document.body.classList.toggle('chart-bold', localStorage.getItem(CHART_BOLD_KEY) === '1');
+
+    // ── Interface Tweaks ──
+    // Each tweak is a body class + a '1'/'0' localStorage flag; the CSS does
+    // the rest live. Only Panel labels white also needs a repaint, because
+    // the SVG panel titles bake getTheme().chartTitle in at render time.
+    const TWEAKS = [
+      { chk: 'chkTwPgBold',     key: 'jyotish_tw_pg_bold',     cls: 'tw-pg-bold' },
+      { chk: 'chkTwPgWhite',    key: 'jyotish_tw_pg_white',    cls: 'tw-pg-white' },
+      { chk: 'chkTwSgBold',     key: 'jyotish_tw_sg_bold',     cls: 'tw-sg-bold' },
+      { chk: 'chkTwSgWhite',    key: 'jyotish_tw_sg_white',    cls: 'tw-sg-white' },
+      { chk: 'chkTwChartTextBold', key: 'jyotish_tw_chart_text_bold', cls: 'tw-chart-text-bold' },
+      { chk: 'chkTwMenuBold',   key: 'jyotish_tw_menu_bold',   cls: 'tw-menu-bold' },
+      { chk: 'chkTwAnalysisPlain', key: 'jyotish_tw_analysis_plain', cls: 'tw-analysis-plain' },
+      { chk: 'chkTwPanelWhite', key: 'jyotish_tw_panel_white', cls: 'tw-panel-white', repaint: true },
+      { chk: 'chkTwLinesWhite', key: 'jyotish_tw_lines_white', cls: 'tw-lines-white' },
+      { chk: 'chkTwLinesBold',  key: 'jyotish_tw_lines_bold',  cls: 'tw-lines-bold' },
+    ];
+    // The old Settings > Mobile display checkbox bundled bold chart text,
+    // bold planet glyphs, plain Analysis text and grey panel titles. It's
+    // gone; carry its users over once to the equivalent tweaks (white
+    // replacing the dropped grey), so their screen still reads the same way.
+    if (localStorage.getItem(CHART_BOLD_KEY) === '1') {
+      for (const k of ['jyotish_tw_chart_text_bold', 'jyotish_tw_pg_bold', 'jyotish_tw_analysis_plain', 'jyotish_tw_panel_white'])
+        if (localStorage.getItem(k) === null) localStorage.setItem(k, '1');
+    }
+    localStorage.removeItem(CHART_BOLD_KEY);
+    for (const t of TWEAKS) {
+      document.body.classList.toggle(t.cls, localStorage.getItem(t.key) === '1');
+      document.getElementById(t.chk).addEventListener('change', function() {
+        localStorage.setItem(t.key, this.checked ? '1' : '0');
+        document.body.classList.toggle(t.cls, this.checked);
+        if (t.repaint) repaintAllViews();
+      });
+    }
+    function openTweaks() {
+      for (const t of TWEAKS) document.getElementById(t.chk).checked = document.body.classList.contains(t.cls);
+      document.getElementById('chkDegDecimal').checked = localStorage.getItem('jyotish_deg_fmt') === 'decimal';
+      document.getElementById('chkGlyphs').checked = glyphsOn();
+      document.getElementById('chkSignGlyphs').checked = signGlyphsOn();
+      document.getElementById('dlgTweaks').showModal();
+    }
 
     function repaintForGlyphToggle() {
       if (!lastData) return;
@@ -2803,19 +2919,16 @@
     // ═══════════════════════════════════════════════════
     function getTheme() {
       const light = document.body.classList.contains('light');
-      // "Mobile display" setting (chkChartBold/.chart-bold -- also bolds
-      // planet/degree text, see body.chart-bold svg text.pl in CSS) swaps
-      // the panel-title gold (chart title, D-chart dropdown -- both read
-      // chartTitle) for plain menu-item text color instead, per the user:
-      // easier to read on mobile without being "too bright" like pure white.
-      const mobileHi = document.body.classList.contains('chart-bold');
-      const menuFg = light ? '#2a2a3e' : '#c0c0d0';
+      // Interface Tweaks > Panel labels white: chart title and D-chart
+      // dropdown (both read chartTitle) go white, near-black in light theme.
+      const panelWhite = document.body.classList.contains('tw-panel-white');
+      const panelFg = (dflt) => panelWhite ? (light ? '#1a1a2e' : '#ffffff') : dflt;
       return light ? {
         chartBg:     '#ede8d8',
         houseFill:   '#f8f4e8',
         houseStroke: '#c09040',
         houseNum:    '#6a4808',
-        chartTitle:  mobileHi ? menuFg : '#6a4808',
+        chartTitle:  panelFg('#6a4808'),
         asColor:     '#222240',
         colorCombust:'#2040c0',
         colorFM:     '#c02020',
@@ -2828,7 +2941,7 @@
         houseFill:   '#182038',
         houseStroke: '#7a5a20',
         houseNum:    '#906030',
-        chartTitle:  mobileHi ? menuFg : '#906030',
+        chartTitle:  panelFg('#906030'),
         asColor:     '#e0e0c0',
         colorCombust:'#6090ff',
         colorFM:     '#e06060',
@@ -3893,9 +4006,12 @@
       const lagnaRashi = lastData.lagna.rashi, mepDeg = an._mepDeg;
 
       const fmCls = (dict, n) => (dict[n] && dict[n].isFM) ? 'c-red' : 'c-green';
+      // Hits carry full graha names; show them like the Chart Analysis does
+      // -- the Su/Mo abbreviation, or its glyph when Planets is set to glyphs.
+      const planetHtml = (dict, n) => grahaHTML((dict[n] && dict[n].abbr) || n);
       const targetHtml = (tgtDict, h) => h.kind === 'mep'
         ? `${ordinal(h.house)} MEP`
-        : `<span class="${fmCls(tgtDict, h.target)}">${h.target}</span>`;
+        : `<span class="${fmCls(tgtDict, h.target)}">${planetHtml(tgtDict, h.target)}</span>`;
 
       // The source planet gets its own header line per run of same-source
       // hits; every "over ..." description line underneath is indented
@@ -3906,7 +4022,7 @@
         let lastSource = null;
         for (const h of hits) {
           if (h.source !== lastSource) {
-            html += `<div class="an-item c-brown"><span class="${fmCls(srcDict, h.source)}">${h.source}</span></div>`;
+            html += `<div class="an-item c-brown"><span class="an-abbr ${fmCls(srcDict, h.source)}">${planetHtml(srcDict, h.source)}</span></div>`;
             lastSource = h.source;
           }
           html += `<div class="an-item c-brown">&nbsp;&nbsp;&nbsp; ${h.via} ${h.orb.toFixed(2)}° over ${targetHtml(tgtDict, h)} ${pct(1 - h.orb / 5)}</div>`;
@@ -4093,6 +4209,16 @@
       return el;
     }
 
+    // Text-mode planet label: the name (+R) goes in its own tspan.pn so
+    // Interface Tweaks > Planets Bold/White can restyle it without touching
+    // the degree that follows (which inherits the <text>'s fill).
+    function planetTextLabel(attrs, name, rest) {
+      const t = svgEl('text', attrs);
+      t.appendChild(svgEl('tspan', { 'class': 'pn' }, name));
+      if (rest) t.appendChild(document.createTextNode(rest));
+      return t;
+    }
+
     // Emit a graha glyph (+ optional degree/speed tail) into an SVG chart,
     // horizontally centred on cx exactly like the <text> label it replaces.
     // Used by every wheel renderer when Settings > Planet glyphs is on.
@@ -4115,6 +4241,7 @@
       }
       const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
       use.setAttribute('href', '#' + GRAHA_GLYPH_ID[o.abbr]);
+      use.setAttribute('class', 'gp'); // Interface Tweaks > Planet Glyphs White
       use.setAttribute('x', x);
       use.setAttribute('y', o.y - size * 0.82);
       use.setAttribute('width', gw);
@@ -4143,7 +4270,7 @@
       use.setAttribute('width', w);
       use.setAttribute('height', w);
       use.setAttribute('style', 'color:' + color);
-      use.setAttribute('class', 'hn');
+      use.setAttribute('class', 'hn gs'); // gs: Interface Tweaks > Sign Glyphs White
       parent.appendChild(use);
       return true;
     }
@@ -4183,7 +4310,7 @@
         const [nx,ny]=NUM_POS[h];
         if (emitSignGlyph(d9Svg, nx, ny, 19, houseSign(h,lr), _td9.houseNum)) continue;
         d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'19',fill:_td9.houseNum,
-          'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},
+          'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_td9.houseNum,'stroke-width':'0'},
           String(houseSign(h,lr))));
       }
       // Compute D9 functional malefics from D9 lagna
@@ -4216,7 +4343,7 @@
           if (glyphsOn() && GRAHA_GLYPH_ID[p.abbr]) {
             emitGlyphLabel(d9Svg, { cx:x, y:y0, size:19, abbr:p.abbr, color:p.color });
           } else {
-            d9Svg.appendChild(svgEl('text',{x:x,y:y0,'font-size':'19',fill:p.color,'class':'pl',
+            d9Svg.appendChild(svgEl('text',{x:x,y:y0,'font-size':'19',fill:p.color,'class':'pl pn',
               'font-family':'monospace','text-anchor':'middle'},p.abbr));
           }
         };
@@ -4260,7 +4387,7 @@
         const [nx,ny]=NUM_POS[h];
         if (emitSignGlyph(d9Svg, nx, ny, 19, houseSign(h,lr), _td9.houseNum)) continue;
         d9Svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'19',fill:_td9.houseNum,
-          'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},
+          'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_td9.houseNum,'stroke-width':'0'},
           String(houseSign(h,lr))));
       }
 
@@ -4291,15 +4418,14 @@
             tEl.setAttribute('font-size','14'); tEl.setAttribute('font-family','monospace');
             tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+(retroMark?'R ':' ');
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
             tEl.appendChild(sp1); tEl.appendChild(sp2); d9Svg.appendChild(tEl);
           } else {
-            const line = p.isAs
-              ? 'As '+fmtDeg(p.deg)
-              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
-            d9Svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'14',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+            const _la = {x:cx,y:y0,'font-size':'14',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'};
+            d9Svg.appendChild(p.isAs ? svgEl('text', _la, 'As '+fmtDeg(p.deg))
+              : planetTextLabel(_la, p.label+(retroMark?'R ':' '), fmtDeg(p.deg)));
           }
           y0 += LH;
         }
@@ -4714,7 +4840,7 @@
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         if (!emitSignGlyph(svg, nx, ny, 12, houseSign(h,lr), _tc.houseNum))
-          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_tc.houseNum,'stroke-width':'0'},String(houseSign(h,lr))));
       }
 
       // Build house planet lists from analysis
@@ -4746,15 +4872,14 @@
             tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
             tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+(retroMark?'R ':' ');
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
             tEl.appendChild(sp1); tEl.appendChild(sp2); svg.appendChild(tEl);
           } else {
-            const line = p.isAs
-              ? 'As '+fmtDeg(p.deg)
-              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg);
-            svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+            const _la = {x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'};
+            svg.appendChild(p.isAs ? svgEl('text', _la, 'As '+fmtDeg(p.deg))
+              : planetTextLabel(_la, p.label+(retroMark?'R ':' '), fmtDeg(p.deg)));
           }
           y0+=LH;
         }
@@ -5405,7 +5530,7 @@
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         if (!emitSignGlyph(svg, nx, ny, 12, houseSign(h,lr), _tc.houseNum))
-          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_tc.houseNum,'stroke-width':'0'},String(houseSign(h,lr))));
       }
 
       // Speed (deg/day of ecliptic longitude, from the API's own daily-motion
@@ -5454,17 +5579,16 @@
             tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
             tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+(retroMark?'R ':' ');
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
             const sp3 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp3.setAttribute('fill', p.color); sp3.textContent = speedTxt;
             tEl.appendChild(sp1); tEl.appendChild(sp2); tEl.appendChild(sp3); svg.appendChild(tEl);
           } else {
-            const line = p.isAs
-              ? 'As '+fmtDeg(p.deg)
-              : p.label+(retroMark?'R ':' ')+fmtDeg(p.deg)+speedTxt;
-            svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+            const _la = {x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'};
+            svg.appendChild(p.isAs ? svgEl('text', _la, 'As '+fmtDeg(p.deg))
+              : planetTextLabel(_la, p.label+(retroMark?'R ':' '), fmtDeg(p.deg)+speedTxt));
           }
           y0+=LH;
         }
@@ -5516,7 +5640,7 @@
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         if (!emitSignGlyph(svg, nx, ny, 12, houseSign(h,lr), _tc.houseNum))
-          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tc.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_tc.houseNum,'stroke-width':'0'},String(houseSign(h,lr))));
       }
 
       const hp = {};
@@ -5550,14 +5674,18 @@
           tEl.appendChild(prefix);
           if (!p.isAs && p.degColor) {
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-            sp1.setAttribute('fill', p.color); sp1.textContent = p.label+(retroMark?'R ':' ');
+            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+(retroMark?'R ':' ');
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
             tEl.appendChild(sp1); tEl.appendChild(sp2);
           } else {
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp1.setAttribute('fill', p.color);
-            sp1.textContent = p.isAs ? ('As '+fmtDeg(p.deg)) : (p.label+(retroMark?'R ':' ')+fmtDeg(p.deg));
+            if (p.isAs) sp1.textContent = 'As '+fmtDeg(p.deg);
+            else {
+              sp1.appendChild(svgEl('tspan', { 'class': 'pn' }, p.label+(retroMark?'R ':' ')));
+              sp1.appendChild(document.createTextNode(fmtDeg(p.deg)));
+            }
             tEl.appendChild(sp1);
           }
           svg.appendChild(tEl);
@@ -6595,7 +6723,7 @@
       for (let h=1;h<=12;h++) {
         const [nx,ny]=NUM_POS[h];
         if (!emitSignGlyph(svg, nx, ny, 12, houseSign(h,lr), _tp.houseNum))
-          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tp.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn'},String(houseSign(h,lr))));
+          svg.appendChild(svgEl('text',{x:nx,y:ny,'font-size':'12',fill:_tp.houseNum,'font-family':'monospace','text-anchor':'middle','font-weight':'bold','class':'hn',stroke:_tp.houseNum,'stroke-width':'0'},String(houseSign(h,lr))));
       }
       // Build planet lists per house
       const hp = {};
@@ -6619,9 +6747,9 @@
               deg:p.deg, retro:retro });
             y0 += LH; continue;
           }
-          const line = p.label==='As' ? ('As '+fmtDeg(p.deg))
-            : (p.label+(retro?' R ':' ')+fmtDeg(p.deg));
-          svg.appendChild(svgEl('text',{x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'},line));
+          const _la = {x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'};
+          svg.appendChild(p.label==='As' ? svgEl('text', _la, 'As '+fmtDeg(p.deg))
+            : planetTextLabel(_la, p.label+(retro?' R ':' '), fmtDeg(p.deg)));
           y0+=LH;
         }
       }
