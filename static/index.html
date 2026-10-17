@@ -138,7 +138,7 @@
     .dr:hover { background:#1e2a48; }
     .dr.dr-now { background:#0a3a12; border-left:3px solid #50e060; padding-left:5px; color:#90f0a0; font-weight:bold; }
     .dr-sep { border-top:1px solid #334; margin:2px 0; }
-    .dr .dr-date { color:#8090a0; margin-left:4px; padding-right:16px; }
+    .dr .dr-date { color:#a0b0c0; margin-left:4px; padding-right:16px; } /* = Rashi Data degree/sign (getTheme().planetDim) */
 
     /* ── Raw / Ephemeris panel ── */
     #rawSection { padding:0 1.5rem 1.5rem; display:none; }
@@ -228,7 +228,7 @@
 
     /* ── Analysis dialog ── */
     #dlgAnalysis { min-width:500px; }
-    .an-lagna { font-size:0.8rem; color:#a0a0b0; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid #0f3460; }
+    .an-lagna { font-size:0.88rem; color:#a0a0b0; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid #0f3460; }
     .an-lagna div + div { margin-top:0.25rem; }
     .an-planet { margin-bottom:0.9rem; border-left:3px solid #1a4a80; padding-left:0.75rem; }
     .an-phead { display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.3rem; }
@@ -238,7 +238,7 @@
     .an-abbr .gph { width:1.2em; height:1.2em; }
     .an-name { font-size:0.9rem; }
     .an-loc { font-size:0.88rem; color:#808098; margin-left:auto; }
-    .an-item { font-size:0.8rem; padding:0.1rem 0; }
+    .an-item { font-size:0.88rem; padding:0.1rem 0; }
     .an-item.overall { font-weight:bold; margin-top:0.25rem; font-size:1.02rem; }
     .an-section-head { font-size:0.84rem; font-weight:bold; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.08em; margin:1rem 0 0.4rem; border-bottom:1px solid #0f3460; padding-bottom:0.25rem; }
     .c-red   { color:#e06060; }
@@ -263,7 +263,7 @@
     #tcb-log   { font-size:11px; min-height:1.4em; padding:2px 0; }
     #tcb-status { background:#0d1a30; border-radius:4px; padding:8px; margin-bottom:8px; }
     .c-gray  { color:#808098; }
-    .an-run  { color:#808098; font-size:0.84rem; margin-left:0.4rem; }
+    .an-run  { color:#808098; font-size:0.88rem; margin-left:0.4rem; }
 
     /* ── Light theme overrides ── */
 
@@ -322,7 +322,7 @@
     body.light .dasha-hdr-btns button { background: #e8e2d0; color: #2a2a3e; border-color: #c0a870; }
     body.light .dasha-hdr-btns button:hover { background: #d8d0bc; color: #222240; }
     body.light .dr.dr-now { background: #d0ead0; border-left-color: #208020; color: #204820; }
-    body.light .dr .dr-date { color: #5a6870; }
+    body.light .dr .dr-date { color: #4a4a60; }
     body.light #rawSection pre { background: #faf8f0; border-color: #c0a870; color: #205020; }
     body.light #settingsPanel { background: #e0d8c4; border-right-color: #a09060; }
     body.light .stg-hdr { border-bottom-color: #c0a870; }
@@ -452,12 +452,15 @@
     body.light.tw-menu-bold .tb-menu li button { color:#1a1a2e; }
     body.tw-panel-white #dashaShadowTitle, body.tw-panel-white #rashiTitle { color:#ffffff; }
     body.light.tw-panel-white #dashaShadowTitle, body.light.tw-panel-white #rashiTitle { color:#1a1a2e; }
-    /* ...and, in Dasha Periods, the Now/Top buttons (bold, same size) and the
-       period dates (same size). */
+    /* ...and, in Dasha Periods, the Now/Top buttons (bold, same size).
+       The period dates have their own switch, Dasha Periods dates white. */
     body.tw-panel-white .dasha-hdr-btns button { font-weight:700; color:#ffffff; }
     body.light.tw-panel-white .dasha-hdr-btns button { color:#1a1a2e; }
-    body.tw-panel-white .dr .dr-date { color:#ffffff; }
-    body.light.tw-panel-white .dr .dr-date { color:#1a1a2e; }
+    /* Dialogs > Analysis bold: every line of the Analysis popover (Chart,
+       Transits and Chart & Transits analyses all render into #analysisContent). */
+    body.tw-analysis-bold #analysisContent, body.tw-analysis-bold #analysisContent * { font-weight:700; }
+    body.tw-dasha-date-white .dr .dr-date { color:#ffffff; }
+    body.light.tw-dasha-date-white .dr .dr-date { color:#1a1a2e; }
     body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#ffffff; }
     body.light.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#1a1a2e; }
     /* White reads much heavier than gold at the same width (contrast), so
@@ -801,7 +804,12 @@
         <span class="tw-group-title">Menus &amp; panels</span>
         <label class="stg-check"><input type="checkbox" id="chkTwMenuBold"> Menu labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwAnalysisPlain"> Analysis text plain</label>
+      </div>
+      <div class="tw-group">
+        <span class="tw-group-title">Dialogs</span>
+        <label class="stg-check"><input type="checkbox" id="chkTwAnalysisBold"> Analysis bold</label>
       </div>
       <div class="tw-group">
         <span class="tw-group-title">Chart lines</span>
@@ -1948,7 +1956,9 @@
       { chk: 'chkTwChartTextBold', key: 'jyotish_tw_chart_text_bold', cls: 'tw-chart-text-bold' },
       { chk: 'chkTwMenuBold',   key: 'jyotish_tw_menu_bold',   cls: 'tw-menu-bold' },
       { chk: 'chkTwAnalysisPlain', key: 'jyotish_tw_analysis_plain', cls: 'tw-analysis-plain' },
+      { chk: 'chkTwAnalysisBold',  key: 'jyotish_tw_analysis_bold',  cls: 'tw-analysis-bold' },
       { chk: 'chkTwPanelWhite', key: 'jyotish_tw_panel_white', cls: 'tw-panel-white', repaint: true },
+      { chk: 'chkTwDashaDateWhite', key: 'jyotish_tw_dasha_date_white', cls: 'tw-dasha-date-white' },
       { chk: 'chkTwLinesWhite', key: 'jyotish_tw_lines_white', cls: 'tw-lines-white' },
       { chk: 'chkTwLinesBold',  key: 'jyotish_tw_lines_bold',  cls: 'tw-lines-bold' },
     ];
@@ -1961,6 +1971,11 @@
         if (localStorage.getItem(k) === null) localStorage.setItem(k, '1');
     }
     localStorage.removeItem(CHART_BOLD_KEY);
+    // Dasha dates were briefly part of Panel labels white (900ba81); give
+    // anyone who had that on the new separate switch once, so nothing changes.
+    if (localStorage.getItem('jyotish_tw_dasha_date_white') === null && localStorage.getItem('jyotish_tw_panel_white') === '1') {
+      localStorage.setItem('jyotish_tw_dasha_date_white', '1');
+    }
     for (const t of TWEAKS) {
       document.body.classList.toggle(t.cls, localStorage.getItem(t.key) === '1');
       document.getElementById(t.chk).addEventListener('change', function() {
