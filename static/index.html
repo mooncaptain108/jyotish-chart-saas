@@ -634,6 +634,7 @@
         <li><button onclick="openHelpData(); closeHelpMenu();">Data Storage</button></li>
         <li><button onclick="openHelpTransitControl(); closeHelpMenu();">Transit Control</button></li>
         <li><hr></li>
+        <li><button onclick="openHelpReportErrors(); closeHelpMenu();">Report Errors</button></li>
         <li><button onclick="openAbout(); closeHelpMenu();">About</button></li>
       </ul>
     </div>
@@ -805,11 +806,11 @@
         <label class="stg-check"><input type="checkbox" id="chkTwMenuBold"> Menu labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white</label>
-        <label class="stg-check"><input type="checkbox" id="chkTwAnalysisPlain"> Analysis text plain</label>
       </div>
       <div class="tw-group">
         <span class="tw-group-title">Dialogs</span>
         <label class="stg-check"><input type="checkbox" id="chkTwAnalysisBold"> Analysis bold</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwAnalysisPlain"> Analysis text plain</label>
       </div>
       <div class="tw-group">
         <span class="tw-group-title">Chart lines</span>
@@ -933,6 +934,18 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="document.getElementById('dlgHelpTransitControl').close()">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlgHelpReportErrors" style="max-width:600px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpReportErrors').close()">✕</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="helpReportErrorsContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpReportErrors').close()">Close</button>
     </div>
   </dialog>
 
@@ -1792,10 +1805,18 @@
     // ═══════════════════════════════════════════════════
     // Help menu
     // ═══════════════════════════════════════════════════
-    function toggleHelpMenu(e) {
+    // Shared by every toolbar dropdown. Each toggle stops its click from
+    // reaching the document-level close-all handler below (or the menu would
+    // close as soon as it opened), so it has to close any OTHER open menu
+    // itself -- otherwise opening View then Charts left both lists showing.
+    function toggleToolbarMenu(e, id) {
       e.stopPropagation();
-      document.getElementById('helpMenu').classList.toggle('open');
+      const menu = document.getElementById(id);
+      const wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.tb-menu.open').forEach(m => m.classList.remove('open'));
+      if (!wasOpen) menu.classList.add('open');
     }
+    function toggleHelpMenu(e) { toggleToolbarMenu(e, 'helpMenu'); }
     function closeHelpMenu() {
       document.getElementById('helpMenu').classList.remove('open');
     }
@@ -1807,7 +1828,7 @@
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpViews: '_helpViewsMd', dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd' }[dlgId];
+      const cached  = { dlgHelpViews: '_helpViewsMd', dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd', dlgHelpReportErrors: '_helpReportErrorsMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1829,6 +1850,7 @@
     function openHelpAnalysis()   { _openHelpDoc('dlgHelpAnalysis',   'helpAnalysisContent',   'static/AnalysisRules.md'); }
     function openHelpCustomLoc()  { _openHelpDoc('dlgHelpCustomLoc',  'helpCustomLocContent',  'static/CustomLocations.md'); }
     function openHelpTransitControl() { _openHelpDoc('dlgHelpTransitControl', 'helpTransitControlContent', 'static/TransitsControl.md'); }
+    function openHelpReportErrors()   { _openHelpDoc('dlgHelpReportErrors',   'helpReportErrorsContent',   'static/ReportErrors.md'); }
 
     function openWelcome() {
       document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
@@ -2273,28 +2295,19 @@
 
     // ═══════════════════════════════════════════════════
     // Charts dropdown menu
-    function toggleChartsMenu(e) {
-      e.stopPropagation();
-      document.getElementById('chartsMenu').classList.toggle('open');
-    }
+    function toggleChartsMenu(e) { toggleToolbarMenu(e, 'chartsMenu'); }
     function closeChartsMenu() {
       document.getElementById('chartsMenu').classList.remove('open');
     }
 
     // View dropdown menu (Transit Views feature)
-    function toggleViewMenu(e) {
-      e.stopPropagation();
-      document.getElementById('viewMenu').classList.toggle('open');
-    }
+    function toggleViewMenu(e) { toggleToolbarMenu(e, 'viewMenu'); }
     function closeViewMenu() {
       document.getElementById('viewMenu').classList.remove('open');
     }
 
     // Atlas dropdown menu
-    function toggleAtlasMenu(e) {
-      e.stopPropagation();
-      document.getElementById('atlasMenu').classList.toggle('open');
-    }
+    function toggleAtlasMenu(e) { toggleToolbarMenu(e, 'atlasMenu'); }
     function closeAtlasMenu() {
       document.getElementById('atlasMenu').classList.remove('open');
     }
@@ -6540,7 +6553,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpViews','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpViews','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgHelpReportErrors','dlgTweaks','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════
