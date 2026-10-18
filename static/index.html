@@ -462,6 +462,10 @@
     /* Dialogs > Analysis bold: every line of the Analysis popover (Chart,
        Transits and Chart & Transits analyses all render into #analysisContent). */
     body.tw-analysis-bold #analysisContent, body.tw-analysis-bold #analysisContent * { font-weight:700; }
+    /* Rashi Data nakshatra column: its colour is an inline style (same
+       planetDim as the degree/sign columns), so the override needs !important. */
+    body.tw-rashi-nak-white #rashiTable td.rd-nak { color:#ffffff !important; }
+    body.light.tw-rashi-nak-white #rashiTable td.rd-nak { color:#1a1a2e !important; }
     body.tw-dasha-date-white .dr .dr-date { color:#ffffff; }
     body.light.tw-dasha-date-white .dr .dr-date { color:#1a1a2e; }
     body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#ffffff; }
@@ -809,6 +813,7 @@
         <label class="stg-check"><input type="checkbox" id="chkTwMenuBold"> Menu labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwRashiNakWhite"> Rashi Data Nakshatra text white</label>
       </div>
       <div class="tw-group">
         <span class="tw-group-title">Dialogs</span>
@@ -1984,6 +1989,7 @@
       { chk: 'chkTwAnalysisBold',  key: 'jyotish_tw_analysis_bold',  cls: 'tw-analysis-bold' },
       { chk: 'chkTwPanelWhite', key: 'jyotish_tw_panel_white', cls: 'tw-panel-white', repaint: true },
       { chk: 'chkTwDashaDateWhite', key: 'jyotish_tw_dasha_date_white', cls: 'tw-dasha-date-white' },
+      { chk: 'chkTwRashiNakWhite', key: 'jyotish_tw_rashi_nak_white', cls: 'tw-rashi-nak-white' },
       { chk: 'chkTwLinesWhite', key: 'jyotish_tw_lines_white', cls: 'tw-lines-white' },
       { chk: 'chkTwLinesBold',  key: 'jyotish_tw_lines_bold',  cls: 'tw-lines-bold' },
     ];
@@ -2826,6 +2832,13 @@
     // Per-sign "Lucky Number", from yournetastrologer.com/learn_astrology72.htm
     // through .../learn_astrology83.htm (Aries..Pisces, one page per sign).
     const LUCKY_NUMBER  = { 1:6, 2:5, 3:8, 4:1, 5:8, 6:9, 7:9, 8:2, 9:5, 10:7, 11:1, 12:7 };
+    // "LUCKY STONE" line from the same pages, shown beside Lucky Number.
+    const LUCKY_STONE = {
+      1: 'Pearl', 2: 'Ruby', 3: 'Emerald', 4: 'White Sapphire / Topaz / Diamond',
+      5: 'Emerald', 6: 'Yellow Sapphire / Topaz', 7: 'Yellow Sapphire / Topaz',
+      8: 'Blue Sapphire / Topaz', 9: 'Ruby', 10: 'Red Coral',
+      11: 'White Sapphire / Topaz, Diamond', 12: 'Red Coral',
+    };
     // Favorable colours and gems to wear per rising sign, from the same
     // pages (index: yournetastrologer.com/impact.htm), shown at the end of
     // the Analysis popover. Wording as on the pages (stray punctuation
@@ -3661,6 +3674,7 @@
         <div>
           ${age !== null ? `Age: ${age} &nbsp;·&nbsp;` : ''}
           Lucky Number ${LUCKY_NUMBER[lr]} &nbsp;·&nbsp;
+          Lucky Stone ${LUCKY_STONE[lr]} &nbsp;·&nbsp;
           Pada ${data.lagna.pada} &nbsp;·&nbsp;
           Sound ${data.lagna.pada_syllable}
         </div>
@@ -4592,7 +4606,7 @@
           <td style="color:${col}">${grahaHTML(r.abbr)}</td>
           <td style="color:${_tr.planetDim};text-align:right">${r.deg}</td>
           <td style="color:${_tr.planetDim};padding-left:8px">${signHTML(r.rasi)}</td>
-          <td style="color:${_tr.houseNum};padding-left:8px">${r.nak}</td>
+          <td class="rd-nak" style="color:${_tr.planetDim};padding-left:8px">${r.nak}</td>
           <td style="color:${lordColor(r.lord)};padding-left:8px">${grahaHTML(r.lord)}</td>
         </tr>`;
       }).join('');
