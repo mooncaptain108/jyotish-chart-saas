@@ -239,6 +239,9 @@
     .an-name { font-size:0.9rem; }
     .an-loc { font-size:0.88rem; color:#808098; margin-left:auto; }
     .an-item { font-size:0.88rem; padding:0.1rem 0; }
+    /* The colours/gems block at the end: .an-lagna's look, rule above not below. */
+    .an-lagna.an-lagna-foot { margin:1rem 0 0; padding:0.6rem 0 0; border-bottom:none; border-top:1px solid #0f3460; }
+    body.light .an-lagna.an-lagna-foot { border-top-color:#c0a870; }
     .an-item.overall { font-weight:bold; margin-top:0.25rem; font-size:1.02rem; }
     .an-section-head { font-size:0.84rem; font-weight:bold; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.08em; margin:1rem 0 0.4rem; border-bottom:1px solid #0f3460; padding-bottom:0.25rem; }
     .c-red   { color:#e06060; }
@@ -2823,6 +2826,47 @@
     // Per-sign "Lucky Number", from yournetastrologer.com/learn_astrology72.htm
     // through .../learn_astrology83.htm (Aries..Pisces, one page per sign).
     const LUCKY_NUMBER  = { 1:6, 2:5, 3:8, 4:1, 5:8, 6:9, 7:9, 8:2, 9:5, 10:7, 11:1, 12:7 };
+    // Favorable colours and gems to wear per rising sign, from the same
+    // pages (index: yournetastrologer.com/impact.htm), shown at the end of
+    // the Analysis popover. Wording as on the pages (stray punctuation
+    // tidied). The Gemini page gives neither (only unfavorable colours/
+    // stones), so Gemini comes from the alternate source "03 remedies.txt"
+    // (Gemini Rising Color therapy and Gems), which lists a gem and colours
+    // per benefic planet -- combined here in its planet order: Sun, Moon,
+    // Mars, Jupiter, Saturn, Mercury, Venus. A null entry would show
+    // "not given on the source page".
+    // Colours also merged from the remedies files where the website leaves
+    // out a benefic planet's colour: Jupiter's green (Aries, Libra,
+    // Aquarius), Saturn's black/dark brown (Aries, Libra, Sagittarius) and
+    // Venus's variegated (Leo, Virgo). Gems already agree for every sign.
+    const FAVORABLE_COLORS = {
+      1: 'Yellow, black, all shades of blue, red, pink, orange, golden, white, silver, green, dark brown and variegated colors',
+      2: 'White, silver, pink, orange, golden, green, black, brown, and blackish blue',
+      3: 'Orange, pink, white, burning red, yellow, green, black, dark brown, navy blue, dark green, variegated and royal blue',
+      4: 'White, pink, orange, silver, golden, green, royal blue, red and variegated colors',
+      5: 'Pink, orange, golden, green, all bright shades of blue, yellow, red, black, dark brown and variegated colors',
+      6: 'Green, yellow, royal blue, white and variegated colors',
+      7: 'Yellow, all shades of blue, red, pink, orange, golden, white, silver, green, black, dark brown and variegated colors',
+      8: 'Yellow, navy blue, black, brown, white, silver, golden, pink, orange and green',
+      9: 'Yellow, all shades of blue, variegated colors, red, pink, orange, golden, green, black and dark brown',
+      10: 'Shining black, white, silver, all shades of blue, green, red bright brown and variegated colours',
+      11: 'Shining black, red, orange, pink, bright brown, yellow, golden, green, variegated and all shades of shining blue',
+      12: 'Red, white, silver, green, yellow and cream',
+    };
+    const GEMS = {
+      1: 'Diamond, red coral, pearl, yellow sapphire, blue sapphire and ruby',
+      2: 'Pearl, ruby, emerald and blue sapphire',
+      3: 'Ruby, pearl, red coral, yellow sapphire, blue sapphire, emerald and diamond',
+      4: 'Pearl, ruby, red coral, emerald and diamond',
+      5: 'Ruby, emerald, diamond, yellow sapphire, blue sapphire and red coral',
+      6: 'Emerald, diamond, pearl and yellow sapphire',
+      7: 'Diamond, yellow sapphire, blue sapphire, red coral, pearl and ruby',
+      8: 'Yellow sapphire, blue sapphire, pearl, ruby and emerald',
+      9: 'Yellow sapphire, blue sapphire, diamond, ruby, red coral and emerald',
+      10: 'Blue sapphire, red coral, pearl, emerald and diamond',
+      11: 'Blue sapphire, red coral, ruby, diamond and yellow sapphire',
+      12: 'Red coral, pearl, emerald and yellow sapphire',
+    };
 
     // Completed years from a YYYY-MM-DD birth date to today (device date);
     // null when the date is missing/invalid or in the future.
@@ -3926,6 +3970,14 @@
       // (server source of truth) and is patched in once it resolves —
       // click-triggered, so the brief neutral-styled button is imperceptible.
       const MUHURTA_LAGNA = new Set([1,3,4,5,7,8,9,10,11]);
+      // Rising sign's favorable colours and gems, closing the popover in the
+      // same style as the Lucky Number line at the top.
+      const notGiven = '<em>not given on the source page</em>';
+      html += `<div class="an-lagna an-lagna-foot">
+        <div>Favorable Colors: ${FAVORABLE_COLORS[lr] || notGiven}</div>
+        <div>Gems: ${GEMS[lr] || notGiven}</div>
+      </div>`;
+
       const chartDateMs = new Date(data.birth_data.date).getTime();
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
       // Transits view's birth_data is the live transit moment (always
