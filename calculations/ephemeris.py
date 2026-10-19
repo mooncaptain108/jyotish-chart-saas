@@ -90,7 +90,8 @@ def get_ayanamsa(jd: float) -> float:
 def compute_sunrise(jd: float, latitude: float, longitude: float) -> float:
     """Compute sunrise JD (UT) for the day containing the given JD.
 
-    Uses disc-center sunrise (standard for Jyotish).
+    Civil sunrise: upper limb of the Sun, with atmospheric refraction
+    (Swiss Ephemeris default; disc-center would be ~2 min later).
 
     Args:
         jd: Julian Day number (UT) — typically start of the local day.

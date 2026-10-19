@@ -468,6 +468,8 @@
     body.light.tw-rashi-nak-white #rashiTable td.rd-nak { color:#1a1a2e !important; }
     body.tw-dasha-date-white .dr .dr-date { color:#ffffff; }
     body.light.tw-dasha-date-white .dr .dr-date { color:#1a1a2e; }
+    /* ...and bolds the Dasha/Antardasha planets (text, or glyph strokes). */
+    body.tw-dasha-date-white .dr .dr-pl { font-weight:700; --gph-sw: 2.9px; --gph-sw-node: 3.1px; --gph-fill-sw: 0.9px; }
     body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#ffffff; }
     body.light.tw-lines-white :is(#chart, #d9Chart) polygon { stroke:#1a1a2e; }
     /* White reads much heavier than gold at the same width (contrast), so
@@ -4602,7 +4604,13 @@
         });
       }
 
-      tbl.innerHTML = rows.map(r => {
+      // Sunrise (local HH:MM) for the birth date/place, from the API's
+      // panchanga -- lets the reader judge "born just before sunrise".
+      const _sr = data.panchanga && data.panchanga.sunrise;
+      const srRow = _sr
+        ? `<tr><td colspan="5" class="rd-sunrise" style="color:${_tr.planetDim};text-align:center">Sunrise ${_sr.slice(0,5)}</td></tr>`
+        : '';
+      tbl.innerHTML = srRow + rows.map(r => {
         const col = planetColor(r.name);
         return `<tr>
           <td style="color:${col}">${grahaHTML(r.abbr)}</td>
@@ -4821,9 +4829,9 @@
         const isNow = i === nowIdx;
         const sep = i > 0 && rows[i].dasha !== rows[i-1].dasha ? '<div class="dr-sep"></div>' : '';
         return sep + `<div class="dr${isNow?' dr-now':''}" data-idx="${i}">` +
-          `<span style="color:${dc}">${grahaHTML(abbr(r.dasha))}</span>` +
+          `<span class="dr-pl" style="color:${dc}">${grahaHTML(abbr(r.dasha))}</span>` +
           `<span style="color:#6080a0">/</span>` +
-          `<span style="color:${ac}">${grahaHTML(abbr(r.antar))}</span>` +
+          `<span class="dr-pl" style="color:${ac}">${grahaHTML(abbr(r.antar))}</span>` +
           `<span class="dr-date">${fmtDashaDate(r.isoStart)}</span>` +
           `</div>`;
       }).join('');
