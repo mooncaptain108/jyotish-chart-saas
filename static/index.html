@@ -814,6 +814,7 @@
         <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwRashiNakWhite"> Rashi Data Nakshatra text white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwTransitNoSpace"> Transit View text: remove all spaces</label>
       </div>
       <div class="tw-group">
         <span class="tw-group-title">Dialogs</span>
@@ -1990,6 +1991,7 @@
       { chk: 'chkTwPanelWhite', key: 'jyotish_tw_panel_white', cls: 'tw-panel-white', repaint: true },
       { chk: 'chkTwDashaDateWhite', key: 'jyotish_tw_dasha_date_white', cls: 'tw-dasha-date-white' },
       { chk: 'chkTwRashiNakWhite', key: 'jyotish_tw_rashi_nak_white', cls: 'tw-rashi-nak-white' },
+      { chk: 'chkTwTransitNoSpace', key: 'jyotish_tw_transit_nospace', cls: 'tw-transit-nospace', repaint: true },
       { chk: 'chkTwLinesWhite', key: 'jyotish_tw_lines_white', cls: 'tw-lines-white' },
       { chk: 'chkTwLinesBold',  key: 'jyotish_tw_lines_bold',  cls: 'tw-lines-bold' },
     ];
@@ -4323,7 +4325,7 @@
       const size  = o.size;
       const gw    = size * 1.15;
       const degTx = (o.deg != null ? fmtDeg(o.deg) : '') + (o.tailExtra || '');
-      const tail  = ((o.retro ? 'R ' : '') + degTx).trimEnd();
+      const tail  = ((o.retro ? (o.noSpace ? 'R' : 'R ') : '') + degTx).trimEnd();
       const tailW = tail ? tail.length * size * 0.6 + size * 0.3 : 0;
       const preW  = o.prefix ? size * 0.62 : 0;
       let x = o.cx - (preW + gw + tailW) / 2;
@@ -5633,16 +5635,18 @@
       // raw transitData response instead of adding it to the shared schema.
       const speedByName = {};
       for (const g of transitData.grahas) speedByName[g.graha] = g.speed;
+      // Interface Tweaks > Transit View text: remove all spaces (fit test)
+      const sp = document.body.classList.contains('tw-transit-nospace') ? '' : ' ';
       function fmtSpeed(s) {
         if (s === undefined || s === null) return '';
         const sign = s >= 0 ? '+' : '-';
         const abs  = Math.abs(s);
         if ((localStorage.getItem('jyotish_deg_fmt') || 'degmin') === 'decimal')
-          return ' ' + sign + abs.toFixed(2);
+          return sp + sign + abs.toFixed(2);
         let deg = Math.floor(abs);
         let min = Math.round((abs % 1) * 60);
         if (min === 60) { min = 0; deg += 1; }
-        return ' ' + sign + deg + ':' + String(min).padStart(2,'0');
+        return sp + sign + deg + ':' + String(min).padStart(2,'0');
       }
 
       const hp = {};
@@ -5664,7 +5668,7 @@
           const speedTxt = p.isAs ? '' : fmtSpeed(p.speed);
           if (glyphsOn() && GRAHA_GLYPH_ID[p.label]) {
             emitGlyphLabel(svg, { cx, y:y0, size:12, abbr:p.label, color:p.color,
-              deg:p.deg, degColor:p.degColor, retro:!!retroMark, tailExtra:speedTxt });
+              deg:p.deg, degColor:p.degColor, retro:!!retroMark, tailExtra:speedTxt, noSpace:!sp });
             y0 += LH; continue;
           }
           if (!p.isAs && p.degColor) {
@@ -5673,7 +5677,7 @@
             tEl.setAttribute('font-size','12'); tEl.setAttribute('font-family','monospace');
             tEl.setAttribute('text-anchor','middle'); tEl.setAttribute('class','pl');
             const sp1 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+(retroMark?'R ':' ');
+            sp1.setAttribute('fill', p.color); sp1.setAttribute('class', 'pn'); sp1.textContent = p.label+retroMark+sp;
             const sp2 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
             sp2.setAttribute('fill', p.degColor); sp2.textContent = fmtDeg(p.deg);
             const sp3 = document.createElementNS('http://www.w3.org/2000/svg','tspan');
@@ -5681,8 +5685,8 @@
             tEl.appendChild(sp1); tEl.appendChild(sp2); tEl.appendChild(sp3); svg.appendChild(tEl);
           } else {
             const _la = {x:cx,y:y0,'font-size':'12',fill:p.color,'font-family':'monospace','text-anchor':'middle','class':'pl'};
-            svg.appendChild(p.isAs ? svgEl('text', _la, 'As '+fmtDeg(p.deg))
-              : planetTextLabel(_la, p.label+(retroMark?'R ':' '), fmtDeg(p.deg)+speedTxt));
+            svg.appendChild(p.isAs ? svgEl('text', _la, 'As'+sp+fmtDeg(p.deg))
+              : planetTextLabel(_la, p.label+retroMark+sp, fmtDeg(p.deg)+speedTxt));
           }
           y0+=LH;
         }
