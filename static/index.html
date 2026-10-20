@@ -115,7 +115,7 @@
     #mainRow { display:flex; flex:1; overflow:auto; align-items:flex-start; padding:2px 1.5rem 1rem 2px; gap:0; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
     #chartArea { flex:0 0 auto; min-width:0; }
     #dashaPanel { width:calc(min(8.8vw,8.8vh) + 200px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
-    #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); font-weight:bold; display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; }
+    #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; } /* normal weight like #rashiTitle; Panel labels bold bolds both */
     #dashaInner { border:1px solid #7a5a20; border-radius:4px; display:flex; flex-direction:column; flex:1; min-height:0; background:#182038; }
     #d9Area { flex:0 0 auto; display:none; align-self:flex-start; margin-left:0.5rem; position:relative; }
     /* Overlays the SVG's own empty top margin (y=50 of its 500 viewBox,
@@ -137,7 +137,11 @@
     .dr { padding:1px 8px; white-space:nowrap; line-height:1.5; }
     .dr:hover { background:#1e2a48; }
     .dr.dr-now { background:#0a3a12; border-left:3px solid #50e060; padding-left:5px; color:#90f0a0; font-weight:bold; }
-    .dr-sep { border-top:2px solid #5a6d94; margin:2px 0; } /* between maha dasha sets */
+    /* Rows sit in a column as wide as the widest row, so a divider can span
+       just the text: inset by the row padding (8px) and, on the right, the
+       date's 16px padding-right too. */
+    .dr-col { width:max-content; margin:0 auto; }
+    .dr-sep { border-top:2px solid #5a6d94; margin:2px 24px 2px 8px; } /* between maha dasha sets */
     .dr .dr-date { color:#a0b0c0; margin-left:4px; padding-right:16px; } /* = Rashi Data degree/sign (getTheme().planetDim) */
 
     /* ── Raw / Ephemeris panel ── */
@@ -460,6 +464,9 @@
        The period dates have their own switch, Dasha Periods dates white, planets bold. */
     body.tw-panel-white .dasha-hdr-btns button { font-weight:700; color:#ffffff; }
     body.light.tw-panel-white .dasha-hdr-btns button { color:#1a1a2e; }
+    /* Panel labels bold: the same labels (birth details above the chart,
+       D-chart dropdown, Rashi Data / Dasha Periods titles, Now/Top), weight only. */
+    body.tw-panel-bold :is(svg text.chart-ttl, #divChartSelect, #rashiTitle, #dashaShadowTitle, .dasha-hdr-btns button) { font-weight:700; }
     /* Dialogs > Analysis bold: every line of the Analysis popover (Chart,
        Transits and Chart & Transits analyses all render into #analysisContent). */
     body.tw-analysis-bold #analysisContent, body.tw-analysis-bold #analysisContent * { font-weight:700; }
@@ -479,6 +486,17 @@
     body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke-width:0.65px; }
     body.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1.5px; }
     body.tw-lines-white.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1px; }
+    /* Same options on the Rashi Data / Dasha Periods box borders (the gold
+       frame that matches the chart lines). CSS borders snap to whole device
+       pixels (1.5px renders as 1px), so both colours are 1px and Bold is 2px. */
+    body.tw-lines-white :is(#rashiInner, #dashaInner) { border-color:#ffffff; }
+    body.light.tw-lines-white :is(#rashiInner, #dashaInner) { border-color:#1a1a2e; }
+    body.tw-lines-bold :is(#rashiInner, #dashaInner) { border-width:2px; }
+    /* ...and the separators between maha dasha sets, drawn to match the
+       frame once either option is on: white 1px, bold 2px. */
+    body.tw-lines-white .dr-sep { border-top-color:#ffffff; border-top-width:1px; }
+    body.light.tw-lines-white .dr-sep { border-top-color:#1a1a2e; }
+    body.tw-lines-bold .dr-sep { border-top-width:2px; }
     #dlgTweaks .tw-body { display:flex; flex-direction:column; gap:0.7rem; }
     .tw-group { border:1px solid #0f3460; border-radius:4px; padding:0.5rem 0.75rem 0.6rem; display:flex; flex-direction:column; gap:0.45rem; }
     .tw-group-title { font-size:0.75rem; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.04em; }
@@ -815,6 +833,7 @@
         <span class="tw-group-title">Menus &amp; panels</span>
         <label class="stg-check"><input type="checkbox" id="chkTwMenuBold"> Menu labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwPanelWhite"> Panel labels white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwPanelBold"> Panel labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white, planets bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwRashiNakWhite"> Rashi Data Nakshatra text white</label>
         <label class="stg-check"><input type="checkbox" id="chkTwTransitNoSpace"> Transit View text: remove all spaces</label>
@@ -1992,6 +2011,7 @@
       { chk: 'chkTwAnalysisPlain', key: 'jyotish_tw_analysis_plain', cls: 'tw-analysis-plain' },
       { chk: 'chkTwAnalysisBold',  key: 'jyotish_tw_analysis_bold',  cls: 'tw-analysis-bold' },
       { chk: 'chkTwPanelWhite', key: 'jyotish_tw_panel_white', cls: 'tw-panel-white', repaint: true },
+      { chk: 'chkTwPanelBold',  key: 'jyotish_tw_panel_bold',  cls: 'tw-panel-bold' },
       { chk: 'chkTwDashaDateWhite', key: 'jyotish_tw_dasha_date_white', cls: 'tw-dasha-date-white' },
       { chk: 'chkTwRashiNakWhite', key: 'jyotish_tw_rashi_nak_white', cls: 'tw-rashi-nak-white' },
       { chk: 'chkTwTransitNoSpace', key: 'jyotish_tw_transit_nospace', cls: 'tw-transit-nospace', repaint: true },
@@ -4825,7 +4845,7 @@
         }
       }
       const abbr = name => (({ Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke' })[name] || name.slice(0,2));
-      list.innerHTML = rows.map((r,i) => {
+      list.innerHTML = '<div class="dr-col">' + rows.map((r,i) => {
         const dc = dashaColor(r.dasha), ac = dashaColor(r.antar);
         const isNow = i === nowIdx;
         const sep = i > 0 && rows[i].dasha !== rows[i-1].dasha ? '<div class="dr-sep"></div>' : '';
@@ -4835,7 +4855,7 @@
           `<span class="dr-pl" style="color:${ac}">${grahaHTML(abbr(r.antar))}</span>` +
           `<span class="dr-date">${fmtDashaDate(r.isoStart)}</span>` +
           `</div>`;
-      }).join('');
+      }).join('') + '</div>';
       list._nowIdx = nowIdx;
       list._rowCount = rows.length;
     }
@@ -4991,7 +5011,7 @@
       }
 
       // Title — two lines inside the SVG header (y=0..50 space)
-      const _tAttr = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
+      const _tAttr = {class:'chart-ttl',x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
       document.getElementById('chartTitle').textContent = '';
       const {line1, line2} = natalTitleLines(data);
       if (line2 === null) {
@@ -5703,7 +5723,7 @@
 
       // Title: natal info (the Transits popover, kept open in this mode,
       // already shows the transit date/time/location — see natalTitleLines).
-      const _tAttr = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
+      const _tAttr = {class:'chart-ttl',x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
       document.getElementById('chartTitle').textContent = '';
       const {line1, line2} = natalTitleLines(lastData);
       if (line2 === null) {
@@ -5800,7 +5820,7 @@
         }
       }
 
-      const _tAttrB = {x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
+      const _tAttrB = {class:'chart-ttl',x:'250','font-size':'10.5',fill:_tc.chartTitle,'font-family':'monospace','text-anchor':'middle','dominant-baseline':'middle'};
       document.getElementById('chartTitle').textContent = '';
       const {line1: nLine1, line2: nLine2} = natalTitleLines(lastData);
       if (nLine2 === null) {
