@@ -125,6 +125,12 @@
        divChartSelect within that reserved gap. */
     #d9Label { position:absolute; top:0; left:0; right:0; height:min(4.58vw,4.58vh); margin:0; padding:0; display:flex; align-items:center; justify-content:center; z-index:1; }
     #d9Chart { display:block; width:min(57.2vw,57.2vh); height:auto; }
+    /* SVG strokes scale with the drawing, and #d9Chart is drawn smaller
+       (57.2 per 500 units) than #chart (88 per 450), so its house lines
+       came out ~58% as thick. --lw-k scales them back up to match:
+       (88/450) / (57.2/500) = 1.7094. Used by the Chart lines tweaks too. */
+    #d9Chart { --lw-k:1.7094; }
+    #d9Chart polygon { stroke-width:calc(1px * var(--lw-k)); }
     #rashiBox { display:none; width:min(57.2vw,57.2vh); background:#141428; border-radius:4px; margin-top:0.4rem; box-sizing:border-box; padding:0 5% 3%; container-type:inline-size; }
     #rashiTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); }
     #rashiInner { border:1px solid #7a5a20; border-radius:4px; padding:4px 8px; background:#182038; overflow-x:auto; }
@@ -483,9 +489,9 @@
     /* White reads much heavier than gold at the same width (contrast), so
        white lines are drawn thinner to look like the gold 1-unit default,
        and Bold is the step up: gold 1 -> 1.5, white 0.65 -> 1. */
-    body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke-width:0.65px; }
-    body.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1.5px; }
-    body.tw-lines-white.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:1px; }
+    body.tw-lines-white :is(#chart, #d9Chart) polygon { stroke-width:calc(0.65px * var(--lw-k, 1)); }
+    body.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:calc(1.5px * var(--lw-k, 1)); }
+    body.tw-lines-white.tw-lines-bold :is(#chart, #d9Chart) polygon { stroke-width:calc(1px * var(--lw-k, 1)); }
     /* Same options on the Rashi Data / Dasha Periods box borders (the gold
        frame that matches the chart lines). CSS borders snap to whole device
        pixels (1.5px renders as 1px), so both colours are 1px and Bold is 2px. */
