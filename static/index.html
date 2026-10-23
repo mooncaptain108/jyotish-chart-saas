@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <title>Jyotish</title>
   <link rel="icon" type="image/png" href="/static/maninthemoon2.png">
+  <!-- Installable app ("Add to Home screen" / "Install app"): opens
+       standalone, without the browser toolbar that stays pinned above the
+       menu bar in Android Custom Tabs. Status bar style "black" (not
+       black-translucent) so iOS never draws the page under the clock. -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#222240">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Jyotish">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     .md-content ul, .md-content ol { padding-left: 2.5rem; margin-bottom: 0.75rem; }
