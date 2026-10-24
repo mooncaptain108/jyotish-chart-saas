@@ -108,22 +108,12 @@
     #chart { display:block; width:min(88vw,88vh); height:auto; }
 
     /* ── Main row (chart + dasha panel) ── */
-    /* overflow:auto, not :hidden -- chartArea/d9Area/dashaPanel's widths are
-       vw/vh formulas tuned for a landscape-ish aspect ratio, and on a
-       portrait tablet/phone their sum can exceed the viewport. :hidden
-       silently clipped that excess with no way to reach it at all (not even
-       via pinch-zoom, which only rescales the render, not these CSS widths);
-       :auto makes it an honest horizontal scroll/swipe area instead -- a
-       plain swipe (or trackpad/scroll-wheel shift) is enough to reach it,
-       no extra on-screen control needed (a dedicated pan slider was tried
-       and dropped -- see [[mainrow_portrait_overflow]] -- it dominated the
-       UI and swiping alone already did the job).
-       (overflow-x:auto forces overflow-y to also compute as auto per the CSS
-       spec's visible+non-visible rule -- harmless here: #mainRow's own box
-       height is flex-allocated and content is sized to fit it in the normal
-       case, so an inner vertical scrollbar is a rare fallback, not the usual
-       path; the page's own vertical scroll is unaffected either way.) */
-    #mainRow { display:flex; flex:1; overflow:auto; align-items:flex-start; padding:2px 1.5rem 1rem 2px; gap:0; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
+    /* overflow:hidden, not :auto -- :auto (bf2f138) made #mainRow its own
+       scroll box so portrait overflow could be swiped to, but phone users
+       found Android's browser bar then stayed pinned above the menu instead
+       of the page scrolling up past it. Trade-off: on a narrow portrait
+       screen the right-hand panels are clipped again. */
+    #mainRow { display:flex; flex:1; overflow:hidden; align-items:flex-start; padding:2px 1.5rem 1rem 2px; gap:0; justify-content:flex-start; }
     #chartArea { flex:0 0 auto; min-width:0; }
     #dashaPanel { width:calc(min(8.8vw,8.8vh) + 200px); flex-shrink:0; align-self:flex-start; display:none; flex-direction:column; background:#141428; margin-left:0.4rem; padding:0 min(4.4vw,4.4vh) min(4.4vw,4.4vh); }
     #dashaShadowTitle { color:#906030; font-family:monospace; font-size:min(1.76vw,1.76vh); display:flex; align-items:center; justify-content:center; height:min(4.4vw,4.4vh); flex-shrink:0; } /* normal weight like #rashiTitle; Panel labels bold bolds both */
