@@ -188,7 +188,7 @@
     /* ── Dialogs (shared) ── */
     dialog { background:#1e2a48; border:1px solid #1a4a80; border-radius:8px; color:#e0e0e0; padding:0; min-width:440px; max-width:92vw; box-shadow:0 8px 32px rgba(0,0,0,0.7); }
     dialog::backdrop { background:rgba(0,0,0,0.15); }
-    .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; }
+    .dlg-header { display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1.25rem; border-bottom:1px solid #0f3460; cursor:move; user-select:none; touch-action:none; }
     .dlg-header h2 { color:#c9a84c; font-size:1rem; }
     /* Interface Tweaks > Analysis text plain swaps the Analysis/Chart & Transits and
        Muhurta Evaluation dialog titles' gold for plain menu-item text color
@@ -1773,7 +1773,12 @@
       if (!header) return;
       let startX, startY, startLeft, startTop, pinned = false;
 
-      header.addEventListener('mousedown', e => {
+      // Pointer events, not mouse events: touch screens never turn a finger
+      // drag into mousemove, so mouse-only dragging did nothing on phones and
+      // tablets (touch-action:none on .dlg-header stops the browser taking
+      // the drag as a scroll/zoom instead).
+      header.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (e.target.closest('button')) return; // don't drag when clicking ✕
         // On first drag, convert from centered to explicit position
         if (!pinned) {
@@ -1796,11 +1801,16 @@
           dlg.style.top  = Math.max(0, Math.min(window.innerHeight - dlg.offsetHeight, ny)) + 'px';
         }
         function onUp() {
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup',   onUp);
+          header.removeEventListener('pointermove',   onMove);
+          header.removeEventListener('pointerup',     onUp);
+          header.removeEventListener('pointercancel', onUp);
         }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup',   onUp);
+        // Capture keeps the moves coming to the header even when a fast drag
+        // outruns it (the role document-level mousemove listeners played).
+        header.setPointerCapture(e.pointerId);
+        header.addEventListener('pointermove',   onMove);
+        header.addEventListener('pointerup',     onUp);
+        header.addEventListener('pointercancel', onUp);
         e.preventDefault();
       });
 
