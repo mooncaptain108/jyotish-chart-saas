@@ -2,11 +2,13 @@
 //
 // A JavaScript port of the server's chart calculations (jyotish-chart-saas:
 // config.py, calculations/ephemeris.py, grahas.py, lagna.py, bhavas.py,
-// dasha.py, services/chart_service.py), running Swiss Ephemeris compiled to
+// dasha.py, panchanga.py, services/chart_service.py; divisional charts are
+// in divisional.js), running Swiss Ephemeris compiled to
 // WebAssembly (sweph-wasm, SE 2.10.03 — the same version as the server's
 // pyswisseph). Output field names match the /api/v1/chart response so the
 // parity test can compare them one to one.
 import SwissEPH from './vendor/sweph-wasm/index.js';
+import { computeDivisionalChart, VARGA_TYPES } from './divisional.js';
 
 const GRAHA_NAMES = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
 const RASHI_NAMES = [null, 'Mesha', 'Vrishabha', 'Mithuna', 'Karka', 'Simha', 'Kanya', 'Tula',
@@ -18,11 +20,40 @@ const NAKSHATRA_NAMES = [null, 'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrig
   'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Moola', 'Purva Ashadha',
   'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada',
   'Uttara Bhadrapada', 'Revati'];
+// Birth-name sound for each nakshatra pada (shown with the lagna).
+const PADA_SYLLABLES = [null,
+  ['Chu', 'Che', 'Cho', 'Laa'], ['Lee', 'Loo', 'Le', 'Lo'], ['A', 'Ee', 'U', 'E'], ['O', 'Vaa', 'Vee', 'Vu'],
+  ['Ve', 'Vo', 'Kaa', 'Kee'], ['Ku', 'Gha', 'Ing', 'Chha'], ['Ke', 'Ko', 'Haa', 'Hee'], ['Hu', 'He', 'Ho', 'Daa'],
+  ['Dee', 'Doo', 'De', 'Do'], ['Maa', 'Mee', 'Moo', 'Me'], ['Mo', 'Taa', 'Tee', 'Too'], ['Te', 'To', 'Paa', 'Pee'],
+  ['Poo', 'Sha', 'Na', 'Tha'], ['Pe', 'Po', 'Raa', 'Ree'], ['Roo', 'Re', 'Ro', 'Taa'], ['Tee', 'Too', 'Te', 'To'],
+  ['Naa', 'Nee', 'Noo', 'Ne'], ['No', 'Yaa', 'Yee', 'Yoo'], ['Ye', 'Yo', 'Bhaa', 'Bhee'], ['Bhoo', 'Dhaa', 'Phaa', 'Dha'],
+  ['Bhe', 'Bho', 'Jaa', 'Jee'], ['Khee', 'Khoo', 'Khe', 'Kho'], ['Gaa', 'Gee', 'Gu', 'Ge'], ['Go', 'Saa', 'See', 'Soo'],
+  ['Se', 'So', 'Daa', 'Dee'], ['Doo', 'Tha', 'Jha', 'Yna'], ['De', 'Do', 'Cha', 'Chee']];
+const GRAHA_SANSKRIT = { Sun: 'Surya', Moon: 'Chandra', Mars: 'Mangala', Mercury: 'Budha', Jupiter: 'Guru',
+  Venus: 'Shukra', Saturn: 'Shani', Rahu: 'Rahu', Ketu: 'Ketu' };
+const EXALTATION = { Sun: 1, Moon: 2, Mars: 10, Mercury: 6, Jupiter: 4, Venus: 12, Saturn: 7, Rahu: 3, Ketu: 9 };
+const DEBILITATION = { Sun: 7, Moon: 8, Mars: 4, Mercury: 12, Jupiter: 10, Venus: 6, Saturn: 1, Rahu: 9, Ketu: 3 };
+const OWN_SIGNS = { Sun: [5], Moon: [4], Mars: [1, 8], Mercury: [3, 6], Jupiter: [9, 12], Venus: [2, 7],
+  Saturn: [10, 11], Rahu: [11], Ketu: [8] };
+const dignity = (g, r) => EXALTATION[g] === r ? 'exalted' : DEBILITATION[g] === r ? 'debilitated'
+  : OWN_SIGNS[g].includes(r) ? 'own_sign' : null;
 const DASHA_SEQUENCE = [['Ketu', 7], ['Venus', 20], ['Sun', 6], ['Moon', 10], ['Mars', 7],
   ['Rahu', 18], ['Jupiter', 16], ['Saturn', 19], ['Mercury', 17]];
 const DASHA_ORDER = DASHA_SEQUENCE.map(([n]) => n);
 const DASHA_DURATIONS = Object.fromEntries(DASHA_SEQUENCE);
 const VIMSHOTTARI_TOTAL_YEARS = 120;
+const VARA_NAMES = ['Ravivara', 'Somavara', 'Mangalavara', 'Budhavara', 'Guruvara', 'Shukravara', 'Shanivara'];
+const VARA_ENGLISH = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TITHI_NAMES = ['Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashthi', 'Saptami',
+  'Ashtami', 'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Purnima',
+  'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashthi', 'Saptami',
+  'Ashtami', 'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Amavasya'];
+const KARANA_FIXED = ['Kimstughna', 'Shakuni', 'Chatushpada', 'Nagava'];
+const KARANA_REPEATING = ['Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'];
+const YOGA_NAMES = ['Vishkambha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma',
+  'Dhriti', 'Shula', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi',
+  'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla', 'Brahma',
+  'Indra', 'Vaidhriti'];
 const NAKSHATRA_SPAN = 360 / 27;
 const PADA_SPAN = 360 / 108;
 
@@ -132,9 +163,50 @@ function computeMahadasha(moonLon, birthUs, levels = 3) {
   return periods;
 }
 
-// The subset of /api/v1/chart this proof of concept covers: ayanamsa, lagna,
-// bhavas, grahas and dasha (no divisional charts, panchanga, ashtakavarga).
-export function computeChart({ name = null, date, time, latitude, longitude, timezone_offset }) {
+// ── Panchanga (panchanga.py) ──
+// Upper-limb sunrise with refraction, as ephemeris.compute_sunrise. Where
+// the Sun doesn't rise (polar day/night) pyswisseph hands back 0; the
+// wrapper throws instead, so return 0 the same way.
+function sunriseJd(jdUt, latitude, longitude) {
+  try {
+    return swe.swe_rise_trans(jdUt, swe.SE_SUN, null, swe.SEFLG_SWIEPH, swe.SE_CALC_RISE, [longitude, latitude, 0], 0, 0);
+  } catch { return 0; }
+}
+
+function computePanchanga(sunLon, moonLon, jd, tz, latitude, longitude) {
+  const diff = ((moonLon - sunLon) % 360 + 360) % 360;
+  const tithi = Math.floor(diff / 12);
+  const karana = Math.floor(diff / 6);
+  const karanaName = karana === 0 ? KARANA_FIXED[0] : karana >= 57 ? KARANA_FIXED[karana - 56]
+    : KARANA_REPEATING[(karana - 1) % 7];
+  const yoga = Math.floor(((sunLon + moonLon) % 360) / (360 / 27));
+  const nak = nakshatraOf(moonLon);
+
+  // Vara runs sunrise to sunrise: born before sunrise → previous weekday.
+  const localJd = jd + tz / 24;
+  const localMidnightUt = Math.trunc(localJd + 0.5) - 0.5 - tz / 24;
+  const srJd = sunriseJd(localMidnightUt, latitude, longitude);
+  const varaIdx = Math.trunc((jd < srJd ? localJd - 1 : localJd) + 1.5) % 7;
+
+  let srHours = swe.swe_revjul(srJd, swe.SE_GREG_CAL).hour + tz;
+  if (srHours >= 24) srHours -= 24; else if (srHours < 0) srHours += 24;
+  const h = Math.trunc(srHours), m = Math.trunc((srHours - h) * 60);
+  const sec = Math.trunc(((srHours - h) * 60 - m) * 60);
+  const p2 = n => String(n).padStart(2, '0');
+
+  return {
+    sunrise: `${p2(h)}:${p2(m)}:${p2(sec)}`,
+    tithi: { number: tithi + 1, name: TITHI_NAMES[tithi], paksha: tithi < 15 ? 'Shukla' : 'Krishna' },
+    karana: { number: karana + 1, name: karanaName },
+    yoga: { number: yoga + 1, name: YOGA_NAMES[yoga] },
+    nakshatra: { number: nak, name: NAKSHATRA_NAMES[nak], lord: nakshatraLord(nak), pada: padaOf(moonLon) },
+    vara: { name: VARA_NAMES[varaIdx], english: VARA_ENGLISH[varaIdx] },
+  };
+}
+
+// Planets, houses and lagna for a moment and place: shared by the natal
+// chart and the transit positions.
+function positionsAt(date, time, latitude, longitude, timezone_offset) {
   const jd = birthJd(date, time, timezone_offset);
   const planets = computeAllPlanets(jd);
   const { cusps: c13, ascmc } = swe.swe_houses_ex(jd, FLAGS, latitude, longitude, 'E');
@@ -144,29 +216,45 @@ export function computeChart({ name = null, date, time, latitude, longitude, tim
     longitude: round(asc, 4), rashi: rashiOf(asc), rashi_name: RASHI_NAMES[rashiOf(asc)],
     degree_in_rashi: round(asc % 30, 4), nakshatra: nakshatraOf(asc),
     nakshatra_name: NAKSHATRA_NAMES[nakshatraOf(asc)], pada: padaOf(asc),
+    pada_syllable: PADA_SYLLABLES[nakshatraOf(asc)][padaOf(asc) - 1],
   };
-  const bhavas = cusps.map((cl, i) => ({
-    house: i + 1, cusp_longitude: round(cl, 4), rashi: rashiOf(cl),
-    rashi_name: RASHI_NAMES[rashiOf(cl)], lord: RASHI_LORDS[rashiOf(cl)],
-  }));
   const grahas = GRAHA_NAMES.map(g => {
     const { longitude: lon, speed_long: speed } = planets[g];
     const r = rashiOf(lon), n = nakshatraOf(lon);
     return {
-      graha: g, longitude: round(lon, 4), rashi: r, rashi_name: RASHI_NAMES[r], rashi_lord: RASHI_LORDS[r],
+      graha: g, graha_sanskrit: GRAHA_SANSKRIT[g], longitude: round(lon, 4), rashi: r, rashi_name: RASHI_NAMES[r], rashi_lord: RASHI_LORDS[r],
       degree_in_rashi: round(lon % 30, 4), nakshatra: n, nakshatra_name: NAKSHATRA_NAMES[n],
       nakshatra_lord: nakshatraLord(n), pada: padaOf(lon), house: houseOf(lon, cusps),
       retrograde: speed < 0 || g === 'Rahu' || g === 'Ketu', speed: round(speed, 6),
+      dignity: dignity(g, r),
     };
   });
+  return { jd, planets, cusps, asc, lagna, grahas, ayanamsa: round(swe.swe_get_ayanamsa_ut(jd), 6) };
+}
+
+// /api/v1/chart, minus ashtakavarga (the app doesn't use it).
+export function computeChart({ name = null, date, time, latitude, longitude, timezone_offset }) {
+  const { jd, planets, cusps, asc, lagna, grahas, ayanamsa } = positionsAt(date, time, latitude, longitude, timezone_offset);
+  const bhavas = cusps.map((cl, i) => ({
+    house: i + 1, cusp_longitude: round(cl, 4), rashi: rashiOf(cl),
+    rashi_name: RASHI_NAMES[rashiOf(cl)], lord: RASHI_LORDS[rashiOf(cl)],
+  }));
   const [y, mo, d] = date.split('-').map(Number);
   const [h, mi, s] = time.split(':').map(Number);
   const birthUs = Date.UTC(y, mo - 1, d, h, mi, s) * 1000;
   return {
     name,
     birth_data: { date, time, latitude, longitude, timezone_offset },
-    ayanamsa: round(swe.swe_get_ayanamsa_ut(jd), 6),
-    lagna, grahas, bhavas,
+    ayanamsa, lagna, grahas, bhavas,
+    divisional_charts: VARGA_TYPES.map(t => computeDivisionalChart(planets, asc, t, GRAHA_NAMES, RASHI_NAMES)),
     dasha: computeMahadasha(planets.Moon.longitude, birthUs, 3),
+    panchanga: computePanchanga(planets.Sun.longitude, planets.Moon.longitude, jd, timezone_offset, latitude, longitude),
   };
+}
+
+// /api/v1/chart/transit: positions only. `grahas[i].house` is against this
+// moment's own lagna; the app places transits by the natal lagna instead.
+export function computeTransit({ date, time, latitude, longitude, timezone_offset }) {
+  const { lagna, grahas, ayanamsa } = positionsAt(date, time, latitude, longitude, timezone_offset);
+  return { birth_data: { date, time, latitude, longitude, timezone_offset }, ayanamsa, lagna, grahas };
 }
