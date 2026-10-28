@@ -232,8 +232,11 @@ function positionsAt(date, time, latitude, longitude, timezone_offset) {
   return { jd, planets, cusps, asc, lagna, grahas, ayanamsa: round(swe.swe_get_ayanamsa_ut(jd), 6) };
 }
 
-// /api/v1/chart, minus ashtakavarga (the app doesn't use it).
-export function computeChart({ name = null, date, time, latitude, longitude, timezone_offset }) {
+// /api/v1/chart, minus ashtakavarga (the app doesn't use it). `lean` is for
+// the muhurta search, which screens a chart every minute and reads only the
+// lagna, grahas, D9 and antardashas: it skips the other divisional charts,
+// the pratyantardashas and the panchanga, which are most of the work.
+export function computeChart({ name = null, date, time, latitude, longitude, timezone_offset }, { lean = false } = {}) {
   const { jd, planets, cusps, asc, lagna, grahas, ayanamsa } = positionsAt(date, time, latitude, longitude, timezone_offset);
   const bhavas = cusps.map((cl, i) => ({
     house: i + 1, cusp_longitude: round(cl, 4), rashi: rashiOf(cl),
@@ -246,9 +249,9 @@ export function computeChart({ name = null, date, time, latitude, longitude, tim
     name,
     birth_data: { date, time, latitude, longitude, timezone_offset },
     ayanamsa, lagna, grahas, bhavas,
-    divisional_charts: VARGA_TYPES.map(t => computeDivisionalChart(planets, asc, t, GRAHA_NAMES, RASHI_NAMES)),
-    dasha: computeMahadasha(planets.Moon.longitude, birthUs, 3),
-    panchanga: computePanchanga(planets.Sun.longitude, planets.Moon.longitude, jd, timezone_offset, latitude, longitude),
+    divisional_charts: (lean ? ['D9'] : VARGA_TYPES).map(t => computeDivisionalChart(planets, asc, t, GRAHA_NAMES, RASHI_NAMES)),
+    dasha: computeMahadasha(planets.Moon.longitude, birthUs, lean ? 2 : 3),
+    ...(lean ? {} : { panchanga: computePanchanga(planets.Sun.longitude, planets.Moon.longitude, jd, timezone_offset, latitude, longitude) }),
   };
 }
 
