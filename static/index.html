@@ -93,6 +93,14 @@
     #transitBar #trTime { flex:none; width:9.5rem; }
     #transitBar #trUnit { flex:none; width:7rem; }
     #transitBar #trLoc  { flex:1 1 16rem; min-width:0; max-width:30rem; }
+    /* Slider ◀ ▶ unit wrap as one group, so the unit list stays beside the
+       arrows that use it. ◀ ▶ are finger-sized. */
+    #transitBar .tr-scrub { flex:1 1 20rem; min-width:0; display:flex; align-items:center; gap:0.4rem; }
+    /* ◀ ▶ stay side by side, also when stacked */
+    #transitBar .tr-steps { flex:none; display:flex; gap:0.3rem; }
+    #transitBar .tr-steps .tb-btn { min-width:2.6rem; padding:0.35rem 0.6rem; }
+    #transitBar .tr-err { color:#e08080; font-size:0.85rem; margin:0.3rem 0 0; }
+    #transitBar .tr-err:empty { display:none; }
     #transitBar #trSlider { flex:1 1 7rem; width:auto; min-width:5rem; height:1.7rem; margin:0 0.15rem; accent-color:#c9a84c; cursor:pointer; }
     /* Settings > Transit Control Position (placeTransitBar moves the element):
        above = inside #chartArea before the wheel, so only that panel's
@@ -105,6 +113,8 @@
     #transitBar.tr-stacked #trDate, #transitBar.tr-stacked #trTime,
     #transitBar.tr-stacked #trUnit, #transitBar.tr-stacked #trLoc { flex:none; width:100%; max-width:none; }
     #transitBar.tr-stacked #trSlider { flex:none; width:100%; margin:0; }
+    #transitBar.tr-stacked .tr-scrub { flex:none; flex-direction:column; align-items:stretch; }
+    #transitBar.tr-stacked .tr-steps .tb-btn { flex:1; }
     #chart { display:block; width:min(88vw,88vh); height:auto; }
 
     /* ── Main row (chart + dasha panel) ── */
@@ -664,8 +674,6 @@
         <li><button onclick="setChartViewMode('transits'); closeViewMenu();">Transits</button></li>
         <li><button onclick="setChartViewMode('both'); closeViewMenu();">Chart &amp; Transits</button></li>
         <li><hr></li>
-        <li><button onclick="openTransitsPopover(true); closeViewMenu();">Transits Control</button></li>
-        <li><hr></li>
         <li><button onclick="openEphemerisDialog(); closeViewMenu();">Ephemeris Report</button></li>
       </ul>
     </div>
@@ -716,29 +724,36 @@
          Directly below the main wheel whenever a transit is on
          screen (Transits / Chart & Transits view, or the Divisional panel's
          Transit entry) -- see updateTransitToolbarControls(). Everything needed
-         to move the transit moment around while reading the chart is here;
-         Transits Control (View menu) remains the full form, and is still the
-         only place latitude/longitude/UTC offset are shown. -->
+         to move the transit moment around while reading the chart is here.
+         The ◀ ▶ arrows step one unit at a time, for touch screens where the
+         slider is hard to control. -->
     <div id="transitBar">
       <div class="tr-row">
         <button class="tb-btn" id="trNowBtn" onclick="setTransitToNow()" title="Set the transit to the current date &amp; time">Now</button>
         <input type="time" id="trTime" step="1" title="Transit time" onchange="trTimeChanged()">
         <input type="date" id="trDate" title="Transit date" onchange="trDateChanged()">
-        <input type="range" id="trSlider" min="-10" max="10" step="1" value="0"
-               title="Drag right to move the transit forward, left to move it back, in units of the list alongside. Springs back to centre on release, so it can be dragged again without limit."
-               oninput="trSliderInput()" onchange="trSliderCommit()">
-        <select id="trUnit" title="Unit the slider moves the transit by">
-          <option value="second">Second</option>
-          <option value="minute">Minute</option>
-          <option value="hour">Hour</option>
-          <option value="day" selected>Day</option>
-          <option value="month">Month</option>
-          <option value="year">Year</option>
-        </select>
+        <span class="tr-scrub">
+          <input type="range" id="trSlider" min="-10" max="10" step="1" value="0"
+                 title="Drag right to move the transit forward, left to move it back, in units of the list alongside. Springs back to centre on release, so it can be dragged again without limit."
+                 oninput="trSliderInput()" onchange="trSliderCommit()">
+          <span class="tr-steps">
+            <button class="tb-btn" id="trPrevBtn" onclick="trStep(-1)" title="Move the transit back one unit">&#9664;</button>
+            <button class="tb-btn" id="trNextBtn" onclick="trStep(1)" title="Move the transit forward one unit">&#9654;</button>
+          </span>
+          <select id="trUnit" title="Unit the slider and arrows move the transit by">
+            <option value="second">Second</option>
+            <option value="minute">Minute</option>
+            <option value="hour">Hour</option>
+            <option value="day" selected>Day</option>
+            <option value="month">Month</option>
+            <option value="year">Year</option>
+          </select>
+        </span>
       </div>
       <div class="tr-row">
         <select id="trLoc" title="Transit location" onchange="trLocChanged()"></select>
       </div>
+      <p id="transitErrMsg" class="tr-err"></p>
     </div>
   </div>
 
@@ -1152,7 +1167,6 @@
           <div class="stepper-col"><span class="stepper-lbl">AM/PM</span><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('ampm',12)">▲</button><button type="button" class="btn-sec stepper-btn" onclick="stepTransitField('ampm',-12)">▼</button></div>
         </div>
       </div>
-      <p id="transitErrMsg" style="color:#e08080;font-size:0.82rem;min-height:1.1em;"></p>
     </div>
     <div class="dlg-footer">
       <button class="btn-primary" id="transitsAnalysisBtn" onclick="openAnalysisDialog()">Analyze</button>
@@ -1658,6 +1672,41 @@
     </div>
   </dialog>
   <script>
+    // ═══════════════════════════════════════════════════
+    // Server API, with the offline engine as fallback
+    // ═══════════════════════════════════════════════════
+    // Every /api/v1 call goes through apiFetch(). If the server answers (even
+    // with an error), that answer is used as it is. Only when the server
+    // can't be reached (no network, or no reply in API_TIMEOUT_MS) does the
+    // request go to static/engine/offline-api.js, which computes the same
+    // answer in the browser: the Android app's normal case when offline.
+    // After a failure the server is skipped for SERVER_RETRY_MS, so later
+    // calls don't each wait for a timeout. API_BASE is '' on the website;
+    // the app sets window.JYOTISH_API_BASE to the server's full address.
+    const API_BASE        = window.JYOTISH_API_BASE || '';
+    const API_TIMEOUT_MS  = 10000;
+    const SERVER_RETRY_MS = 60000;
+    let serverDownUntil = 0;
+    let offlineApi = null;
+    async function apiFetch(path, init) {
+      // A Muhurta search started offline keeps talking to the engine.
+      const localJob = /\/muhurta\/(status|results|search)\/local-/.test(path);
+      if (!localJob && navigator.onLine !== false && Date.now() >= serverDownUntil) {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), API_TIMEOUT_MS);
+        try {
+          return await fetch(API_BASE + path, { ...init, signal: ctl.signal });
+        } catch (e) {
+          serverDownUntil = Date.now() + SERVER_RETRY_MS;
+          console.info('[api] server unreachable, using the offline engine:', e.message);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      offlineApi ??= import('./static/engine/offline-api.js');
+      return (await offlineApi).handle(path, init);
+    }
+
     // ═══════════════════════════════════════════════════
     // Storage helpers
     // ═══════════════════════════════════════════════════
@@ -2222,7 +2271,7 @@
       for (let i = 0; i < pending.length; i += 5000) {
         const chunk = pending.slice(i, i + 5000);
         try {
-          const res = await fetch('/api/v1/tz-lookup', {
+          const res = await apiFetch('/api/v1/tz-lookup', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ points: chunk.map(p => ({ lat: p.lat, lon: p.lon })) }),
           });
@@ -2468,8 +2517,13 @@
       statusEl.textContent = 'Looking up\u2026';
       statusEl.style.color = '#a0a0b0';
       try {
-        const res = await fetch('/api/v1/geocode?place=' + encodeURIComponent(place));
-        if (!res.ok) { statusEl.textContent = 'Not found.'; statusEl.style.color = '#e05050'; return; }
+        const res = await apiFetch('/api/v1/geocode?place=' + encodeURIComponent(place));
+        if (!res.ok) {
+          // 503: offline (the engine can't search place names)
+          statusEl.textContent = res.status === 503 ? 'Place search needs an internet connection.' : 'Not found.';
+          statusEl.style.color = '#e05050';
+          return;
+        }
         const data = await res.json();
         document.getElementById('aLat').value    = data.latitude;
         document.getElementById('aLon').value    = data.longitude;
@@ -2591,7 +2645,7 @@
       if (!date) { document.getElementById('nTz').value = parseFloat(loc.tz) || ''; return; }
       if (loc.tzName) {
         try {
-          const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
+          const res = await apiFetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
           if (reqId !== _newTzReqId) return; // a newer call superseded this one
           if (res.ok) {
             const tzData = await res.json();
@@ -2636,7 +2690,7 @@
       saveNewFormState();
       btn.disabled = true; btn.textContent = 'Loading…';
       try {
-        const res = await fetch('/api/v1/chart', {
+        const res = await apiFetch('/api/v1/chart', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ date, time: ensureSeconds(time), latitude:lat, longitude:lon, timezone_offset:tz, include_analysis:true })
         });
@@ -2749,7 +2803,7 @@
       document.getElementById('dlgOpen').close();
       document.getElementById('errorMsg').textContent = '';
       try {
-        const res = await fetch('/api/v1/chart', {
+        const res = await apiFetch('/api/v1/chart', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ date:c.date, time:ensureSeconds(c.time), latitude:parseFloat(c.lat), longitude:parseFloat(c.lon), timezone_offset:parseFloat(c.tz), include_analysis:true })
         });
@@ -2778,7 +2832,7 @@
           data._dst = c.dst;
         } else if (data._tzName && !c.tzOverride) {
           try {
-            const tzRes = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(data._tzName) + '&date=' + c.date);
+            const tzRes = await apiFetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(data._tzName) + '&date=' + c.date);
             if (tzRes.ok) { const td = await tzRes.json(); data._dst = !!td.dst; }
             else data._dst = false;
           } catch { data._dst = false; }
@@ -2855,7 +2909,7 @@
           if (chartData.birth_data) {
             const bd = chartData.birth_data;
             const jsAn = lastAnalysis;
-            fetch('/api/v1/chart', {
+            apiFetch('/api/v1/chart', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 date: bd.date, time: bd.time, latitude: bd.latitude,
@@ -4067,7 +4121,7 @@
       document.getElementById('dlgAnalysis').showModal();
 
       if (showBanner) {
-        fetch('/api/v1/muhurta/screen', {
+        apiFetch('/api/v1/muhurta/screen', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chart: data, cfg: IDEAL_CFG }),
         }).then(r => r.ok ? r.json() : null)
@@ -5297,7 +5351,7 @@
       if (!date) { document.getElementById('tTz').value = parseFloat(loc.tz) || ''; return; }
       if (loc.tzName) {
         try {
-          const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
+          const res = await apiFetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(loc.tzName) + '&date=' + date);
           if (reqId !== _transitTzReqId) return; // a newer call superseded this one
           if (res.ok) {
             const tzData = await res.json();
@@ -5331,8 +5385,8 @@
 
     // Shifts a {date:'YYYY-MM-DD', time:'HH:MM:SS'} pair by `delta` units of
     // `field` and returns a new pair, leaving the DOM alone — shared by the
-    // Transits Control stepper buttons (stepTransitField, below) and
-    // #transitBar's slider scrubber, so the two can't drift apart.
+    // ◀ ▶ arrows (trStep → stepTransitField, below) and #transitBar's
+    // slider scrubber, so the two can't drift apart.
     // 'month'/'year' clamp the day to the target month's length (e.g. Jan 31
     // + 1mo -> Feb 28) instead of JS Date's native roll-over behavior;
     // 'day'/'hour'/'minute' roll over into neighboring days naturally via
@@ -5390,12 +5444,11 @@
     // Seeds the Transits popover's fields from lastData's own birth location
     // and "now", then fetches — so transitData/transitAnalysis are populated
     // (and the Divisional Chart panel's Transit entry has something to show)
-    // without requiring the user to manually open the popover first. Used by
-    // openTransitsPopover (first manual open) and by newSubmit/loadChart
+    // without the user having to set anything first. Used by
+    // openTransitsPopover (first call) and by newSubmit/loadChart
     // (automatically, right after a chart is first loaded). Sets transitSeeded
-    // so later popover opens (View > Transits Control, or re-selecting a
-    // Transits/Both view) don't stomp on whatever the user has since set —
-    // only a fresh chart load runs this again.
+    // so later calls (re-selecting a Transits/Both view) don't stomp on
+    // whatever the user has since set — only a fresh chart load runs this again.
     function seedTransitFromBirth() {
       transitSeeded = true;
       rebuildTransitAtlasSelect();
@@ -5426,10 +5479,11 @@
       }
     }
 
-    // explicit=true means this call came from View > Transits Control itself,
-    // which is the only way this dialog is shown. setChartViewMode('transits'/
-    // 'both') also calls this (explicit falsy) to seed/refresh transitData for
-    // rendering the view, but that call never opens the dialog itself.
+    // The dialog itself is no longer shown (View > Transits Control was
+    // removed once #transitBar had the arrows): its fields remain the
+    // canonical transit date/time/location that the bar mirrors and the
+    // Ephemeris Report reads. setChartViewMode('transits'/'both') calls this
+    // to seed/refresh transitData; explicit=true would still open the dialog.
     function openTransitsPopover(explicit) {
       const dlg = document.getElementById('dlgTransits');
       if (!transitSeeded) {
@@ -5463,7 +5517,7 @@
       syncTransitToolbarFields(date, time);
       const reqId = ++_transitFetchReqId;
       try {
-        const res = await fetch('/api/v1/chart/transit', {
+        const res = await apiFetch('/api/v1/chart/transit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date, time: ensureSeconds(time), latitude: lat, longitude: lon, timezone_offset: tz }),
         });
@@ -5588,10 +5642,17 @@
       else _trSliderFetchTimer = setTimeout(run, 180);
     }
 
+    // ◀ ▶ beside the slider: one trUnit step back or forward. Same date math
+    // and re-fetch as a slider release (stepTransitField), so the two agree.
+    function trStep(delta) {
+      if (!lastData) return;
+      stepTransitField(document.getElementById('trUnit').value, delta);
+    }
+
     // Shows #transitBar below the main wheel whenever a transit is on screen
     // -- either view mode (Transits / Chart & Transits) or the Divisional
     // Chart dropdown's Transit entry -- so the transit can be reset, retimed,
-    // relocated or scrubbed without opening Transits Control.
+    // relocated, scrubbed or stepped.
     // Settings > Transit Control Position: 'above' | 'below' (default) | 'dasha'.
     const TRANSIT_BAR_POS_KEY = 'jyotish_transit_bar_pos';
     function transitBarPos() {
@@ -5980,12 +6041,12 @@
         let rowTz = tz;
         if (tzName) {
           try {
-            const res = await fetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(tzName) + '&date=' + dateStr);
+            const res = await apiFetch('/api/v1/tz-offset?iana_tz=' + encodeURIComponent(tzName) + '&date=' + dateStr);
             if (res.ok) rowTz = (await res.json()).offset;
           } catch {}
         }
         try {
-          const res = await fetch('/api/v1/chart/transit', {
+          const res = await apiFetch('/api/v1/chart/transit', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ date: dateStr, time: timeStr, latitude: lat, longitude: lon, timezone_offset: rowTz }),
           });
@@ -6522,7 +6583,7 @@
       const tzOffset = (loc.tzName) ? getOffsetForDate(loc.tzName, date) : loc.tz;
       const body = { date, time, latitude: loc.lat, longitude: loc.lon, timezone_offset: tzOffset };
       if (includeAnalysis) body.include_analysis = true;
-      const res = await fetch('/api/v1/chart', {
+      const res = await apiFetch('/api/v1/chart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -6575,8 +6636,8 @@
       if (!muhurtaJobId) return;
       try {
         const [sR, rR] = await Promise.all([
-          fetch('/api/v1/muhurta/status/'  + muhurtaJobId),
-          fetch('/api/v1/muhurta/results/' + muhurtaJobId)
+          apiFetch('/api/v1/muhurta/status/'  + muhurtaJobId),
+          apiFetch('/api/v1/muhurta/results/' + muhurtaJobId)
         ]);
         if (!sR.ok || !rR.ok) return;
         const status  = await sR.json();
@@ -6651,7 +6712,7 @@
       // POST search to server
       let resp;
       try {
-        const r = await fetch('/api/v1/muhurta/search', {
+        const r = await apiFetch('/api/v1/muhurta/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -6679,7 +6740,7 @@
 
     function stopMuhurtaSearch() {
       if (muhurtaJobId) {
-        fetch('/api/v1/muhurta/search/' + muhurtaJobId, { method: 'DELETE' }).catch(() => {});
+        apiFetch('/api/v1/muhurta/search/' + muhurtaJobId, { method: 'DELETE' }).catch(() => {});
       }
       muhurtaAbort = true;
       document.getElementById('mProgress').textContent = 'Stopping…';
@@ -6776,7 +6837,7 @@
       if (!c) return;
       tcbLog(`Loading placements from "${c.name}"...`);
       try {
-        const res = await fetch('/api/v1/chart', {
+        const res = await apiFetch('/api/v1/chart', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             date:c.date, time:ensureSeconds(c.time),

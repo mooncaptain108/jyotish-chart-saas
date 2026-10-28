@@ -6,6 +6,7 @@
    - **Now** &mdash; jump the transit back to the current date and time.
    - **Time**, then **Date** &mdash; type or pick the transit moment directly.
    - **Slider** &mdash; drag right to move the transit forward, left to move it back. The slider is centred on whatever moment is currently set, and springs back to the centre when you let go, so you can drag it again in the same direction as many times as you like.
-   - **Second / Minute / Hour / Day / Month / Year** &mdash; the unit the slider moves by (Day is the default).
+   - **&#9664; &#9654;** &mdash; move the transit back or forward by exactly one unit per tap. Easier than the slider on a small touch screen.
+   - **Second / Minute / Hour / Day / Month / Year** &mdash; the unit the slider and the arrows move by (Day is the default).
    - Second line: the **location** list, so the transit can be moved to another saved place without leaving the chart.
-4. Transits Control itself is still where latitude, longitude and the UTC offset are shown, and where the date/time steppers live. Open it from View &gt; Transits Control.
+4. The UTC offset (including daylight saving) for the transit location and date is worked out automatically from the location's time zone.
