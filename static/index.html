@@ -260,6 +260,13 @@
 
     /* ── Analysis dialog ── */
     #dlgAnalysis { min-width:500px; }
+    /* One tab per main-panel view (Chart / Transits / Chart & Transits). */
+    .an-tabs { display:flex; gap:0.25rem; padding:0.6rem 1.25rem 0; border-bottom:1px solid #0f3460; }
+    .an-tabs button { padding:0.35rem 0.9rem; background:none; color:#808098; border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; font-size:0.88rem; cursor:pointer; margin-bottom:-1px; }
+    .an-tabs button.active { background:#162040; color:#c9a84c; border-color:#1a4a80; }
+    body.light .an-tabs { border-bottom-color:#c0a870; }
+    body.light .an-tabs button { color:#5a5860; }
+    body.light .an-tabs button.active { background:#e8e2d0; color:#2a2a3e; border-color:#a09060; }
     .an-lagna { font-size:0.88rem; color:#a0a0b0; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid #0f3460; }
     .an-lagna div + div { margin-top:0.25rem; }
     .an-planet { margin-bottom:0.9rem; border-left:3px solid #1a4a80; padding-left:0.75rem; }
@@ -498,10 +505,11 @@
     /* Dialogs > Analysis bold: every line of the Analysis popover (Chart,
        Transits and Chart & Transits analyses all render into #analysisContent). */
     body.tw-analysis-bold #analysisContent, body.tw-analysis-bold #analysisContent * { font-weight:700; }
-    /* Rashi Data nakshatra column: its colour is an inline style (same
-       planetDim as the degree/sign columns), so the override needs !important. */
-    body.tw-rashi-nak-white #rashiTable td.rd-nak { color:#ffffff !important; }
-    body.light.tw-rashi-nak-white #rashiTable td.rd-nak { color:#1a1a2e !important; }
+    /* Rashi Data degree/sign/nakshatra columns and Sunrise line: their colour
+       is an inline style (planetDim), so the override needs !important. Sign
+       glyphs inherit it (currentColor). */
+    body.tw-rashi-nak-white #rashiTable :is(td.rd-deg, td.rd-sign, td.rd-nak, td.rd-sunrise) { color:#ffffff !important; }
+    body.light.tw-rashi-nak-white #rashiTable :is(td.rd-deg, td.rd-sign, td.rd-nak, td.rd-sunrise) { color:#1a1a2e !important; }
     body.tw-dasha-date-white .dr .dr-date { color:#ffffff; }
     body.light.tw-dasha-date-white .dr .dr-date { color:#1a1a2e; }
     /* ...and bolds the Dasha/Antardasha planets (text, or glyph strokes). */
@@ -873,7 +881,7 @@
         <label class="stg-check"><input type="checkbox" id="chkTwPanelBold"> Panel labels bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaDateWhite"> Dasha Periods dates white, planets bold</label>
         <label class="stg-check"><input type="checkbox" id="chkTwDashaSlashWhite"> Dasha Periods slash white</label>
-        <label class="stg-check"><input type="checkbox" id="chkTwRashiNakWhite"> Rashi Data Nakshatra text white</label>
+        <label class="stg-check"><input type="checkbox" id="chkTwRashiNakWhite"> Rashi Data text white (degrees, signs, Nakshatra, Sunrise)</label>
         <label class="stg-check"><input type="checkbox" id="chkTwTransitNoSpace"> Transit View text: remove all spaces</label>
       </div>
       <div class="tw-group">
@@ -1341,6 +1349,11 @@
     <div class="dlg-header">
       <h2 id="analysisDlgTitle">Chart Analysis</h2>
       <button class="dlg-close-x" onclick="document.getElementById('dlgAnalysis').close()">✕</button>
+    </div>
+    <div class="an-tabs" id="analysisTabs">
+      <button type="button" data-tab="chart" onclick="showAnalysisTab('chart')">Chart</button>
+      <button type="button" data-tab="transits" onclick="showAnalysisTab('transits')">Transits</button>
+      <button type="button" data-tab="both" onclick="showAnalysisTab('both')">Chart &amp; Transits</button>
     </div>
     <div class="dlg-body" style="max-height:75vh;overflow-y:auto;">
       <div id="analysisContent"></div>
@@ -3754,13 +3767,40 @@
       return out;
     }
 
+    // The Analysis popover has one tab per main-panel view and opens on the
+    // tab for the current view. The Transits tabs use the current transit
+    // moment (seeded to "now" at chart load, or wherever the transit bar was
+    // last set). Muhurta result charts have no transits, so no tabs.
     function openAnalysisDialog() {
-      if (chartViewMode === 'both') return openTransitCrossAnalysisDialog();
+      if (!lastData || !lastAnalysis) return;
+      const tabs = document.getElementById('analysisTabs');
+      const muhurta = currentMuhurtaIdx >= 0;
+      tabs.style.display = muhurta ? 'none' : '';
+      showAnalysisTab(muhurta ? 'chart' : chartViewMode);
+      const dlg = document.getElementById('dlgAnalysis');
+      if (!dlg.open) dlg.showModal();
+    }
+
+    function showAnalysisTab(mode) {
+      for (const b of document.querySelectorAll('#analysisTabs button'))
+        b.classList.toggle('active', b.dataset.tab === mode);
+      if ((mode === 'transits' || mode === 'both') && (!transitData || !transitAnalysis)) {
+        document.getElementById('analysisDlgTitle').textContent =
+          mode === 'transits' ? 'Transits Analysis' : 'Chart & Transits Analysis';
+        document.getElementById('analysisContent').innerHTML =
+          '<div class="an-item">Transit positions are not available yet. Try again in a moment.</div>';
+        return;
+      }
+      if (mode === 'both') renderTransitCrossAnalysis();
+      else renderAnalysis(mode);
+    }
+
+    function renderAnalysis(mode) {
       let data, an;
-      if (chartViewMode === 'transits') {
-        // Transits view: analyze transit planet positions against the
-        // NATAL ascendant (same lagna, per the Transit Views spec) — "Analyze"
-        // works the same way it does for the Chart view.
+      if (mode === 'transits') {
+        // Transits tab: analyze transit planet positions against the
+        // NATAL ascendant (same lagna, per the Transit Views spec) — works
+        // the same way it does for the Chart tab.
         if (!lastData || !transitData || !transitAnalysis) return;
         data = { lagna: lastData.lagna, grahas: transitData.grahas, birth_data: transitData.birth_data };
         an   = transitAnalysis;
@@ -4109,16 +4149,15 @@
       const oneYearAgo  = Date.now() - 365 * 24 * 60 * 60 * 1000;
       // Transits view's birth_data is the live transit moment (always
       // "recent"), not the candidate chart's date -- Muhurta Eval only
-      // makes sense for the chart itself, so skip it in Transits view.
-      const showBanner = chartViewMode !== 'transits' && MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo;
+      // makes sense for the chart itself, so skip it on the Transits tab.
+      const showBanner = mode !== 'transits' && MUHURTA_LAGNA.has(lr) && chartDateMs >= oneYearAgo;
       if (showBanner) {
         html = `<button id="muhurtaEvalBtn" onclick="showMuhurtaEval()" style="background:#222;border:1px solid #444;color:#999;padding:0.4rem 0.75rem;border-radius:5px;font-size:0.85rem;cursor:pointer;margin-bottom:0.75rem;">Muhurta Eval…</button>` + html;
       }
 
       document.getElementById('analysisDlgTitle').textContent =
-        chartViewMode === 'transits' ? 'Transits Analysis' : 'Chart Analysis';
+        mode === 'transits' ? 'Transits Analysis' : 'Chart Analysis';
       document.getElementById('analysisContent').innerHTML = html;
-      document.getElementById('dlgAnalysis').showModal();
 
       if (showBanner) {
         apiFetch('/api/v1/muhurta/screen', {
@@ -4207,7 +4246,7 @@
     // since transit shares the natal lagna/house wheel, so this only applies
     // in this direction) — merged into the same list as the planet hits so
     // every hit from one transiting planet sorts together.
-    function openTransitCrossAnalysisDialog() {
+    function renderTransitCrossAnalysis() {
       if (!lastData || !lastAnalysis || !transitData || !transitAnalysis) return;
       const an = lastAnalysis, tAn = transitAnalysis;
       const lagnaRashi = lastData.lagna.rashi, mepDeg = an._mepDeg;
@@ -4240,15 +4279,18 @@
       const transitHits = sortCrossHits(crossPlanetHits(tAn, an).concat(crossMepHits(tAn, lagnaRashi, mepDeg)));
       const natalHits    = sortCrossHits(crossPlanetHits(an, tAn));
 
+      // The transit moment is shown since this tab can be opened from the
+      // Chart view, where the transit date/time isn't otherwise visible.
+      const tbd = transitData.birth_data;
       let html = `<div class="an-lagna">
-        <strong class="c-gold">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna
+        <div><strong class="c-gold">Chart &amp; Transits</strong> — conjunctions/aspects within 5°, natal lagna</div>
+        <div>Transits at ${tbd.date} ${tbd.time}</div>
       </div>`;
       html += section('Transit over Natal', transitHits, tAn, an);
       html += section('Natal over Transit', natalHits, an, tAn);
 
       document.getElementById('analysisDlgTitle').textContent = 'Chart & Transits Analysis';
       document.getElementById('analysisContent').innerHTML = html;
-      document.getElementById('dlgAnalysis').showModal();
     }
 
 
@@ -4723,8 +4765,8 @@
         const col = planetColor(r.name);
         return `<tr>
           <td style="color:${col}">${grahaHTML(r.abbr)}</td>
-          <td style="color:${_tr.planetDim};text-align:right">${r.deg}</td>
-          <td style="color:${_tr.planetDim};padding-left:8px">${signHTML(r.rasi)}</td>
+          <td class="rd-deg" style="color:${_tr.planetDim};text-align:right">${r.deg}</td>
+          <td class="rd-sign" style="color:${_tr.planetDim};padding-left:8px">${signHTML(r.rasi)}</td>
           <td class="rd-nak" style="color:${_tr.planetDim};padding-left:8px">${r.nak}</td>
           <td style="color:${lordColor(r.lord)};padding-left:8px">${grahaHTML(r.lord)}</td>
         </tr>`;
