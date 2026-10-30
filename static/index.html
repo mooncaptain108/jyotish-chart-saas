@@ -4278,6 +4278,12 @@
 
       const transitHits = sortCrossHits(crossPlanetHits(tAn, an).concat(crossMepHits(tAn, lagnaRashi, mepDeg)));
       const natalHits    = sortCrossHits(crossPlanetHits(an, tAn));
+      // Transit over Transit: the transit planets among themselves (a condensed
+      // view of what the Transits tab shows). A planet never aspects itself, and
+      // Rahu/Ketu are always exactly opposite, so that pair is left out.
+      const NODES = new Set(['Rahu', 'Ketu']);
+      const transitTransitHits = sortCrossHits(crossPlanetHits(tAn, tAn)
+        .filter(h => h.source !== h.target && !(NODES.has(h.source) && NODES.has(h.target))));
 
       // The transit moment is shown since this tab can be opened from the
       // Chart view, where the transit date/time isn't otherwise visible.
@@ -4288,6 +4294,7 @@
       </div>`;
       html += section('Transit over Natal', transitHits, tAn, an);
       html += section('Natal over Transit', natalHits, an, tAn);
+      html += section('Transit over Transit', transitTransitHits, tAn, tAn);
 
       document.getElementById('analysisDlgTitle').textContent = 'Chart & Transits Analysis';
       document.getElementById('analysisContent').innerHTML = html;

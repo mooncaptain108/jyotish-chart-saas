@@ -5,7 +5,7 @@ The View menu switches what the main chart wheel is showing, and gives you a cou
 
 - **Chart** — the natal chart. This is the default view when a chart is loaded.
 - **Transits** — replaces the natal planet positions on the wheel with the transit planets, using the same ascendant/houses as the natal chart. Planet speeds are shown, and the strength/affliction Analysis can be run against the transit positions.
-- **Chart & Transits** — shows the natal chart with the transit planets overlaid, so you can see conjunctions/aspects between the two at a glance. Analysis here compares natal and transit placements directly rather than scoring transit strength on its own.
+- **Chart & Transits** — shows the natal chart with the transit planets overlaid, so you can see conjunctions/aspects between the two at a glance. Analysis here lists conjunctions/aspects within 5° rather than scoring strength, in three sections: Transit over Natal, Natal over Transit, and Transit over Transit (the transit planets among themselves).
 - **Analysis** (toolbar) — the Analysis popover has three tabs, **Chart**, **Transits** and **Chart & Transits**, and opens on the tab for the current view. You can switch tabs without changing the view. The Transits tabs use the current transit date/time (now, unless you have moved it with the transit control bar).
 - **Ephemeris Report** — a standalone planet-position table for a location and date range, independent of whatever chart is currently loaded. Useful for scanning planetary positions/speeds over a span of days without stepping through them one at a time.
 
