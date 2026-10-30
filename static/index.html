@@ -283,6 +283,10 @@
     body.light .an-lagna.an-lagna-foot { border-top-color:#c0a870; }
     .an-item.overall { font-weight:bold; margin-top:0.25rem; font-size:1.02rem; }
     .an-section-head { font-size:0.84rem; font-weight:bold; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.08em; margin:1rem 0 0.4rem; border-bottom:1px solid #0f3460; padding-bottom:0.25rem; }
+    /* Chart & Transits section titles: brighter and bolder, in the untweaked
+       analysis text colour (.c-brown) -- kept even with Analysis text plain. */
+    #analysisContent .an-section-head.an-cross-head { font-size:0.92rem; font-weight:800; color:#c8a060; }
+    body.light #analysisContent .an-section-head.an-cross-head { color:#7a5010; }
     .c-red   { color:#e06060; }
     .c-blue  { color:#6090ff; }
     .c-brown { color:#c8a060; }
@@ -4263,7 +4267,7 @@
       // hits; every "over ..." description line underneath is indented
       // (3 spaces for now — nbsp since HTML collapses plain spaces).
       const section = (title, hits, srcDict, tgtDict) => {
-        let html = `<div class="an-section-head">${title}</div>`;
+        let html = `<div class="an-section-head an-cross-head">${title}</div>`;
         if (!hits.length) { html += `<div class="an-item">None within 5°</div>`; return html; }
         let lastSource = null;
         for (const h of hits) {
@@ -4282,6 +4286,8 @@
       // view of what the Transits tab shows). A planet never aspects itself, and
       // Rahu/Ketu are always exactly opposite, so that pair is left out.
       const NODES = new Set(['Rahu', 'Ketu']);
+      // No MEP hits here: they'd repeat Transit over Natal's (the MEPs come
+      // from the shared natal lagna) -- this section is transit planets only.
       const transitTransitHits = sortCrossHits(crossPlanetHits(tAn, tAn)
         .filter(h => h.source !== h.target && !(NODES.has(h.source) && NODES.has(h.target))));
 
