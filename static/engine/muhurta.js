@@ -109,6 +109,23 @@ export function mepOrbDetail(graha, fromHouse, deg, rashi, targetHouse, mepDeg, 
   return [orb, via];
 }
 
+// See planet_orb_detail / planet_via in the Python. Returns [orb, viaHouse, cusp].
+export function planetOrbDetail(graha, fromHouse, rashi, deg, targetRashi, targetDeg) {
+  let best = null;
+  for (const off of [0, ...(ASPECT_OFFSETS[graha] || ASPECT_OFFSETS.default)]) {
+    const h = ((fromHouse - 1 + off) % 12) + 1;
+    const r = ((rashi - 1 + off) % 12) + 1;
+    const cusp = r !== targetRashi;
+    const orb = cusp ? absDiffDeg(r, deg, targetRashi, targetDeg) : Math.abs(deg - targetDeg);
+    if (best === null || orb < best[0] || (orb === best[0] && best[2] && !cusp)) best = [orb, h, cusp];
+  }
+  return best;
+}
+
+export function planetVia(graha, fromHouse, viaHouse, cusp) {
+  return aspectLabel(graha, fromHouse, viaHouse) + (cusp ? ' (cusp)' : '');
+}
+
 export function aspectLabel(graha, fromHouse, toHouse) {
   if (fromHouse === toHouse) return 'conjunct';
   for (const off of ASPECT_OFFSETS[graha] || ASPECT_OFFSETS.default) {
@@ -235,13 +252,14 @@ export function analyzeAllGrahas(data) {
     for (const src of fmData) {
       if (src.graha === fm.graha) continue;
       const srcIsNode = isNodeName(src.graha);
-      const isConj = src.house === fm.house;
-      if (!fmAspectedHouses(src.graha, src.house).has(fm.house)) continue;
+      const [orb, viaH] = planetOrbDetail(src.graha, src.house, src.rashi, src.deg, fm.rashi, fm.deg);
+      if (orb >= 5) continue;
+      const isConj = viaH === src.house;
       if (srcIsNode && !isConj) continue;
       const srcInDust = inDust(src.house, src.rashi, src.graha);
       const specialBase = src.graha === mmp || (srcIsNode && isConj) || srcInDust;
       const dmgOrbBase = !targetStrong ? 5 : (specialBase ? 2 : 1);
-      if (Math.abs(src.deg - fm.deg) < dmgOrbBase) { chainSpecial[fm.graha] = src.graha; break; }
+      if (orb < dmgOrbBase) { chainSpecial[fm.graha] = src.graha; break; }
     }
   }
 
@@ -279,12 +297,11 @@ export function analyzeAllGrahas(data) {
     for (const fm of fmData) {
       if (fm.graha === name) continue;
       if (isNode && isNodeName(fm.graha)) continue;
-      if (!fmAspectedHouses(fm.graha, fm.house).has(house)) continue;
-      const diff = Math.abs(fm.deg - g.degree_in_rashi);
+      const [diff, viaH, cusp] = planetOrbDetail(fm.graha, fm.house, fm.rashi, fm.deg, g.rashi, g.degree_in_rashi);
       if (diff >= 5) continue;
-      const via = aspectLabel(fm.graha, fm.house, house);
+      const via = planetVia(fm.graha, fm.house, viaH, cusp);
       const isNodeFm = isNodeName(fm.graha);
-      const isConj = fm.house === house;
+      const isConj = viaH === fm.house;
       const fmInDust = inDust(fm.house, fm.rashi, fm.graha);
       const special = fm.graha === mmp || (isNodeFm && isConj) || fmInDust;
       const cSpec = fm.graha in chainSpecial;
@@ -306,10 +323,9 @@ export function analyzeAllGrahas(data) {
     for (const fb of data.grahas) {
       if (fb.graha === name || isNodeName(fb.graha) || fms.has(fb.graha)) continue;
       const fbHouse = ((fb.rashi - lr + 12) % 12) + 1;
-      if (!fmAspectedHouses(fb.graha, fbHouse).has(house)) continue;
-      const orb = Math.abs(fb.degree_in_rashi - g.degree_in_rashi);
+      const [orb, viaH, cusp] = planetOrbDetail(fb.graha, fbHouse, fb.rashi, fb.degree_in_rashi, g.rashi, g.degree_in_rashi);
       if (orb >= 5) continue;
-      fbAspects.push({ fb: fb.graha, orb, via: aspectLabel(fb.graha, fbHouse, house) });
+      fbAspects.push({ fb: fb.graha, orb, via: planetVia(fb.graha, fbHouse, viaH, cusp) });
     }
 
     // Ra-Ke axis merge for allFmAspects / afflictions

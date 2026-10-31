@@ -127,6 +127,34 @@ def mep_orb_detail(graha: str, from_house: int, deg: float, rashi: int,
     return orb, via
 
 
+def planet_orb_detail(graha: str, from_house: int, rashi: int, deg: float,
+                      target_rashi: int, target_deg: float) -> tuple[float, int, bool]:
+    """Effective orb from a planet to another planet: the smallest circular
+    distance from its own position (conjunction) or any of its aspect
+    projections (drishti preserves degree-in-sign) to the target, so a hit
+    across a sign boundary counts -- e.g. Jupiter at Cancer 29:52 is 2.92 deg
+    from Ketu at Leo 2:47 (same idea as mep_orb's boundary bleed). Returns
+    (orb, via_house, cusp): via_house is from_house for the planet's own
+    position, else the aspected house; cusp is True when the winning point is
+    in a different sign from the target. Same-sign candidates keep the plain
+    degree subtraction and win exact ties."""
+    best = None
+    for off in [0] + list(ASPECT_OFFSETS.get(graha, ASPECT_OFFSETS['default'])):
+        h = ((from_house - 1 + off) % 12) + 1
+        r = ((rashi - 1 + off) % 12) + 1
+        cusp = r != target_rashi
+        orb = abs_diff_deg(r, deg, target_rashi, target_deg) if cusp else abs(deg - target_deg)
+        if best is None or orb < best[0] or (orb == best[0] and best[2] and not cusp):
+            best = (orb, h, cusp)
+    return best
+
+
+def planet_via(graha: str, from_house: int, via_house: int, cusp: bool) -> str:
+    """aspect_label() for a planet_orb_detail() result: 'conjunct', '7th aspect',
+    with ' (cusp)' added for a hit across a sign boundary."""
+    return aspect_label(graha, from_house, via_house) + (' (cusp)' if cusp else '')
+
+
 def aspect_label(graha: str, from_house: int, to_house: int) -> str:
     if from_house == to_house:
         return 'conjunct'
@@ -258,9 +286,11 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             if src['graha'] == fm['graha']:
                 continue
             src_is_node = src['graha'] in ('Rahu', 'Ketu')
-            is_conj = src['house'] == fm['house']
-            if fm['house'] not in fm_aspected_houses(src['graha'], src['house']):
+            orb, via_h, _ = planet_orb_detail(src['graha'], src['house'], src['rashi'], src['deg'],
+                                              fm['rashi'], fm['deg'])
+            if orb >= 5:
                 continue
+            is_conj = via_h == src['house']  # own position, incl. across a cusp
             if src_is_node and not is_conj:
                 continue
             src_in_dust = src['house'] in DUSHTANA and MOOLA_LORD.get(src['rashi']) != src['graha']
@@ -277,7 +307,7 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             # re-deriving it (see [[node_chain_orb_open_question]]): Ra/Ke
             # afflict, and are afflicted, the same way any other malefic does.
             dmg_orb_base = 5 if not target_strong else (2 if special_base else 1)
-            if abs(src['deg'] - fm['deg']) < dmg_orb_base:
+            if orb < dmg_orb_base:
                 chain_special[fm['graha']] = src['graha']
                 break
 
@@ -323,14 +353,13 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
                 continue
             if is_node and fm['graha'] in ('Rahu', 'Ketu'):
                 continue
-            if house not in fm_aspected_houses(fm['graha'], fm['house']):
-                continue
-            diff = abs(fm['deg'] - g['degree_in_rashi'])
+            diff, via_h, cusp = planet_orb_detail(fm['graha'], fm['house'], fm['rashi'], fm['deg'],
+                                                  g['rashi'], g['degree_in_rashi'])
             if diff >= 5:
                 continue
-            via        = aspect_label(fm['graha'], fm['house'], house)
+            via        = planet_via(fm['graha'], fm['house'], via_h, cusp)
             is_node_fm = fm['graha'] in ('Rahu', 'Ketu')
-            is_conj    = fm['house'] == house
+            is_conj    = via_h == fm['house']  # own position, incl. across a cusp
             fm_in_dust = fm['house'] in DUSHTANA and MOOLA_LORD.get(fm['rashi']) != fm['graha']
             special    = fm['graha'] == mmp or (is_node_fm and is_conj) or fm_in_dust
             c_spec     = fm['graha'] in chain_special
@@ -359,13 +388,12 @@ def analyze_all_grahas(data: dict) -> dict[str, Any]:
             if fb['graha'] in (name, 'Rahu', 'Ketu') or fb['graha'] in fms:
                 continue
             fb_house = ((fb['rashi'] - lr + 12) % 12) + 1
-            if house not in fm_aspected_houses(fb['graha'], fb_house):
-                continue
-            orb = abs(fb['degree_in_rashi'] - g['degree_in_rashi'])
+            orb, via_h, cusp = planet_orb_detail(fb['graha'], fb_house, fb['rashi'], fb['degree_in_rashi'],
+                                                 g['rashi'], g['degree_in_rashi'])
             if orb >= 5:
                 continue
             fb_aspects.append({'fb': fb['graha'], 'orb': orb,
-                               'via': aspect_label(fb['graha'], fb_house, house)})
+                               'via': planet_via(fb['graha'], fb_house, via_h, cusp)})
 
         # Ra-Ke axis merge for all_fm_aspects / afflictions
         ra_i = next((i for i, a in enumerate(all_fm_aspects) if a['fm'] == 'Rahu'), -1)

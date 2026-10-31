@@ -260,9 +260,10 @@
 
     /* ── Analysis dialog ── */
     #dlgAnalysis { min-width:500px; }
-    /* One tab per main-panel view (Chart / Transits / Chart & Transits). */
+    /* One tab per main-panel view (Chart / Transits / Chart & Transits). Labels
+       larger and bold in the base style; no Interface Tweak changes them. */
     .an-tabs { display:flex; gap:0.25rem; padding:0.6rem 1.25rem 0; border-bottom:1px solid #0f3460; }
-    .an-tabs button { padding:0.35rem 0.9rem; background:none; color:#808098; border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; font-size:0.88rem; cursor:pointer; margin-bottom:-1px; }
+    .an-tabs button { padding:0.35rem 0.9rem; background:none; color:#808098; border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; font-size:0.95rem; font-weight:700; cursor:pointer; margin-bottom:-1px; }
     .an-tabs button.active { background:#162040; color:#c9a84c; border-color:#1a4a80; }
     body.light .an-tabs { border-bottom-color:#c0a870; }
     body.light .an-tabs button { color:#5a5860; }
@@ -703,6 +704,7 @@
         <li><button onclick="openHelpAnalysis(); closeHelpMenu();">Analysis Rules</button></li>
         <li><button onclick="openHelpData(); closeHelpMenu();">Data Storage</button></li>
         <li><button onclick="openHelpTransitControl(); closeHelpMenu();">Transit Control</button></li>
+        <li><button onclick="openHelpTweaks(); closeHelpMenu();">Interface Tweaks</button></li>
         <li><hr></li>
         <li><button onclick="openHelpReportErrors(); closeHelpMenu();">Report Errors</button></li>
         <li><button onclick="openAbout(); closeHelpMenu();">About</button></li>
@@ -1015,6 +1017,19 @@
     </div>
     <div class="dlg-footer">
       <button class="btn-sec" onclick="document.getElementById('dlgHelpTransitControl').close()">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlgHelpTweaks" style="max-width:600px;">
+    <div class="dlg-header" style="padding:0.3rem 0.75rem;">
+      <button class="dlg-close-x" onclick="document.getElementById('dlgHelpTweaks').close()">✕</button>
+    </div>
+    <div class="dlg-body dlg-body-md" style="line-height:1.6;font-size:0.92rem;max-height:65vh;overflow-y:auto;">
+      <div id="helpTweaksContent" class="md-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn-primary" onclick="document.getElementById('dlgHelpTweaks').close(); openTweaks();">Open Interface Tweaks</button>
+      <button class="btn-sec" onclick="document.getElementById('dlgHelpTweaks').close()">Close</button>
     </div>
   </dialog>
 
@@ -1958,7 +1973,7 @@
     function _openHelpDoc(dlgId, contentId, url, cacheVar) {
       const dlg     = document.getElementById(dlgId);
       const content = document.getElementById(contentId);
-      const cached  = { dlgHelpViews: '_helpViewsMd', dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd', dlgHelpReportErrors: '_helpReportErrorsMd' }[dlgId];
+      const cached  = { dlgHelpViews: '_helpViewsMd', dlgHelpMuhurta: '_helpMuhurtaMd', dlgHelpCalc: '_helpCalcMd', dlgHelpData: '_helpDataMd', dlgHelpAnalysis: '_helpAnalysisMd', dlgHelpCustomLoc: '_helpCustomLocMd', dlgHelpTransitControl: '_helpTransitControlMd', dlgHelpReportErrors: '_helpReportErrorsMd', dlgHelpTweaks: '_helpTweaksMd' }[dlgId];
       if (window[cached] !== null && window[cached] !== undefined) {
         content.innerHTML = marked.parse(window[cached]);
         dlg.showModal(); return;
@@ -1981,6 +1996,7 @@
     function openHelpCustomLoc()  { _openHelpDoc('dlgHelpCustomLoc',  'helpCustomLocContent',  'static/CustomLocations.md'); }
     function openHelpTransitControl() { _openHelpDoc('dlgHelpTransitControl', 'helpTransitControlContent', 'static/TransitsControl.md'); }
     function openHelpReportErrors()   { _openHelpDoc('dlgHelpReportErrors',   'helpReportErrorsContent',   'static/ReportErrors.md'); }
+    function openHelpTweaks()         { _openHelpDoc('dlgHelpTweaks',         'helpTweaksContent',         'static/InterfaceTweaks.md'); }
 
     function openWelcome() {
       document.getElementById('chkHideWelcome').checked = localStorage.getItem(WELCOME_KEY) === '1';
@@ -3096,6 +3112,30 @@
       }
       return { orb, via };
     }
+    // Effective orb from a planet to another planet: the smallest circular
+    // distance from its own position (conjunction) or any of its aspect
+    // projections (drishti preserves degree-in-sign) to the target, so a hit
+    // across a sign boundary counts -- e.g. Jupiter at Cancer 29:52 is 2.92°
+    // from Ketu at Leo 2:47 (same idea as mepOrbDetail's boundary bleed).
+    // viaHouse is fromHouse for the planet's own position, else the aspected
+    // house; cusp is true when the winning point is in a different sign from
+    // the target. Same-sign candidates keep the plain degree subtraction and
+    // win exact ties. Mirrors planet_orb_detail() in muhurta_analysis.py.
+    function planetOrbDetail(grahaName, fromHouse, rashi, deg, targetRashi, targetDeg) {
+      let best = null;
+      for (const off of [0, ...(ASPECT_OFFSETS[grahaName] || ASPECT_OFFSETS.default)]) {
+        const h = ((fromHouse - 1 + off) % 12) + 1;
+        const r = ((rashi - 1 + off) % 12) + 1;
+        const cusp = r !== targetRashi;
+        const orb = cusp ? absDiffDeg(r, deg, targetRashi, targetDeg) : Math.abs(deg - targetDeg);
+        if (best === null || orb < best.orb || (orb === best.orb && best.cusp && !cusp)) best = { orb, viaHouse: h, cusp };
+      }
+      return best;
+    }
+    // aspectLabel() for a planetOrbDetail() result, ' (cusp)' added across a sign boundary.
+    function planetVia(grahaName, fromHouse, d) {
+      return aspectLabel(grahaName, fromHouse, d.viaHouse) + (d.cusp ? ' (cusp)' : '');
+    }
     function mepOrb(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi) {
       return mepOrbDetail(grahaName, fromHouse, deg, rashi, targetHouse, mepDeg, lagnaRashi).orb;
     }
@@ -3247,10 +3287,11 @@
         for (const source of fmData) {
           if (source.graha === fm.graha) continue;
           const sourceIsNode = source.graha === 'Rahu' || source.graha === 'Ketu';
-          const isConjunct = source.house === fm.house;
-          const sourceAsp = fmAspectedHouses(source.graha, source.house);
-          if (!sourceAsp.has(fm.house)) continue;
-          // Rahu/Ketu can only start a chain via conjunction (same house), not via aspects
+          const sd = planetOrbDetail(source.graha, source.house, source.rashi, source.deg, fm.rashi, fm.deg);
+          if (sd.orb >= 5) continue;
+          // Conjunction = own position, including across a sign boundary
+          const isConjunct = sd.viaHouse === source.house;
+          // Rahu/Ketu can only start a chain via conjunction, not via aspects
           if (sourceIsNode && !isConjunct) continue;
           const sourceInDushtana = DUSHTANA.has(source.house) && MOOLA_LORD[source.rashi] !== source.graha;
           const specialBase = source.graha === mmp || (sourceIsNode && isConjunct) || sourceInDushtana;
@@ -3266,8 +3307,7 @@
           // re-deriving it: Ra/Ke afflict, and are afflicted, the same way
           // any other malefic does.
           const dmgOrbBase = !targetStrong ? 5 : (specialBase ? 2 : 1);
-          const diff = Math.abs(source.deg - fm.deg);
-          if (diff < dmgOrbBase) { chainSpecialFMs.set(fm.graha, source.graha); break; }
+          if (sd.orb < dmgOrbBase) { chainSpecialFMs.set(fm.graha, source.graha); break; }
         }
       }
 
@@ -3317,13 +3357,12 @@
           if (fm.graha === g.graha) continue; // skip self
           // Rahu/Ketu always oppose each other — mutual aspect is normal, not informative
           if (isNode && (fm.graha === 'Rahu' || fm.graha === 'Ketu')) continue;
-          const asp  = fmAspectedHouses(fm.graha, fm.house);
-          if (!asp.has(house)) continue;
-          const diff = Math.abs(fm.deg - g.degree_in_rashi);
+          const fd   = planetOrbDetail(fm.graha, fm.house, fm.rashi, fm.deg, g.rashi, g.degree_in_rashi);
+          const diff = fd.orb;
           if (diff >= 5) continue; // hard cutoff — don't show beyond 5°
-          const via          = aspectLabel(fm.graha, fm.house, house);
+          const via          = planetVia(fm.graha, fm.house, fd);
           const isNodeFM    = fm.graha === 'Rahu' || fm.graha === 'Ketu';
-          const isConjunct  = fm.house === house;
+          const isConjunct  = fd.viaHouse === fm.house; // own position, incl. across a cusp
           const fmInDushtana = DUSHTANA.has(fm.house) && MOOLA_LORD[fm.rashi] !== fm.graha;
           const special     = fm.graha === mmp || (isNodeFM && isConjunct) || fmInDushtana;
           const chainSpecial = chainSpecialFMs.has(fm.graha);
@@ -3347,10 +3386,10 @@
           if (fb.graha === 'Rahu' || fb.graha === 'Ketu') continue; // nodes never boost
           if (fms.has(fb.graha)) continue;                          // FMs don't boost
           const fbHouse = ((fb.rashi - lr + 12) % 12) + 1;
-          if (!fmAspectedHouses(fb.graha, fbHouse).has(house)) continue;
-          const orb = Math.abs(fb.degree_in_rashi - g.degree_in_rashi);
+          const bd  = planetOrbDetail(fb.graha, fbHouse, fb.rashi, fb.degree_in_rashi, g.rashi, g.degree_in_rashi);
+          const orb = bd.orb;
           if (orb >= 5) continue; // outside max boost range
-          const via = aspectLabel(fb.graha, fbHouse, house);
+          const via = planetVia(fb.graha, fbHouse, bd);
           fbAspects.push({ fb:fb.graha, orb, via });
         }
 
@@ -4214,10 +4253,13 @@
         const t = targets[tName]; if (!t || !t.graha) continue;
         for (const sName of PLANET_ORDER) {
           const s = sources[sName]; if (!s || !s.graha) continue;
-          if (!fmAspectedHouses(s.graha, s.house).has(t.house)) continue;
-          const orb = Math.abs(s.deg - t.deg);
-          if (orb >= 5) continue;
-          hits.push({ source: s.graha, orb, via: aspectAbbrev(s.graha, s.house, t.house), target: tName, kind: 'planet' });
+          const d = planetOrbDetail(s.graha, s.house, s.rashi, s.deg, t.rashi, t.deg);
+          if (d.orb >= 5) continue;
+          // Same labels as the MEP hits: 'Cusp' for the planet's own position
+          // across a sign boundary, '<Nth Aspect> (Cusp)' for an aspect's.
+          const via = d.viaHouse === s.house ? (d.cusp ? 'Cusp' : 'Conj.')
+                    : aspectAbbrev(s.graha, s.house, d.viaHouse) + (d.cusp ? ' (Cusp)' : '');
+          hits.push({ source: s.graha, orb: d.orb, via, target: tName, kind: 'planet' });
         }
       }
       return hits;
@@ -6802,7 +6844,7 @@
     }
 
     // Init draggable on all dialogs
-    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpViews','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgHelpReportErrors','dlgTweaks','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
+    ['dlgNew','dlgOpen','dlgAtlasNew','dlgAtlasLocations','dlgAnalysis','dlgBuild','dlgMuhurta','dlgAbout','dlgWelcome','dlgHelpViews','dlgHelpMuhurta','dlgHelpCalc','dlgHelpData','dlgHelpAnalysis','dlgHelpCustomLoc','dlgHelpTransitControl','dlgHelpReportErrors','dlgHelpTweaks','dlgTweaks','dlgMuhurtaEval','dlgNotRecommended','dlgTransits','dlgEphemeris'].forEach(id =>
       makeDraggable(document.getElementById(id)));
 
     // ═══════════════════════════════════════════════════

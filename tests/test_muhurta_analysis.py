@@ -11,7 +11,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from services.muhurta_analysis import analyze_all_grahas, screen_muhurta, mep_orb
+from services.muhurta_analysis import analyze_all_grahas, screen_muhurta, mep_orb, planet_orb_detail
 
 
 def _chart(lagna_rashi, lagna_deg, grahas):
@@ -47,6 +47,44 @@ def test_mep_orb_physical_boundary_case():
     rahu_rashi = ((2 - 1 + lr - 1) % 12) + 1
     orb = mep_orb('Rahu', 2, 29 + 58/60, rahu_rashi, 3, 0 + 22/60, lr)
     assert abs(orb - 0.4) < 0.001
+
+
+# ─── planet_orb_detail: planet-to-planet orbs across a sign boundary ────
+# End-user report 2026-10-30: transit Jupiter at Cancer 29:52 vs Ketu at Leo
+# 2:47 (and Rahu at Aquarius 2:47) was missed because the orb was only taken
+# when both points fell in the same sign.
+
+def test_planet_orb_conjunction_across_cusp():
+    # Sagittarius rising: Ketu in Leo = house 9, Jupiter in Cancer = house 8.
+    orb, via_h, cusp = planet_orb_detail('Ketu', 9, 5, 2 + 47/60, 4, 29 + 52/60)
+    assert abs(orb - (2 + 55/60)) < 0.001
+    assert via_h == 9 and cusp  # own position, across the Cancer/Leo cusp
+
+
+def test_planet_orb_aspect_across_cusp():
+    # Rahu in Aquarius (house 3) -> 7th aspect lands on Leo 2:47, 2.92 deg from Jupiter.
+    orb, via_h, cusp = planet_orb_detail('Rahu', 3, 11, 2 + 47/60, 4, 29 + 52/60)
+    assert abs(orb - (2 + 55/60)) < 0.001
+    assert via_h == 9 and cusp
+
+
+def test_planet_orb_same_sign_unchanged():
+    # Same sign: plain degree subtraction, no cusp flag.
+    orb, via_h, cusp = planet_orb_detail('Saturn', 1, 1, 10.0, 1, 12.5)
+    assert orb == 2.5 and via_h == 1 and not cusp
+
+
+def test_cusp_affliction_and_boost_reach_the_analysis():
+    an = analyze_all_grahas(_chart(9, 15.0, {
+        'Sun': (7, 12.6), 'Moon': (3, 8.7), 'Mars': (4, 23.5), 'Mercury': (7, 24.1),
+        'Jupiter': (4, 29 + 52/60), 'Venus': (7, 2.9), 'Saturn': (12, 15.2),
+        'Rahu': (11, 2 + 47/60), 'Ketu': (5, 2 + 47/60),
+    }))
+    ju = an['Jupiter']['allFmAspects']
+    assert [a['fm'] for a in ju] == ['Ra-Ke'] and abs(ju[0]['orb'] - (2 + 55/60)) < 0.001
+    assert '(cusp)' in ju[0]['via']
+    ke_boost = [b for b in an['Ketu']['fbAspects'] if b['fb'] == 'Jupiter']
+    assert ke_boost and ke_boost[0]['via'] == 'conjunct (cusp)'
 
 
 # ─── Sun-like boosts ────────────────────────────────────────────────────

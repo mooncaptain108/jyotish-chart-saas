@@ -2,7 +2,7 @@
 
 Each planet's strength is calculated as a percentage (0%–100%+). The following states are evaluated in sequence — reductions multiply together, so a combust and debilitated planet is weaker than either condition alone.
 
-NOTE: The analysis of Orb of influence is used for benefic, malefic, and combust influences and will include the word "Cusp" if the influence is from another house.
+NOTE: The analysis of Orb of influence is used for benefic, malefic, and combust influences and will include the word "Cusp" if the influence is from another house. This applies between planets as well as to house MEPs: for example Jupiter at Cancer 29:52 and Ketu at Leo 2:47 are 2.92° apart ("conjunct (cusp)"), and Rahu at Aquarius 2:47 reaches Jupiter by its 7th aspect across the same boundary ("7th aspect (cusp)").
 
 ### Degree-Based Strength (Infancy and Old Age)
 
